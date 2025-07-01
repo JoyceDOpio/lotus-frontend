@@ -151,20 +151,6 @@ object TaskDialUtils {
         }
     }
 
-    fun checkIfTouchWithinActiveTime(
-        offset: Offset,
-        activeTimeCenter: Offset,
-        activeTimeRadius: Float,
-        touchStroke: Float
-    ): Boolean {
-        val distance = distance(offset, activeTimeCenter)
-        if (distance <= activeTimeRadius + touchStroke * 2f) {
-            return true
-        }
-
-        return false
-    }
-
     fun checkIfTouchWithinAngleRange(angle: Float, startAngle: Float, endAngle: Float): Boolean {
         // The task stores the appropriate angle values, i.e. values corresponding to how the circle is drawn (the 0 degree starts at the right-hand side (east) of the circle). We want to 'correct' these angles as if 0 degree starts at the top of the circle (north)
         val angleCorrected = mapAngle270To0Degree(angle)

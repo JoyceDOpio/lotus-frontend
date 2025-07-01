@@ -19,7 +19,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -33,7 +32,10 @@ import com.example.circularplanner.ui.component.Calendar
 import java.util.UUID
 import com.example.circularplanner.ui.component.TaskDial
 import com.example.circularplanner.ui.component.TaskList
-import com.example.circularplanner.ui.viewmodel.TaskDisplayUiState
+import com.example.circularplanner.ui.viewmodel.DayState
+import com.example.circularplanner.ui.viewmodel.DayUiState
+import com.example.circularplanner.ui.viewmodel.TaskUiState
+import com.example.circularplanner.ui.viewmodel.UserInput
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -41,11 +43,14 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskDisplayScreen(
-    uiState: TaskDisplayUiState,
+    dayUiState: DayUiState,
+    dayState: DayState,
+    taskUiState: TaskUiState,
+    userInput: UserInput,
     deleteTask: (Task) -> Unit,
     onChangeDisplayForm: (Boolean) -> Unit,
-    onNavigateToTaskEdit: (String?) -> Unit,
-    onNavigateToTaskInfo: (String?) -> Unit,
+    onNavigateToTaskEdit: () -> Unit,
+    onNavigateToTaskInfo: () -> Unit,
     onClickSaveActiveTime: () -> Unit,
     saveTask: () -> Unit,
     selectTask: (UUID?) -> Unit,
@@ -57,9 +62,9 @@ fun TaskDisplayScreen(
     setTaskEndTime: (Time) -> Unit
 ) {
     val formatter = DateTimeFormatter.ofPattern("d. MMMM yyyy")
-    var showList = uiState.isList
-    var showActiveTimeSetUp = uiState.isActiveTimeSetUp
-    val selectedDate = uiState.selectedDate
+    var showList = dayUiState.isList
+    var showActiveTimeSetUp = dayUiState.isActiveTimeSetUp
+    val selectedDate = userInput.selectedDate
 
     Scaffold (
         topBar = {
@@ -85,9 +90,8 @@ fun TaskDisplayScreen(
 
                     IconButton(
                         onClick = {
-                            onNavigateToTaskEdit(
-                                null
-                            )
+                            selectTask(null)
+                            onNavigateToTaskEdit()
                         }
                     ) {
                         Icon(
@@ -127,7 +131,7 @@ fun TaskDisplayScreen(
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             ActiveTimeHeader(
-                uiState = uiState
+                dayState = dayState
             )
 
             Row(
@@ -144,7 +148,9 @@ fun TaskDisplayScreen(
                         exit = fadeOut(),
                     ) {
                         TaskDial(
-                            uiState = uiState,
+                            dayState = dayState,
+                            taskUiState = taskUiState,
+                            userInput = userInput,
                             onNavigateToTaskEdit = onNavigateToTaskEdit,
                             onNavigateToTaskInfo = onNavigateToTaskInfo,
                             onPressActiveTime = { setIsActiveTimeSetUp(true) },
@@ -162,8 +168,9 @@ fun TaskDisplayScreen(
                         exit = fadeOut(),
                     ) {
                         TaskList (
-                            uiState = uiState,
+                            dayState = dayState,
                             onNavigateToTaskInfo = onNavigateToTaskInfo,
+                            selectTask = selectTask,
                             removeTask = deleteTask
                         )
                     }
@@ -174,7 +181,7 @@ fun TaskDisplayScreen(
                     visible = showActiveTimeSetUp
                 ) {
                     ActiveTimeSetUp(
-                        uiState = uiState.dayDetails,
+                        dayUiState = dayUiState,
                         onBack = { setIsActiveTimeSetUp(false) },
                         onClickSaveActiveTime = onClickSaveActiveTime,
                         setActiveTimeStart = setActiveTimeStart,
@@ -184,7 +191,7 @@ fun TaskDisplayScreen(
             }
 
             Calendar(
-                uiState = uiState,
+                userInput = userInput,
                 onSetDate = onSetSelectedDate
             )
         }

@@ -23,17 +23,20 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.circularplanner.data.Task
+import java.util.UUID
 
 @Composable
 fun TaskListItem(
     modifier: Modifier = Modifier,
-    onNavigateToTaskInfo: (String?) -> Unit,
+    onNavigateToTaskInfo: () -> Unit,
+    selectTask: (UUID?) -> Unit,
     task: Task,
 ){
     Card(
         modifier = modifier
             .clickable {
-                onNavigateToTaskInfo(task.id.toString())
+                selectTask(task.id)
+                onNavigateToTaskInfo()
             }
             .sizeIn(maxHeight = 150.dp),
         elevation = CardDefaults.cardElevation(

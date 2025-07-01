@@ -99,23 +99,6 @@ fun DeleteBackground(
 //        MaterialTheme.colorScheme.inverseSurface
     }
 
-//    Box(
-//        modifier = Modifier
-//            .fillMaxSize()
-//            .background(color),
-//        contentAlignment = Alignment.CenterEnd
-//    ) {
-//        Icon(
-//            imageVector = ImageVector.vectorResource(id = R.drawable.delete_24dp_5f6368_fill0_wght400_grad0_opsz24),
-//            contentDescription = "Remove task",
-//            modifier = Modifier
-//                .fillMaxSize(0.5F),
-////                .align(Alignment.CenterEnd)
-////                .padding(16.dp),
-//            tint = Color.White
-//        )
-//    }
-
     Row(
         modifier = Modifier
             .fillMaxSize()
@@ -127,9 +110,6 @@ fun DeleteBackground(
         Icon(
             imageVector = ImageVector.vectorResource(id = R.drawable.delete_24dp_5f6368_fill0_wght400_grad0_opsz24),
             contentDescription = "Remove task",
-//            modifier = Modifier
-//                .fillMaxSize(0.5f)
-//                .padding(16.dp),
             tint = Color.White
         )
     }

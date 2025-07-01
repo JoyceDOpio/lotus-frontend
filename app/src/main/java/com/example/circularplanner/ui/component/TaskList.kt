@@ -10,12 +10,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.example.circularplanner.data.Task
-import com.example.circularplanner.ui.viewmodel.TaskDisplayUiState
+import com.example.circularplanner.ui.viewmodel.DayState
+import java.util.UUID
 
 @Composable
 fun TaskList(
-    uiState: TaskDisplayUiState,
-    onNavigateToTaskInfo: (String?) -> Unit,
+    dayState: DayState,
+    onNavigateToTaskInfo: () -> Unit,
+    selectTask: (UUID?) -> Unit,
     removeTask: (Task) -> Unit
 ) {
     // Sorts tasks according to their start time
@@ -40,7 +42,7 @@ fun TaskList(
             .fillMaxSize()
     ) {
         items(
-            items = uiState.dayDetails.tasks.sortedWith(TaskSortingComparator),
+            items = dayState.tasks.sortedWith(TaskSortingComparator),
             key = { it.id }
         ) { task ->
             SwipeToDeleteContainer(
@@ -56,6 +58,7 @@ fun TaskList(
                 task -> TaskListItem(
                     task = task,
                     onNavigateToTaskInfo = onNavigateToTaskInfo,
+                    selectTask = selectTask
                 )
             }
         }

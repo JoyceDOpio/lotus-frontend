@@ -1,7 +1,6 @@
 package com.example.circularplanner.data
 
 import kotlinx.coroutines.flow.Flow
-import java.time.LocalDate
 
 interface IDaysRepository {
     fun getDayStream(date: String): Flow<Day?>

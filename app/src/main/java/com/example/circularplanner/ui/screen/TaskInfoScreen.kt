@@ -23,18 +23,23 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.circularplanner.R
-import com.example.circularplanner.ui.viewmodel.TaskDisplayUiState
+import com.example.circularplanner.ui.viewmodel.DayState
+import com.example.circularplanner.ui.viewmodel.TaskUiState
+import com.example.circularplanner.ui.viewmodel.UserInput
 import com.example.circularplanner.utils.TaskDialUtils
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun TaskInfoScreen(
     modifier: Modifier = Modifier,
-    uiState: TaskDisplayUiState,
+    taskUiState: TaskUiState,
+    userInput: UserInput,
     onCancel: () -> Unit,
-    onNavigateToTaskEdit: (String?) -> Unit,
-    reset: () -> Unit
+    onNavigateToTaskEdit: () -> Unit
 ) {
-    val taskDetails = uiState.taskDetails
+    val taskDetails = taskUiState
+    val weekDayFormatter = DateTimeFormatter.ofPattern("EEEE")
+    val dateFormatter = DateTimeFormatter.ofPattern("d. MMMM")
 
     Row (
         modifier = modifier
@@ -58,21 +63,46 @@ fun TaskInfoScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = taskDetails.title!!,
+                    text = taskDetails.title,
                     modifier = modifier.weight(2f),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
+                    fontSize = 28.sp,
+                    lineHeight = 32.sp
                 )
             }
 
-            Column (
+            Row (
                 modifier = modifier
                     .padding(top = 20.dp)
                     .fillMaxWidth(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.Start
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
-                if (taskDetails != null) {
+                Column (
+                    modifier = modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                ) {
+                    // Date
+                    Text(
+                        text = userInput.selectedDate.format(dateFormatter),
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 18.sp
+                    )
+
+                    Text(
+                        text = userInput.selectedDate.format(weekDayFormatter),
+                        fontWeight = FontWeight.Thin,
+                        fontSize = 18.sp
+                    )
+                }
+
+                Column (
+                    modifier = modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.End
+                ) {
                     // Time range
                     val timeRangeText = String.format("%d:%02d - %d:%02d", taskDetails?.startTime!!.hour ?:0, taskDetails?.startTime!!.minute, taskDetails?.endTime!!.hour, taskDetails?.endTime!!.minute)
                     Text(
@@ -141,7 +171,6 @@ fun TaskInfoScreen(
             // Close button
             IconButton(onClick = {
                 // Navigate to previous stack entry
-                reset()
                 onCancel()
             }) {
                 Icon(
@@ -153,7 +182,7 @@ fun TaskInfoScreen(
 
             // Edit button
             IconButton(onClick = {
-                onNavigateToTaskEdit(taskDetails.id.toString())
+                onNavigateToTaskEdit()
             }) {
                 Icon(
                     imageVector = ImageVector.vectorResource(id = R.drawable.edit_24dp_5f6368_fill0_wght400_grad0_opsz24),

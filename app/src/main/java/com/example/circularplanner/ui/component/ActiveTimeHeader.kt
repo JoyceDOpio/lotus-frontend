@@ -11,18 +11,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.circularplanner.data.Time
+import com.example.circularplanner.ui.viewmodel.DayState
 import kotlin.math.floor
-import com.example.circularplanner.ui.viewmodel.TaskDisplayUiState
 
 const val MINUTES_IN_HOUR = 60
 
 @Composable
 fun ActiveTimeHeader (
-    uiState: TaskDisplayUiState,
+    dayState: DayState,
     modifier: Modifier = Modifier
 ) {
-    val startTime = uiState.dayDetails.activeTimeStart
-    val endTime = uiState.dayDetails.activeTimeEnd
+    val startTime = dayState.activeTimeStart
+    val endTime = dayState.activeTimeEnd
 
     fun calculateTimeIntervalInMinutes(start: Time?, end: Time?): Int {
         var minutes = 0

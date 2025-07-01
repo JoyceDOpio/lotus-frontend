@@ -13,42 +13,45 @@ import com.example.circularplanner.data.IDaysRepository
 import com.example.circularplanner.data.ITasksRepository
 import com.example.circularplanner.data.Task
 import com.example.circularplanner.data.Time
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.util.UUID
 import kotlin.String
 
-data class TaskDisplayUiState (
-    val selectedDate: LocalDate = LocalDate.now(),
-    val dayDetails: DayDetails = DayDetails(),
-    val taskDetails: TaskDetails = TaskDetails(),
-    val isActiveTimeValid: Boolean = false,
-//    val isTaskTimeValid: Boolean = false
-    val isList: Boolean = false,
-    val isActiveTimeSetUp: Boolean = false
-)
-
+// There is data I only want to read and there is data which I want to modify in response to user's actions (without saving this data into the database)
 typealias Tasks = List<Task>
-data class DayDetails (
+data class DayState (
     val date: LocalDate = LocalDate.now(),
     val activeTimeStart: Time = Time(6, 0),
     val activeTimeEnd: Time = Time(22, 0),
     val tasks: Tasks = emptyList()
 )
 
-data class TaskDetails (
+data class DayUiState (
+    val activeTimeStart: Time = Time(6, 0),
+    val activeTimeEnd: Time = Time(22, 0),
+    val isActiveTimeValid: Boolean = false,
+    val isList: Boolean = false,
+    val isActiveTimeSetUp: Boolean = false
+)
+
+data class TaskUiState (
     val id: UUID? = null,
-    val date: LocalDate = LocalDate.now(),
     var title: String = "",
     var startTime: Time = Time(0, 0),
     var endTime: Time = Time(0, 0),
     var description: String = ""
+)
+
+data class UserInput(
+    val selectedDate: LocalDate = LocalDate.now(),
 )
 
 class TaskDisplayViewModel(
@@ -79,13 +82,34 @@ class TaskDisplayViewModel(
         }
     }
 
-    val _uiState: MutableStateFlow<TaskDisplayUiState> = MutableStateFlow(TaskDisplayUiState())
-    val uiState: StateFlow<TaskDisplayUiState> = _uiState.asStateFlow()
+    val userInput = MutableStateFlow(UserInput())
 
-    // Initialize data in ViewModel
-    init {
-        loadDay()
+    // Day state
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val dayState = userInput.flatMapLatest { input: UserInput ->
+        combine(
+            flow = daysRepository.getDayStream(input.selectedDate.toString()),
+            flow2 = tasksRepository.getAllTasksPerDayStream(input.selectedDate.toString())
+        ) { day, tasks ->
+            DayState(
+                date = input.selectedDate,
+                activeTimeStart = day?.activeTimeStart ?: Time(6, 0),
+                activeTimeEnd = day?.activeTimeEnd ?: Time(22, 0),
+                tasks = tasks
+            )
+        }
     }
+    .stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5000L),
+        initialValue = DayState()
+    )
+
+    // Task details' UI state
+    val taskUiState = MutableStateFlow(TaskUiState())
+
+    // Day UI state
+    val dayUiState = MutableStateFlow(DayUiState())
 
     fun deleteTask(task: Task) {
         viewModelScope.launch {
@@ -93,172 +117,92 @@ class TaskDisplayViewModel(
         }
     }
 
-    fun getTask(id: UUID?) {
-        viewModelScope.launch {
-            // If we're looking for a specific task
-            if (id != null) {
-                tasksRepository
-                    .getTaskStream(id)
-                    .map() {
-                            task ->
-                        TaskDetails(
-                            id = task?.id,
-                            date = task?.date!!,
-                            title = task.title,
-                            startTime = task.startTime,
-                            endTime = task.endTime,
-                            description = task.description
-                        )
-                    }
-                    .collect { newTaskDetails ->
-                        _uiState.update {
-                            it.copy(
-                                taskDetails = newTaskDetails
-                            )
-                        }
-                    }
-            }
-            // Else, reset task details except for the date
-            else {
-                resetTaskDetails()
-            }
-        }
-    }
-
-    fun loadDay() {
-        viewModelScope.launch {
-            val date = _uiState.value.selectedDate
-            val dayFlow = daysRepository.getDayStream(date.toString())
-            val tasksFlow = tasksRepository.getAllTasksPerDayStream(date.toString())
-
-            combine(
-                flow = dayFlow,
-                flow2 = tasksFlow
-            ) { day, tasks ->
-                DayDetails(
-                    date = date,
-                    activeTimeStart = day?.activeTimeStart ?: Time(6, 0),
-                    activeTimeEnd = day?.activeTimeEnd ?: Time(22, 0),
-                    tasks = tasks
-                )
-            }
-                .collect { newDayDetails ->
-                    _uiState.update { currentState ->
-                        currentState.copy(
-                            dayDetails = newDayDetails
-                        )
-                    }
-                }
-        }
-    }
-
-    fun resetTaskDetails() {
-        _uiState.update { currentState ->
-            currentState.copy(
-                taskDetails = TaskDetails(
-                    date = currentState.taskDetails.date
-                )
-            )
-        }
-    }
-
     fun saveDay() {
         viewModelScope.launch {
-            daysRepository.insertDay(uiState.value.dayDetails.toDay())
+            daysRepository.insertDay(dayState.value.toDay())
         }
     }
 
     fun saveTask() {
         viewModelScope.launch {
             // If tasks exists, update it
-            val taskId = _uiState.value.taskDetails.id
+            val taskId = taskUiState.value.id
 
             if (taskId != null) {
-                val task = _uiState.value.dayDetails.tasks.find { task -> task.id == taskId }
+                val task = dayState.value.tasks.find { task -> task.id == taskId }
 
                 if (task != null) {
-                    val updatedTask = _uiState.value.taskDetails.toTask().copy(
+                    val updatedTask = taskUiState.value.toTask(userInput.value.selectedDate).copy(
                         id = taskId
                     )
-                    val numberOfUpdatedRows = tasksRepository.updateTask(updatedTask)
-
-                    if (numberOfUpdatedRows > 0) {
-                        resetTaskDetails()
-                    }
+                    tasksRepository.updateTask(updatedTask)
                 }
             }
             // Else, save the new task
             else {
                 // There are no tasks for the given day, save the day.
-                if (uiState.value.dayDetails.tasks.size == 0) {
-                    daysRepository.insertDay(uiState.value.dayDetails.toDay())
+                if (dayState.value.tasks.size == 0) {
+                    daysRepository.insertDay(dayState.value.toDay())
                 }
 
-                val rowId = tasksRepository.insertTask(uiState.value.taskDetails.toTask())
-
-                if (rowId is Long) {
-                    resetTaskDetails()
-                }
+                tasksRepository.insertTask(taskUiState.value.toTask(userInput.value.selectedDate))
             }
         }
     }
 
     fun selectTask(id: UUID?) {
-        if (id != null) {
-            val task = _uiState.value.dayDetails.tasks.find { task -> task.id == id }
-            if (task != null) {
-                _uiState.update {
-                    it.copy(
-                        taskDetails = it.taskDetails.copy(
-                            id = task.id,
-                            date = task.date,
-                            title = task.title,
-                            startTime = task.startTime,
-                            endTime = task.endTime,
-                            description = task.description
-                        )
-                    )
-                }
+        val task = dayState.value.tasks.find { task -> task.id == id }
+        if (task != null) {
+            taskUiState.update {
+                TaskUiState(
+                    id = task.id,
+                    title = task.title,
+                    startTime = task.startTime,
+                    endTime = task.endTime,
+                    description = task.description
+                )
             }
         } else {
-            resetTaskDetails()
+            taskUiState.update {
+                TaskUiState()
+            }
         }
     }
 
     fun setActiveTimeEnd(time: Time) {
-        _uiState.update {
-            currentState -> currentState.copy(
-                dayDetails = currentState.dayDetails.copy(activeTimeEnd = time)
+        dayUiState.update {
+            it.copy(
+                activeTimeEnd = time
             )
         }
     }
 
     fun setActiveTimeStart(time: Time) {
-        _uiState.update {
-            currentState -> currentState.copy(
-                dayDetails = currentState.dayDetails.copy(activeTimeStart = time)
+        dayUiState.update {
+            it.copy(
+                activeTimeStart = time
             )
         }
     }
 
-    fun setActiveTimeIsValid(isValid: Boolean) {
-        _uiState.update {
-            currentState -> currentState.copy(
-                isActiveTimeValid = isValid
+    fun setActiveTimeIsValid(value: Boolean) {
+        dayUiState.update {
+            it.copy(
+                isActiveTimeValid = value
             )
         }
     }
 
     fun setIsActiveTimeSetUp(value: Boolean) {
-        _uiState.update {
+        dayUiState.update {
             it.copy(
-                isActiveTimeSetUp =  value
+                isActiveTimeSetUp = value
             )
         }
     }
 
     fun setIsList(value: Boolean) {
-        _uiState.update {
+        dayUiState.update {
             it.copy(
                 isList = value
             )
@@ -266,94 +210,54 @@ class TaskDisplayViewModel(
     }
 
     fun setSelectedDate(date: LocalDate) {
-        _uiState.update {
+        userInput.update {
             it.copy(
-                selectedDate = date,
-                taskDetails = it.taskDetails.copy(
-                    date = date
-                )
+                selectedDate = date
             )
         }
-        loadDay()
     }
 
     fun setTaskDescription (description: String) {
-        _uiState.update { currentState ->
-            currentState.copy(
-                taskDetails = currentState.taskDetails.copy(
-                    description = description
-                )
+        taskUiState.update {
+            it.copy(
+                description = description
             )
         }
     }
 
     fun setTaskEndTime(time: Time) {
-        _uiState.update {
-            currentState -> currentState.copy(
-                taskDetails = currentState.taskDetails.copy(
-                    endTime = time
-                )
+        taskUiState.update {
+            it.copy(
+                endTime = time
             )
         }
     }
 
     fun setTaskStartTime(time: Time) {
-        _uiState.update {
-            currentState -> currentState.copy(
-                taskDetails = currentState.taskDetails.copy(
-                    startTime = time
-                )
+        taskUiState.update {
+            it.copy(
+                startTime = time
             )
         }
     }
 
     fun setTaskTitle (title: String) {
-        _uiState.update { currentState ->
-            currentState.copy(
-                taskDetails = currentState.taskDetails.copy(
-                    title = title
-                )
+        taskUiState.update {
+            it.copy(
+                title = title
             )
-        }
-    }
-
-    fun updateTasks(date: LocalDate) {
-        viewModelScope.launch {
-            tasksRepository.getAllTasksPerDayStream(date.toString())
-                .collect { tasks ->
-                    _uiState.update { currentState ->
-                        currentState.copy(
-                            dayDetails = currentState.dayDetails.copy(
-                                tasks = tasks
-                            )
-                        )
-                    }
-                }
         }
     }
 }
 
-// Extension function to convert [DayDetails] to [Day].
-fun Day.toDayDetails(tasks: List<Task>): DayDetails = DayDetails(
-    date = date,
-    activeTimeStart = activeTimeStart,
-    activeTimeEnd = activeTimeEnd,
-    tasks = tasks
-)
-
-fun Day.toDayUiState(tasks: List<Task>): TaskDisplayUiState = TaskDisplayUiState(
-    dayDetails = this.toDayDetails(tasks),
-    selectedDate = this.date,
-)
-
-fun DayDetails.toDay(): Day = Day(
+fun DayState.toDay(): Day = Day(
     date = this.date,
     activeTimeStart = this.activeTimeStart,
     activeTimeEnd = this.activeTimeEnd
 )
 
-fun TaskDetails.toTask(): Task = Task(
-    date = this.date!!,
+fun TaskUiState.toTask(date: LocalDate): Task = Task(
+    date = date,
     title = this.title,
     startTime = this.startTime,
     endTime = this.endTime,

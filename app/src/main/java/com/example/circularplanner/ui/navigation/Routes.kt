@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 object TaskDisplayRoute
 
 @Serializable
-data class TaskEditRoute(val id: String?)
+object TaskEditRoute
 
 @Serializable
-data class TaskInfoRoute(val id: String)
+object TaskInfoRoute

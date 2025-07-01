@@ -31,13 +31,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.circularplanner.R
 import com.example.circularplanner.data.Time
-import com.example.circularplanner.ui.viewmodel.DayDetails
+import com.example.circularplanner.ui.viewmodel.DayUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActiveTimeSetUp (
     modifier: Modifier = Modifier,
-    uiState: DayDetails,
+    dayUiState: DayUiState,// TODO: There is a loophole here - it is possible I should read the first value from DayState
     onBack: () -> Unit,
     onClickSaveActiveTime: () -> Unit,
     setActiveTimeStart: (Time) -> Unit,
@@ -45,8 +45,8 @@ fun ActiveTimeSetUp (
 ){
     var showTimePicker by remember { mutableStateOf(false) }
     var showStartActiveTimePicker by remember { mutableStateOf(false) }
-    var activeTimeStart by remember { mutableStateOf(uiState.activeTimeStart) }
-    var activeTimeEnd by remember { mutableStateOf(uiState.activeTimeEnd) }
+    var activeTimeStart by remember { mutableStateOf(dayUiState.activeTimeStart) }
+    var activeTimeEnd by remember { mutableStateOf(dayUiState.activeTimeEnd) }
     var isActiveTimeValid by remember { mutableStateOf(false) }
     val startActiveTimePickerState = rememberTimePickerState(
         activeTimeStart.hour,

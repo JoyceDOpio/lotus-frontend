@@ -1,5 +1,6 @@
 package com.example.circularplanner.ui.screen
 
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,21 +39,23 @@ import androidx.compose.ui.unit.sp
 import com.example.circularplanner.R
 import com.example.circularplanner.data.Time
 import com.example.circularplanner.ui.component.TimePickerDialog
-import com.example.circularplanner.ui.viewmodel.TaskDisplayUiState
+import com.example.circularplanner.ui.viewmodel.DayState
+import com.example.circularplanner.ui.viewmodel.TaskUiState
+import com.example.circularplanner.ui.viewmodel.UserInput
+//import com.example.circularplanner.ui.viewmodel.TaskDisplayUiState
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskEditScreen(
     modifier: Modifier = Modifier,
-    uiState: TaskDisplayUiState,
+    taskUiState: TaskUiState,
     onBack: () -> Unit,
     saveTask: () -> Unit,
     setTaskStartTime: (Time) -> Unit,
     setTaskEndTime: (Time) -> Unit,
     setTaskDescription: (String) -> Unit,
     setTaskTitle: (String) -> Unit,
-    reset: () -> Unit
 ) {
     fun getLabel(taskId: UUID?): String {
         if (taskId == null) {
@@ -62,10 +65,10 @@ fun TaskEditScreen(
         return "Edit task"
     }
 
-    val label: String = getLabel(uiState.taskDetails.id)
+    val label: String = getLabel(taskUiState.id)
     var showTimePicker by remember { mutableStateOf(false) }
     var showStartTimePicker by remember { mutableStateOf(false) }
-    val taskDetails = uiState.taskDetails
+    val taskDetails = taskUiState
 
     val startTimePickerState: TimePickerState = rememberTimePickerState(
         initialHour = taskDetails.startTime.hour,
@@ -230,7 +233,6 @@ fun TaskEditScreen(
             // Close button
             IconButton(onClick = {
                 // Navigate to previous stack entry
-                reset()
                 onBack()
             }) {
                 Icon(
