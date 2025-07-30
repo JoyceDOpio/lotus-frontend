@@ -1,7 +1,8 @@
 package com.example.circularplanner.ui.screen
 
-import android.util.Log
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,17 +11,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerState
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,6 +33,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
@@ -39,10 +45,7 @@ import androidx.compose.ui.unit.sp
 import com.example.circularplanner.R
 import com.example.circularplanner.data.Time
 import com.example.circularplanner.ui.component.TimePickerDialog
-import com.example.circularplanner.ui.viewmodel.DayState
 import com.example.circularplanner.ui.viewmodel.TaskUiState
-import com.example.circularplanner.ui.viewmodel.UserInput
-//import com.example.circularplanner.ui.viewmodel.TaskDisplayUiState
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,10 +62,10 @@ fun TaskEditScreen(
 ) {
     fun getLabel(taskId: UUID?): String {
         if (taskId == null) {
-            return "Create new task"
+            return "CREATE A TASK"
         }
 
-        return "Edit task"
+        return "EDIT TASK"
     }
 
     val label: String = getLabel(taskUiState.id)
@@ -99,164 +102,327 @@ fun TaskEditScreen(
         showTimePicker = true
     }
 
-    Row (
-        modifier = modifier
-            .padding(vertical = 10.dp)
-            .fillMaxSize(),
-        verticalAlignment = Alignment.Top
-    ) {
+    Scaffold (
+        bottomBar = {
+            BottomAppBar (
+//                contentColor = MaterialTheme.colorScheme.primaryContainer
+                actions = {
+//                    // Leading icons should typically have a high content alpha
+//                    CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.high) {
+//                        IconButton(onClick = { /* doSomething() */ }) {
+//                            Icon(Icons.Filled.Menu, contentDescription = "Localized description")
+//                        }
+//                    }
+
+                    // Close button
+                    IconButton(onClick = {
+                        // Navigate to previous stack entry
+                        onBack()
+                    }) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(id = R.drawable.cancel_24dp_5f6368_fill0_wght400_grad0_opsz24),
+                            contentDescription = "Cancel",
+                            modifier = Modifier.fillMaxSize(0.8F)
+                        )
+                    }
+
+                    // These actions should be at the end of the BottomAppBar. They use the default medium
+                    // content alpha provided by BottomAppBar
+                    // The Spacer pushes the other icons to the end of the app bar
+                    Spacer(Modifier.weight(1f, true))
+
+
+
+                    // Save button
+                    IconButton(onClick = {
+                        //TODO: Validate start- and end-time input - the values should remain within the active time boundaries
+                        saveTask()
+                        onBack()
+                    }) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(id = R.drawable.save_24dp_5f6368_fill0_wght400_grad0_opsz24),
+                            contentDescription = "Open time picker",
+                            modifier = Modifier.fillMaxSize(0.8F)
+                        )
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
         Column(
             modifier = modifier
-                .padding(horizontal = 10.dp)
-                .fillMaxWidth(0.85f)
+//                .weight(0.6f)
+                .padding(horizontal = 30.dp)
+                .padding(innerPadding)
+                .fillMaxWidth()
                 .fillMaxHeight()
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.Start
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // One of the Spacers to center the content after this Spacer and to  make description text field slightly higher than just one line
-            Spacer(Modifier.weight(1f, true))
+            // Label
+            Text(
+                modifier = Modifier
+                    .padding(bottom = 10.dp),
+                text = label,
+                fontSize = 20.sp,
+                color = MaterialTheme.colorScheme.primary
+            )
 
-            Column () {
-                // Label
-                Text(
-                    text = label,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
-                )
-
-                // Title field
-                OutlinedTextField(
-                    value = taskDetails.title,
-                    onValueChange = setTaskTitle,
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    textStyle = TextStyle(fontSize = 20.sp),
-                    label = { Text("Title") },
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                    singleLine = true
-                )
-
+            Column (
+                modifier = modifier
+                    .fillMaxWidth(),
+            ) {
                 Row (
-                    modifier = modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Start time
-                    Text(
-                        text = String.format(
-                            "Start time: %d:%02d",
-                            taskDetails.startTime.hour,
-                            taskDetails.startTime.minute
-                        ),
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    IconButton(onClick = {
-                        showStartTimePicker = true
-                        openTimePicker()
-                    }) {
-                        Icon(
-                            imageVector = ImageVector.vectorResource(id = R.drawable.schedule_24dp_5f6368_fill0_wght400_grad0_opsz24),
-                            contentDescription = "Open time picker",
-                            modifier = Modifier.fillMaxSize(0.8F)
+                    Box (
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .clickable(
+                                onClick = {
+                                    showStartTimePicker = true
+                                    openTimePicker()
+                                }
+                            )
+                    ) {
+                        Text(
+                            modifier = Modifier
+                                .padding(10.dp),
+                            text = "%d:%02d".format(
+                                taskDetails.startTime.hour,
+                                taskDetails.startTime.minute
+                            ),
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
-                }
 
-                Row (
-                    modifier = modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(0.5f),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                    Text(
+                        " - ",
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
                     // End time
-                    Text(
-                        text = String.format(
-                            "End time: %d:%02d",
-                            taskDetails.endTime.hour,
-                            taskDetails.endTime.minute
-                        ),
-                        fontWeight = FontWeight.Bold
-                    )
-                    IconButton(onClick = {
-                        openTimePicker()
-                    }) {
-                        Icon(
-                            imageVector = ImageVector.vectorResource(id = R.drawable.schedule_24dp_5f6368_fill0_wght400_grad0_opsz24),
-                            contentDescription = "Open time picker",
-                            modifier = Modifier.fillMaxSize(0.8F)
+                    Box (
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .clickable(
+                                onClick = {
+                                    openTimePicker()
+                                }
+                            )
+                    ) {
+                        Text(
+                            modifier = Modifier
+                                .padding(10.dp),
+                            text = "%d:%02d".format(
+                                taskDetails.endTime.hour,
+                                taskDetails.endTime.minute
+                            ),
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
             }
 
-            Column (
+            // Title field
+            OutlinedTextField(
+                value = taskDetails.title,
+                onValueChange = setTaskTitle,
                 modifier = Modifier
-                    .weight(1f)
-            ) {
-                // Description field
-                OutlinedTextField(
-                    value = taskDetails.description,
-                    onValueChange = setTaskDescription,
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxSize()
+                    .padding(vertical = 5.dp)
+                    .fillMaxWidth(),
+                textStyle = TextStyle(fontSize = 20.sp),
+                label = { Text("Title") },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                singleLine = true,
+                shape = RoundedCornerShape(15.dp),
+            )
 
+            // Description field
+            OutlinedTextField(
+                value = taskDetails.description,
+                onValueChange = setTaskDescription,
+                modifier = Modifier
+                    .padding(vertical = 5.dp)
+                    .fillMaxWidth()
                     .fillMaxHeight(0.5f),
-                    textStyle = TextStyle(fontSize = 18.sp),
-                    label = { Text("Description") },
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                    singleLine = false
-                )
-            }
-
-            // One of the Spacers to center the content before this Spacer and to  make description text field slightly higher than just one line
-            Spacer(Modifier.weight(1f, true))
-        }
-
-        VerticalDivider(
-            modifier = Modifier
-                .fillMaxHeight(),
-            thickness = 2.dp,
-        )
-
-        Column (
-            modifier = modifier
-                .fillMaxWidth(1f)
-                .fillMaxHeight(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Close button
-            IconButton(onClick = {
-                // Navigate to previous stack entry
-                onBack()
-            }) {
-                Icon(
-                    imageVector = ImageVector.vectorResource(id = R.drawable.cancel_24dp_5f6368_fill0_wght400_grad0_opsz24),
-                    contentDescription = "Cancel",
-                    modifier = Modifier.fillMaxSize(0.8F)
-                )
-            }
-
-            // Save button
-            IconButton(onClick = {
-                //TODO: Validate start- and end-time input - the values should remain within the active time boundaries
-                saveTask()
-                onBack()
-            }) {
-                Icon(
-                    imageVector = ImageVector.vectorResource(id = R.drawable.save_24dp_5f6368_fill0_wght400_grad0_opsz24),
-                    contentDescription = "Open time picker",
-                    modifier = Modifier.fillMaxSize(0.8F)
-                )
-            }
+                textStyle = TextStyle(fontSize = 18.sp),
+                label = { Text("Description") },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                singleLine = false,
+                shape = RoundedCornerShape(15.dp),
+            )
         }
     }
 
+//    Row (
+//        modifier = modifier
+//            .padding(vertical = 10.dp)
+//            .fillMaxSize()
+//    ) {
+//        Column () {
+//            Column(
+//                modifier = modifier
+//                    .weight(0.6f)
+//                    .padding(horizontal = 10.dp)
+//                    .fillMaxWidth(0.85f)
+//                    .fillMaxHeight()
+//                    .verticalScroll(rememberScrollState()),
+//                verticalArrangement = Arrangement.Center,
+//                horizontalAlignment = Alignment.CenterHorizontally
+//            ) {
+//                // Label
+//                Text(
+//                    modifier = Modifier
+//                        .padding(bottom = 10.dp),
+//                    text = label,
+//                    fontSize = 20.sp,
+//                    color = MaterialTheme.colorScheme.primary
+//                )
+//
+//                Column (
+//                    modifier = modifier
+//                        .fillMaxWidth(),
+//                ) {
+//                    Row (
+//                        horizontalArrangement = Arrangement.Center,
+//                        verticalAlignment = Alignment.CenterVertically
+//                    ) {
+//                        // Start time
+//                        Box (
+//                            modifier = Modifier
+//                                .clip(CircleShape)
+//                                .clickable(
+//                                    onClick = {
+//                                        showStartTimePicker = true
+//                                        openTimePicker()
+//                                    }
+//                                )
+//                        ) {
+//                            Text(
+//                                modifier = Modifier
+//                                    .padding(10.dp),
+//                                text = String.format(
+//                                    "%d:%02d",
+//                                    taskDetails.startTime.hour,
+//                                    taskDetails.startTime.minute
+//                                ),
+//                                fontSize = 20.sp,
+//                                fontWeight = FontWeight.SemiBold,
+//                                color = MaterialTheme.colorScheme.primary
+//                            )
+//                        }
+//
+//                        Text(
+//                            " - ",
+//                            fontWeight = FontWeight.SemiBold,
+//                            color = MaterialTheme.colorScheme.primary
+//                        )
+//
+//                        // End time
+//                        Box (
+//                            modifier = Modifier
+//                                .clip(CircleShape)
+//                                .clickable(
+//                                    onClick = {
+//                                        openTimePicker()
+//                                    }
+//                                )
+//                        ) {
+//                            Text(
+//                                modifier = Modifier
+//                                    .padding(10.dp),
+//                                text = String.format(
+//                                    "%d:%02d",
+//                                    taskDetails.endTime.hour,
+//                                    taskDetails.endTime.minute
+//                                ),
+//                                fontSize = 20.sp,
+//                                fontWeight = FontWeight.SemiBold,
+//                                color = MaterialTheme.colorScheme.primary
+//                            )
+//                        }
+//                    }
+//                }
+//
+//                // Title field
+//                OutlinedTextField(
+//                    value = taskDetails.title,
+//                    onValueChange = setTaskTitle,
+//                    modifier = Modifier
+//                        .padding(vertical = 5.dp)
+//                        .fillMaxWidth(),
+//                    textStyle = TextStyle(fontSize = 20.sp),
+//                    label = { Text("Title") },
+//                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+//                    singleLine = true,
+//                    shape = RoundedCornerShape(15.dp),
+//                )
+//
+//                // Description field
+//                OutlinedTextField(
+//                    value = taskDetails.description,
+//                    onValueChange = setTaskDescription,
+//                    modifier = Modifier
+//                        .padding(vertical = 5.dp)
+//                        .fillMaxWidth()
+//                        .fillMaxHeight(0.5f),
+//                    textStyle = TextStyle(fontSize = 18.sp),
+//                    label = { Text("Description") },
+//                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+//                    singleLine = false,
+//                    shape = RoundedCornerShape(15.dp),
+//                )
+//            }
+//        }
+
+//        VerticalDivider(
+//            modifier = Modifier
+//                .fillMaxHeight(),
+//            thickness = 2.dp,
+//        )
+//
+//        Column (
+//            modifier = modifier
+//                .fillMaxWidth(1f)
+//                .fillMaxHeight(),
+//            verticalArrangement = Arrangement.Center,
+//            horizontalAlignment = Alignment.CenterHorizontally
+//        ) {
+//            // Close button
+//            IconButton(onClick = {
+//                // Navigate to previous stack entry
+//                onBack()
+//            }) {
+//                Icon(
+//                    imageVector = ImageVector.vectorResource(id = R.drawable.cancel_24dp_5f6368_fill0_wght400_grad0_opsz24),
+//                    contentDescription = "Cancel",
+//                    modifier = Modifier.fillMaxSize(0.8F)
+//                )
+//            }
+//
+//            // Save button
+//            IconButton(onClick = {
+//                //TODO: Validate start- and end-time input - the values should remain within the active time boundaries
+//                saveTask()
+//                onBack()
+//            }) {
+//                Icon(
+//                    imageVector = ImageVector.vectorResource(id = R.drawable.save_24dp_5f6368_fill0_wght400_grad0_opsz24),
+//                    contentDescription = "Open time picker",
+//                    modifier = Modifier.fillMaxSize(0.8F)
+//                )
+//            }
+//        }
+//    }
 
     if (showTimePicker) {
         TimePickerDialog(

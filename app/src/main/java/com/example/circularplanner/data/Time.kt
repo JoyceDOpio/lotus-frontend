@@ -15,7 +15,7 @@ data class Time(
     }
 
     override fun toString(): String {
-        return String.format("%d:%d", hour, minute)
+        return "%d:%02d".format(hour, minute)
     }
 }
 

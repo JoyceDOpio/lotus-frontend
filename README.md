@@ -14,3 +14,25 @@ A long press on the task dial followed by a drag along the task dial designates 
 
 The active time start and active time end are within the same day. There is no possibility to start the active time on one day and end it on the next day.
 
+
+Audio Playback
+- 16 kHz in 16-bit mono
+- STREAM_VOICE_CALL
+- MODE_STREAM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

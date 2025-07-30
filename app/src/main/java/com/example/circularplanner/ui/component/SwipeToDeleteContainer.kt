@@ -7,6 +7,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -85,18 +86,10 @@ fun <T> SwipeToDeleteContainer(
 fun DeleteBackground(
     swipeDismissState: SwipeToDismissBoxState
 ) {
-//    val containerColor by animateColorAsState(
-//        if (state.targetValue == SwipeToDismissBoxValue.Settled) {
-//            MaterialTheme.colorScheme.inverseSurface
-//        } else {
-//            MaterialTheme.colorScheme.error
-//        }, label = ""
-//    )
     var color = if (swipeDismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart){
         MaterialTheme.colorScheme.error
     } else {
         Color.Transparent
-//        MaterialTheme.colorScheme.inverseSurface
     }
 
     Row(
@@ -110,6 +103,9 @@ fun DeleteBackground(
         Icon(
             imageVector = ImageVector.vectorResource(id = R.drawable.delete_24dp_5f6368_fill0_wght400_grad0_opsz24),
             contentDescription = "Remove task",
+            modifier = Modifier
+                .aspectRatio(1f)
+                .fillMaxSize(),
             tint = Color.White
         )
     }

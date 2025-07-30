@@ -7,6 +7,8 @@ plugins {
     alias(libs.plugins.compose.compiler)
 
     id("com.google.devtools.ksp")
+
+    id("kotlin-parcelize")
 }
 
 android {
@@ -94,6 +96,15 @@ dependencies {
 
     // View Model
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.1")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-savedstate:2.9.2")
+
+    // Media3
+    implementation("androidx.media3:media3-exoplayer:1.3.1")
+    implementation("androidx.media3:media3-ui:1.3.1")
+    implementation("androidx.media3:media3-common:1.3.1")
+    implementation("androidx.media3:media3-session:1.3.1")
+
+    implementation("com.google.accompanist:accompanist-permissions:0.37.3")
 }
 
 configurations.implementation{

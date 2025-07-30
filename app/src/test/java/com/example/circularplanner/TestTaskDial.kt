@@ -25,7 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import com.example.circularplanner.ui.viewmodel.DayState
 import com.example.circularplanner.ui.viewmodel.UserInput
-import com.example.circularplanner.utils.TaskDialUtils.square
+import com.example.circularplanner.utils.TouchGestureUtils.square
 import java.time.LocalDate
 import kotlin.math.sqrt
 

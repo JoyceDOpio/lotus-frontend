@@ -6,6 +6,8 @@ import android.content.Context
 interface AppContainer {
     val daysRepository: IDaysRepository
     val tasksRepository: ITasksRepository
+    val activitiesRepository: IActivitiesRepository
+    val voiceNotesRepository: IVoiceNotesRepository
 }
 
 class AppDataContainer(
@@ -17,5 +19,13 @@ class AppDataContainer(
 
     override val tasksRepository: ITasksRepository by lazy {
         RepositoryTasks(OfflineDatabase.getDatabase(context).taskDao())
+    }
+
+    override val activitiesRepository: IActivitiesRepository by lazy {
+        RepositoryActivities(OfflineDatabase.getDatabase(context).activityDao())
+    }
+
+    override val voiceNotesRepository: IVoiceNotesRepository by lazy {
+        RepositoryVoiceNotes(OfflineDatabase.getDatabase(context).voiceNoteDao())
     }
 }

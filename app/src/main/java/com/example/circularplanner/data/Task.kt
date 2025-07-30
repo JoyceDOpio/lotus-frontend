@@ -15,9 +15,7 @@ data class Task (
     @ColumnInfo(name = "end_time")
     var endTime: Time,
     var description: String = "",
-//    @PrimaryKey(autoGenerate = true)
     @PrimaryKey
-//    val id: UUID
     val id: UUID = UUID.randomUUID()
 ) {
     fun compareTo(task: Task): Int {

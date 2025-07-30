@@ -1,19 +1,19 @@
 package com.example.circularplanner.ui.component
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.paddingFromBaseline
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -25,11 +25,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.circularplanner.R
+import androidx.compose.ui.unit.sp
 import com.example.circularplanner.data.Time
 import com.example.circularplanner.ui.viewmodel.DayUiState
 
@@ -45,8 +45,8 @@ fun ActiveTimeSetUp (
 ){
     var showTimePicker by remember { mutableStateOf(false) }
     var showStartActiveTimePicker by remember { mutableStateOf(false) }
-    var activeTimeStart by remember { mutableStateOf(dayUiState.activeTimeStart) }
-    var activeTimeEnd by remember { mutableStateOf(dayUiState.activeTimeEnd) }
+    var activeTimeStart = dayUiState.activeTimeStart
+    var activeTimeEnd = dayUiState.activeTimeEnd
     var isActiveTimeValid by remember { mutableStateOf(false) }
     val startActiveTimePickerState = rememberTimePickerState(
         activeTimeStart.hour,
@@ -57,7 +57,7 @@ fun ActiveTimeSetUp (
         activeTimeEnd.minute
     )
     val cancelButtonText = "Cancel"
-    val okButtonText = "Set Active Time"
+    val okButtonText = "Save"
 
     fun validateActiveTime(): Boolean {
         val start = activeTimeStart
@@ -97,131 +97,103 @@ fun ActiveTimeSetUp (
         showStartActiveTimePicker = false
     }
 
+    fun openTimePicker() {
+        showTimePicker = true
+    }
+
     Column(
         modifier = modifier
             .fillMaxWidth(0.7f)
             .fillMaxHeight()
             .padding(10.dp),
         verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
+        horizontalAlignment = Alignment.CenterHorizontally
     ){
-        Spacer(Modifier.weight(1f, true))
+        Text(
+            modifier = Modifier
+                .padding(bottom = 10.dp),
+            text = "ACTIVE TIME",// TODO: Read string from resource
+            fontSize = 20.sp,
+            color = MaterialTheme.colorScheme.primary
+        )
 
-        Column(
-            modifier = modifier
-                .weight(3f)
-                .padding(vertical = 20.dp),
-            verticalArrangement = Arrangement.SpaceAround,
+        Row (
+            modifier = Modifier.padding(bottom = 10.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = modifier
-                    .fillMaxWidth()
-                    .padding(5.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.Start,
-                )
-                {
-//                    IconButton(onClick = {
-//                        //TODO: open info popup
-//                    }) {
-//                        Icon(
-//                            imageVector = ImageVector.vectorResource(id = R.drawable.info_27dp_5f6368_fill0_wght400_grad0_opsz24),
-//                            contentDescription = stringResource(id = R.string.info_content_desc),
-//                            //                        modifier = Modifier.fillMaxSize(0.25F)
-//                        )
-//                    }
-
-                    ActiveTimePicker(
-                        startActiveTimePickerState,
-                        ActiveTime.START
+            // Active time start
+            Box (
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .clickable(
+                        onClick = {
+                            showStartActiveTimePicker = true
+                            openTimePicker()
+                        }
                     )
-                }
-
-                Row(
-                    horizontalArrangement = Arrangement.SpaceAround,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = {
-                        showTimePicker = true
-                        showStartActiveTimePicker = true
-                    }) {
-                        Icon(
-                            imageVector = ImageVector.vectorResource(id = R.drawable.schedule_24dp_5f6368_fill0_wght400_grad0_opsz24),
-                            contentDescription = "Open active time start setter",
-                            modifier = Modifier.fillMaxSize(0.8f)
-                        )
-                    }
-                }
-
+            ) {
+                Text(
+                    modifier = Modifier
+                        .padding(10.dp),
+                    text = "%d:%02d".format(
+                        activeTimeStart.hour,
+                        activeTimeStart.minute
+                    ),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
 
-            Row(
-                modifier = modifier
-                    .fillMaxWidth()
-                    .padding(5.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.Start,
+            Text(
+                " - ",
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary
+            )
 
-                    ) {
-//                    IconButton(onClick = {
-//                        //TODO: open info popup
-//                    }) {
-//                        Icon(
-//                            imageVector = ImageVector.vectorResource(id = R.drawable.info_27dp_5f6368_fill0_wght400_grad0_opsz24),
-//                            contentDescription = stringResource(id = R.string.info_content_desc),
-//                            //                        modifier = Modifier.fillMaxSize(0.25F)
-//                        )
-//                    }
-
-                    ActiveTimePicker(
-                        endActiveTimePickerState,
-                        ActiveTime.END
+            // Active time end
+            Box (
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .clickable(
+                        onClick = {
+                            openTimePicker()
+                        }
                     )
-                }
-
-                Row(
-                    horizontalArrangement = Arrangement.SpaceAround,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = {
-                        showTimePicker = true
-                    }) {
-                        Icon(
-                            imageVector = ImageVector.vectorResource(id = R.drawable.schedule_24dp_5f6368_fill0_wght400_grad0_opsz24),
-                            contentDescription = "Open active time end setter",
-                            modifier = Modifier.fillMaxSize(0.8F)
-                        )
-                    }
-                }
+            ) {
+                Text(
+                    modifier = Modifier
+                        .padding(10.dp),
+                    text = "%d:%02d".format(
+                        activeTimeEnd.hour,
+                        activeTimeEnd.minute
+                    ),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
         }
 
         Row(
             modifier = modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .paddingFromBaseline(top = 5.dp),
+                .fillMaxWidth(),
+//                .background(Color(0xff97dde8)),// TODO: Add the color to a theme
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
 
         ) {
             Button(
                 onClick = onBack,
-                modifier = Modifier
-                    .weight(3f)
-                    .fillMaxHeight(),
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
             ) {
-                Text(text = cancelButtonText)
+                Text(
+                    text = cancelButtonText,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
-
-            Spacer(Modifier.weight(0.2f, true))
 
             Button(
                 //TODO: Display notification about invalid input
@@ -230,8 +202,7 @@ fun ActiveTimeSetUp (
                     onBack()
                 },
                 modifier = Modifier
-                    .weight(4f)
-                    .fillMaxHeight(),
+                    .fillMaxWidth(0.9f),
                 enabled = isActiveTimeValid,
                 shape = RoundedCornerShape(8.dp)
             ) {
@@ -241,8 +212,6 @@ fun ActiveTimeSetUp (
                 )
             }
         }
-
-        Spacer(Modifier.weight(2f, true))
     }
 
     if (showTimePicker) {

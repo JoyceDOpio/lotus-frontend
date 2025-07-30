@@ -34,6 +34,10 @@ fun TaskListItem(
 ){
     Card(
         modifier = modifier
+            .padding(
+                horizontal = 5.dp,
+                vertical = 3.dp
+            )
             .clickable {
                 selectTask(task.id)
                 onNavigateToTaskInfo()
@@ -56,7 +60,7 @@ fun TaskListItem(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = String.format("%d:%02d - %d:%02d", task!!.startTime.hour, task!!.startTime.minute, task!!.endTime.hour, task!!.endTime.minute),
+                    text = "%d:%02d - %d:%02d".format(task.startTime.hour, task.startTime.minute, task.endTime.hour, task.endTime.minute),
                 )
             }
 

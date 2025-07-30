@@ -22,7 +22,7 @@ import androidx.compose.ui.window.DialogProperties
 
 @Composable
 fun TimePickerDialog(
-    title: String = "Select Time",
+    title: String = "Select Time",// TODO: Read string from resource
     onDismissRequest: () -> Unit,
     confirmButton: @Composable (() -> Unit),
     dismissButton: @Composable (() -> Unit)? = null,

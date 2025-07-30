@@ -47,6 +47,8 @@ enum class ListDirection {
     END
 }
 
+const val TODAY_COLOR = 0xff9f017e
+
 @Composable
 fun Calendar(
     userInput: UserInput,
@@ -244,7 +246,8 @@ fun Calendar(
                     repeat(numberOfDaysPerWeek) { iteration ->
                         val todayModifier = Modifier
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .background(MaterialTheme.colorScheme.primary)
+//                            .background(Color(TODAY_COLOR))
 
                         val selectedDayModifier = Modifier
                             .border(
@@ -259,7 +262,7 @@ fun Calendar(
                                 .aspectRatio(1f)
                                 .padding(5.dp)
                                 .conditional(week[iteration] == today, todayModifier)
-                                .conditional(iteration == circledDateIndex, selectedDayModifier)
+                                .conditional(iteration == circledDateIndex && week[iteration] != today, selectedDayModifier)
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = ripple(bounded = true),
@@ -274,7 +277,8 @@ fun Calendar(
                             Text (
                                 text = week[iteration].format(formatter),
                                 modifier = Modifier
-                                    .align(Alignment.Center)
+                                    .align(Alignment.Center),
+                                color = if (week[iteration] == today) Color(0xffffffff) else Color(0xff000000)
                             )
                         }
                     }

@@ -10,18 +10,22 @@ import androidx.room.TypeConverters
 @Database(
     entities = [
         Day::class,
-        Task::class
+        Task::class,
+        Activity:: class,
+        VoiceNote::class
     ],
     // Whenever you change the schema of the database table, you have to increase the version number
-    version = 1,
-    // Don't keep schema version history backups
-    exportSchema = false//TODO: This might not be best
+    version = 3,
+    // Keep schema version history backups
+    exportSchema = true
 )
 @TypeConverters(Converters::class
 )
 abstract class OfflineDatabase : RoomDatabase() {
     abstract fun dayDao(): DaoDay
     abstract fun taskDao() : DaoTask
+    abstract fun activityDao() : DaoActivity
+    abstract fun voiceNoteDao(): DaoVoiceNote
 
     companion object {
         // The value of a volatile variable is never cached, and all reads and writes are to and from the main memory. These features help ensure the value of Instance is always up to date and is the same for all execution threads. It means that changes made by one thread to Instance are immediately visible to all other threads.
