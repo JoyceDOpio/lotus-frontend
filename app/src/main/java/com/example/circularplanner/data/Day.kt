@@ -13,4 +13,9 @@ data class Day(
     val activeTimeStart: Time,
     @ColumnInfo(name = "active_time_end")
     val activeTimeEnd: Time,
+    @ColumnInfo(name = "actual_active_time_start")
+    val actualActiveTimeStart: Time?,
+    @ColumnInfo(name = "actual_active_time_end")
+    val actualActiveTimeEnd: Time?,
+    val note: String = ""
 )

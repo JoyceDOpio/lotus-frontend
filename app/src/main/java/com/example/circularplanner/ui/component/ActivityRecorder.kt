@@ -35,7 +35,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,11 +56,17 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.circularplanner.R
 import com.example.circularplanner.data.Time
+import com.example.circularplanner.data.VoiceNote
+import com.example.circularplanner.service.Constants.ACTION_SERVICE_START
+import com.example.circularplanner.service.Constants.ACTION_SERVICE_STOP
+import com.example.circularplanner.service.ServiceHelper
+import com.example.circularplanner.service.StopwatchService
+import com.example.circularplanner.service.StopwatchState
 import com.example.circularplanner.ui.viewmodel.ActivityUiState
-import com.example.circularplanner.ui.viewmodel.AudioViewModel
+import com.example.circularplanner.ui.viewmodel.DayState
+import com.example.circularplanner.ui.viewmodel.DayUiState
 import com.example.circularplanner.ui.viewmodel.VoiceNoteUiState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -79,43 +84,51 @@ import kotlin.time.Duration.Companion.milliseconds
 @Composable
 fun ActivityRecorder(
     context: Context,
-    recordedActivityState: ActivityUiState,
-    addVoiceNoteToActivity: (VoiceNoteUiState) -> Unit,
-    setActivityId: (UUID) -> Unit,
-    setActivityTitle: (String) -> Unit,
-    saveActivity: () -> Unit,
+    dayState: DayState,
+    recordedActivityUiState: ActivityUiState,
+    stopwatchService: StopwatchService,
     clearRecordedActivity: () -> Unit,
-    setActivityStartTime: (Time) -> Unit,
-    setActivityEndTime: (Time) -> Unit,
-    setIsTimerRunning: (Boolean) -> Unit,
+    saveDay: () -> Unit,
+    saveRecordedActivity: () -> Unit,
+    saveVoiceNote: (VoiceNote) -> Unit,
+    setActualActiveTimeEnd: (Time) -> Unit,
+    setActualActiveTimeStart: (Time) -> Unit,
+    setRecordedActivityEndTime: (Time) -> Unit,
+    setRecordedActivityId: (UUID) -> Unit,
+    setRecordedActivityNote: (String) -> Unit,
+    setRecordedActivityStartTime: (Time) -> Unit,
+    setRecordedActivityTitle: (String) -> Unit,
     startRecording: (String) -> Unit,
     stopRecording: () -> Unit,
     removeVoiceNote: (VoiceNoteUiState) -> Unit,
-    updateLastPlayedPosition: (Long, Int) -> Unit
 ) {
-    val recordedActivityDetails = recordedActivityState
-    var isActivityTimerRunning  = recordedActivityDetails.isTimerRunning
+    val recordedActivityDetails = recordedActivityUiState
+    var isActivityTimerRunning  = (stopwatchService.currentState.value == StopwatchState.Started)
     var isRecordingVoiceNote by remember { mutableStateOf(false) }
-    var timerStartActivity by remember { mutableStateOf(0L) }
-    var elapsedTimeActivity by remember { mutableStateOf(0L) }
     var timerStartVoiceNote by remember { mutableStateOf(0L) }
     var elapsedTimeVoiceNote by remember { mutableStateOf(0L) }
+
+    val hours by stopwatchService.hours
+    val minutes by stopwatchService.minutes
+    val seconds by stopwatchService.seconds
+    val currentState by stopwatchService.currentState
+
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
-
-    val audioViewModel: AudioViewModel = viewModel(factory = AudioViewModel.Factory)
 
     val activityTimerAlpha by animateFloatAsState(
         targetValue = if (isActivityTimerRunning) 1f else 0f,
         animationSpec = tween(durationMillis = 1000),
         label = ""
     )
-
     val voiceNoteTimerAlpha by animateFloatAsState(
         targetValue = if (isRecordingVoiceNote) 1f else 0f,
         animationSpec = tween(durationMillis = 1000),
         label = ""
     )
+
+//    val activityTimerAlpha = 1f
+//    val voiceNoteTimerAlpha = 1f
 
     val permissionState = rememberPermissionState(Manifest.permission.RECORD_AUDIO)
 
@@ -126,12 +139,8 @@ fun ActivityRecorder(
 
     var showPermissionRationale by remember { mutableStateOf(false) }
 
-    LaunchedEffect(isActivityTimerRunning) {
-        while (isActivityTimerRunning) {
-            delay(1000)
-            elapsedTimeActivity = System.currentTimeMillis() - timerStartActivity
-        }
-    }
+    val activeTimeStart: Time = dayState.activeTimeStart
+    val activeTimeEnd: Time = dayState.activeTimeEnd
 
     Column(
         modifier = Modifier
@@ -160,11 +169,11 @@ fun ActivityRecorder(
         ) {
             OutlinedTextField(
                 value = recordedActivityDetails.title,
-                onValueChange = setActivityTitle,
+                onValueChange = setRecordedActivityTitle,
                 modifier = Modifier
-                    .padding(end = 5.dp)
-                    .width(300.dp)
-                    .height(60.dp)
+                    .padding(end = 4.dp)
+                    .width(307.dp)
+                    .height(55.dp)
                     .focusRequester(focusRequester),
                 placeholder = { Text("Title") },//TODO: Read string from resource
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
@@ -172,50 +181,63 @@ fun ActivityRecorder(
                 shape = RoundedCornerShape(15.dp)
             )
 
-            val color: Color by animateColorAsState(if (isActivityTimerRunning) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer)
+//            val iconButtonColor: Color by animateColorAsState(if (isActivityTimerRunning) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer)
+            val iconButtonColor: Color = MaterialTheme.colorScheme.primary
 
             // Play/Stop button
             IconButton(
                 modifier = Modifier
-                    .width(60.dp)
+                    .width(55.dp)
                     // Aspect ratio = 1 makes the element as wide as it is tall
                     .aspectRatio(1f)
                     .clip(RoundedCornerShape(15.dp))
                     .background(
-                        color = if (recordedActivityDetails.title != "") color else Color(
-                            0xffddd9e3
-                        )
+                        color = if (recordedActivityDetails.title != "") iconButtonColor else Color(0xffddd9e3)
                     ),
                 onClick = {
+                    ServiceHelper.triggerForegroundService(
+                        context = context,
+                        action = if (currentState == StopwatchState.Started) ACTION_SERVICE_STOP else ACTION_SERVICE_START
+                    )
                     // Start the activity
                     if (!isActivityTimerRunning) {
-                        timerStartActivity = System.currentTimeMillis()
-
-                        setActivityStartTime(
-                            Time(
-                                LocalDateTime.now().hour,
-                                LocalDateTime.now().minute
-                            )
+                        val activityStartTime = Time(
+                            LocalDateTime.now().hour,
+                            LocalDateTime.now().minute
                         )
+
+                        setRecordedActivityStartTime(activityStartTime)
+                        // If the actual active time start is earlier than the planned active time start
+                        if (activityStartTime.compareTo(activeTimeStart) == -1) {
+                            setActualActiveTimeStart(activityStartTime)
+                            saveDay()
+                        }
+
                         val activityId = UUID.randomUUID()
 
-                        setActivityId(activityId)
+                        setRecordedActivityId(activityId)
+                        saveRecordedActivity()
                     }
                     // Finish the activity
                     else {
-                        setActivityEndTime(
-                            Time(
-                                LocalDateTime.now().hour,
-                                LocalDateTime.now().minute
-                            )
+                        val activityEndTime = Time(
+                            LocalDateTime.now().hour,
+                            LocalDateTime.now().minute
                         )
-                        saveActivity()
+
+                        setRecordedActivityEndTime(activityEndTime)
+                        // Update the activity
+                        saveRecordedActivity()
                         // Clear the recorded activity state
                         clearRecordedActivity()
-                        // Reset time
-                        elapsedTimeActivity = 0L
+
+                        // If the actual active time end is later than the planned active time end
+                        if (activityEndTime.compareTo(activeTimeEnd) == 1) {
+                            setActualActiveTimeEnd(activityEndTime)
+                            saveDay()
+                        }
                     }
-                    setIsTimerRunning(!isActivityTimerRunning)
+
                     focusManager.clearFocus()
                 },
                 enabled = (recordedActivityDetails.title != "")
@@ -226,7 +248,9 @@ fun ActivityRecorder(
                         contentDescription = "Play",
                         modifier = Modifier
                             .fillMaxSize(0.8f),
-                        tint = if (recordedActivityDetails.title != "") MaterialTheme.colorScheme.primary else Color(0xffbcb9c1)
+//                        tint = if (recordedActivityDetails.title != "") MaterialTheme.colorScheme.primary else Color(0xffbcb9c1)
+                        tint = if (recordedActivityDetails.title != "") Color.White else Color(0xffbcb9c1)
+//                        tint = if (recordedActivityDetails.title != "") Color(BOTTOM_BAR_TEXT_COLOR) else Color(0xffbcb9c1)
                     )
                 }
                 else {
@@ -235,12 +259,13 @@ fun ActivityRecorder(
                         contentDescription = "Stop",
                         modifier = Modifier.fillMaxSize(0.6f),
                         tint = Color.White
+//                        tint = Color(BOTTOM_BAR_TEXT_COLOR)
                     )
                 }
             }
         }
 
-        // Activity's start time
+        // Recorded activity's start time
         Column (
             modifier = Modifier
                 .alpha(activityTimerAlpha)
@@ -252,7 +277,7 @@ fun ActivityRecorder(
             Row (
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Activity's timer
+                // Recorded activity's timer
                 Row(
                     modifier = Modifier
                         .fillMaxWidth(0.4f),
@@ -268,9 +293,7 @@ fun ActivityRecorder(
                         color = MaterialTheme.colorScheme.primary
                     )
 
-                    text = (elapsedTimeActivity).milliseconds.toComponents { hours, minutes, seconds, nanoseconds ->
-                        "%02d:%02d:%02d".format(hours, minutes, seconds)
-                    }
+                    text = "%02d:%02d:%02d".format(hours, minutes, seconds)
 
                     Text(
                         text = text,
@@ -296,6 +319,7 @@ fun ActivityRecorder(
                         imageVectorResource = R.drawable.mic_svgrepo_com,
                         contentDescription = "Voice recorder",
                         tint = MaterialTheme.colorScheme.primary
+//                        tint = Color(BOTTOM_BAR_TEXT_COLOR)
                     )
 
                     val text = (elapsedTimeVoiceNote).milliseconds.toComponents { hours, minutes, seconds, nanoseconds ->
@@ -314,12 +338,15 @@ fun ActivityRecorder(
 
                 val scope = rememberCoroutineScope()
 
+                // The voice recording button
                 Box (
                     modifier = Modifier
-                        .width(60.dp)
+//                        .width(35.dp)
+                        .width(55.dp)
                         .aspectRatio(1f)
                         .clip(RoundedCornerShape(15.dp))
-                        .background(color = MaterialTheme.colorScheme.primaryContainer)
+//                        .background(color = MaterialTheme.colorScheme.primaryContainer)
+                        .background(color = MaterialTheme.colorScheme.primary)
                         .pointerInput(
                             // If I put the voiceNoteUiState into the pointerInput(), the first down gesture is not consumed. But the voice note UI state is still not updated
                             Unit
@@ -370,15 +397,15 @@ fun ActivityRecorder(
                                         isRecordingVoiceNote = !isRecordingVoiceNote
 
                                         val duration = System.currentTimeMillis() - timestamp
-                                        val voiceNoteUiState = VoiceNoteUiState(
+                                        val voiceNote = VoiceNote(
                                             uri = filePath,
                                             timestamp = timestamp,
                                             id = voiceNoteId,
                                             duration = duration,
-                                            activityId = recordedActivityState.id
+                                            activityId = recordedActivityUiState.id!!
                                         )
 
-                                        addVoiceNoteToActivity(voiceNoteUiState)
+                                        saveVoiceNote(voiceNote)
                                         // Reset the voice note timer
                                         elapsedTimeVoiceNote = 0L
                                     }
@@ -388,11 +415,6 @@ fun ActivityRecorder(
                                     } else {
                                         permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                                     }
-//                                    val up = waitForUpOrCancellation()
-//
-//                                    if (up != null) {
-//
-//                                    }
                                 }
                             }
                         },
@@ -404,19 +426,72 @@ fun ActivityRecorder(
                         imageVector = ImageVector.vectorResource(id = R.drawable.mic_svgrepo_com),
                         contentDescription = "Voice recorder",
                         modifier = Modifier.fillMaxSize(0.7F),
-                        tint = MaterialTheme.colorScheme.primary
+//                        tint = MaterialTheme.colorScheme.primary
+//                        tint = Color(BOTTOM_BAR_TEXT_COLOR)
+                        tint = Color.White
                     )
                 }
             }
+
+//            Row (
+//                modifier = Modifier
+//                    .padding(
+//                        vertical = 5.dp
+//                    ),
+//                horizontalArrangement = Arrangement.SpaceBetween,
+//                verticalAlignment = Alignment.CenterVertically
+//            ) {
+//                // Activity note
+//                OutlinedTextField(
+//                    value = recordedActivityDetails.note,
+//                    onValueChange = setRecordedActivityNote,
+//                    modifier = Modifier
+//                        .width(325.dp)
+//                        .height(190.dp)
+//                        .focusRequester(focusRequester),
+//                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+//                    textStyle = TextStyle(
+//                        fontSize = 16.sp,
+//                        color = Color(HOUR_LABEL_COLOR)
+//                    ),
+//                    label = { Text("Activity Notes") },
+//                    singleLine = false,
+//                    shape = RoundedCornerShape(15.dp)
+//                )
+//
+//                Spacer(Modifier.width(5.dp))
+//
+//                Column (
+//                    horizontalAlignment = Alignment.End,
+//                    verticalArrangement = Arrangement.Center
+//                ) {
+//                    // Save button
+//                    IconButton(
+//                        onClick = {
+//                            saveRecordedActivity()
+//                            focusManager.clearFocus()
+//                        }
+//                    ) {
+//                        Icon(
+//                            imageVector = ImageVector.vectorResource(id = R.drawable.save_alt_svgrepo_com),
+//                            contentDescription = "Save activity note",
+//                            modifier = Modifier
+//                                .fillMaxSize(0.8f)
+//                            ,
+//                            tint = Color(BOTTOM_BAR_TEXT_COLOR)
+//                        )
+//                    }
+//                }
+//            }
         }
 
-        // Voice note list
-        VoiceNoteList(
-            activityUiState = recordedActivityState,
-            audioViewModel = audioViewModel,
-            removeVoiceNote = removeVoiceNote,
-            updateLastPlayedPosition = updateLastPlayedPosition
-        )
+//        // Voice note list
+//        VoiceNoteList(
+//            activityUiState = recordedActivityUiState,
+//            audioViewModel = audioViewModel,
+//            removeVoiceNote = removeVoiceNote,
+//            updateLastPlayedPosition = updateLastPlayedPosition
+//        )
     }
 
     if (showPermissionRationale) {
@@ -472,5 +547,4 @@ class AudioRecordPermissionTextProvider: PermissionTextProvider {
     override fun getDescription(): String {
         return "This app needs access to your microphone so that you can record voice notes."// TODO: Read text from string resource
     }
-
 }

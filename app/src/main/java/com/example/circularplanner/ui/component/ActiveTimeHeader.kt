@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -15,11 +16,13 @@ import androidx.compose.ui.unit.dp
 import com.example.circularplanner.data.Time
 import com.example.circularplanner.ui.viewmodel.DayState
 import com.example.circularplanner.ui.viewmodel.UserInput
+import kotlinx.coroutines.delay
 import java.time.LocalDate
+import java.time.LocalDateTime
 import kotlin.math.floor
 
 const val MINUTES_IN_HOUR = 60
-const val ACTIVE_TIME_LABEL = 0xFF6650a4
+const val ACTIVE_TIME_LABEL = 0xFF3D3061
 const val ACTIVE_TIME_VALUE = 0xff656468
 
 @Composable
@@ -31,8 +34,6 @@ fun ActiveTimeHeader (
     val startTime = dayState.activeTimeStart
     val endTime = dayState.activeTimeEnd
     val today = LocalDate.now()
-    val tasks = dayState.tasks
-    val activities = dayState.activities
 
     fun calculateTimeIntervalInMinutes(start: Time?, end: Time?): Int {
         var minutes = 0
@@ -66,10 +67,32 @@ fun ActiveTimeHeader (
         return "$hours hour $minutes min"
     }
 
+    var minutesLeft = calculateTimeIntervalInMinutes(
+        Time(
+            LocalDateTime.now().hour,
+            LocalDateTime.now().minute
+        ),
+        endTime
+    )
+
+    // Every minute update time left
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1000L * 60)
+            minutesLeft = calculateTimeIntervalInMinutes(
+                Time(
+                    LocalDateTime.now().hour,
+                    LocalDateTime.now().minute
+                ),
+                endTime
+            )
+        }
+    }
+
     Column (
         modifier = modifier
             .padding(
-                vertical = 15.dp,
+                vertical = 10.dp,
                 horizontal = 15.dp
             )
     ) {
@@ -90,24 +113,6 @@ fun ActiveTimeHeader (
         }
 
         if (userInput.selectedDate == today) {
-//            Row(
-//                modifier = modifier
-//                    .fillMaxWidth()
-//                    .padding(horizontal = 15.dp),
-//                horizontalArrangement = Arrangement.SpaceBetween,
-//                verticalAlignment = Alignment.CenterVertically
-//            ) {
-//                Text (
-//                    text = "ACTIVE TIME LEFT",//TODO: Read string from resource
-//                    color = MaterialTheme.colorScheme.primary
-//                )
-//                // TODO: Calculate time left
-//                Text (
-//                    text = formatTime(calculateTimeIntervalInMinutes(startTime, endTime)),
-//                color = Color.LightGray
-//                )
-//            }
-        } else if (userInput.selectedDate.isBefore(today)) {
             Row(
                 modifier = modifier
                     .fillMaxWidth(),
@@ -115,41 +120,12 @@ fun ActiveTimeHeader (
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text (
-                    text = "Tasks",//TODO: Read string from resource
-//                    text = "TASKS",//TODO: Read string from resource
+                    text = "ACTIVE TIME LEFT",//TODO: Read string from resource
                     color = Color(ACTIVE_TIME_LABEL)
                 )
 
-                var totalTaskMinutes = 0
-                for (task in tasks) {
-                    totalTaskMinutes += calculateTimeIntervalInMinutes(task.startTime, task.endTime)
-                }
-
                 Text (
-                    text = formatTime(totalTaskMinutes),
-                    color = Color(ACTIVE_TIME_VALUE)
-                )
-            }
-
-            Row(
-                modifier = modifier
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text (
-                    text = "Activities",//TODO: Read string from resource
-//                    text = "ACTIVITIES",//TODO: Read string from resource
-                    color = Color(ACTIVE_TIME_LABEL)
-                )
-
-                var totalActivityMinutes = 0
-                for (activity in activities) {
-                    totalActivityMinutes += calculateTimeIntervalInMinutes(activity.startTime, activity.endTime)
-                }
-
-                Text (
-                    text = formatTime(totalActivityMinutes),
+                    text = formatTime(if (minutesLeft > 0) minutesLeft else 0),
                     color = Color(ACTIVE_TIME_VALUE)
                 )
             }

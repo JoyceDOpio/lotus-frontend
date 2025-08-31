@@ -5,7 +5,9 @@ import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.example.circularplanner.data.AppContainer
 import com.example.circularplanner.data.AppDataContainer
+import dagger.hilt.android.HiltAndroidApp
 
+@HiltAndroidApp
 class PlannerApplication : Application() {
     // AppContainer instance used by the rest of classes to obtain dependencies. The variable is initialized during the call to onCreate(), so the variable needs to be marked with the lateinit modifier
     lateinit var container: AppContainer

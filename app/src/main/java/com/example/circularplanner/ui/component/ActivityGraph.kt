@@ -1,6 +1,7 @@
 package com.example.circularplanner.ui.component
 
 import android.graphics.Paint
+import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
@@ -29,6 +30,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -49,6 +51,8 @@ import com.example.circularplanner.ui.screen.Type
 import com.example.circularplanner.ui.viewmodel.DayState
 import com.example.circularplanner.utils.TouchGestureUtils
 import com.example.circularplanner.utils.TouchGestureUtils.TOUCH_STROKE
+import kotlinx.coroutines.delay
+import java.time.LocalTime
 import java.util.UUID
 import kotlin.Int
 import kotlin.math.ceil
@@ -59,6 +63,7 @@ const val ACTIVITY_MINUTE_STEP_COLOR = 0xffb4acbd
 @Composable
 fun ActivityGraph (
     dayState: DayState,
+    drawClockHand: Boolean = false,
     height: Dp = 320.dp,// Minimum height is 300.dp - at 280.dp there is a problem with index out of bounds
     onNavigateToTaskActivityComparison: () -> Unit,
     selectActivity: (UUID?) -> Unit,
@@ -71,17 +76,26 @@ fun ActivityGraph (
     var canvasHeight by remember { mutableStateOf(0f) }
     var canvasHeightDp by remember { mutableStateOf(0.dp) }
 
+    // The planned start and end time of the day
     val activeTimeStart: Time = dayState.activeTimeStart
     val activeTimeEnd: Time = dayState.activeTimeEnd
+    // The actual start and end time of the day
+    var actualActiveTimeStart = dayState.actualActiveTimeStart
+    var actualActiveTimeEnd = dayState.actualActiveTimeEnd
+//    var xOffsetInMinutesTask = 0
+    var xOffsetInMinutesTask = TouchGestureUtils.calculateTotalNumberOfMinutes(
+        actualActiveTimeStart ?: activeTimeStart, activeTimeStart
+    )
 
     val textMeasurer = rememberTextMeasurer()
     val localDensity = LocalDensity.current
 
     val axisHorizontalPadding = 70.dp
     val minuteWidth = (1.5).dp
+    // The total minutes of actual active time throughout the day
     val totalMinutes = TouchGestureUtils.calculateTotalNumberOfMinutes(
-        activeTimeStart,
-        activeTimeEnd
+        actualActiveTimeStart ?: activeTimeStart,
+        actualActiveTimeEnd ?: activeTimeEnd
     )
     canvasWidth = axisHorizontalPadding * 2 + minuteWidth * totalMinutes
     val canvasScrollState = rememberScrollState()
@@ -90,6 +104,8 @@ fun ActivityGraph (
     // The width of the finger touch on the screen
     val touchStroke: Float = TOUCH_STROKE
     var touchWithinAxis by remember { mutableStateOf(false) }
+
+    var clockTime by remember { mutableStateOf(Time(LocalTime.now().hour, LocalTime.now().minute)) }
 
     fun calculateClockTimeFromAxis(minuteWidth: Float, touchOffsetX: Float, activeTimeStart: Time): Time {
         var hour = activeTimeStart.hour
@@ -129,8 +145,8 @@ fun ActivityGraph (
         for (task in tasks) {
             val isTouchedTimeInTaskRange = checkIfTimeInTimeRange(
                 time = time,
-                startTime = task.startTime,
-                endTime = task.endTime
+                startTime = task.startTime!!,
+                endTime = task.endTime!!
             )
             if (isTouchedTimeInTaskRange) {
                 selectTask(task.id)
@@ -142,7 +158,7 @@ fun ActivityGraph (
             val isTouchedTimeInActivityRange = checkIfTimeInTimeRange(
                 time = time,
                 startTime = activity.startTime,
-                endTime = activity.endTime
+                endTime = activity.endTime ?: Time(LocalTime.now().hour, LocalTime.now().minute)//TODO: Test me
             )
 
             if (isTouchedTimeInActivityRange) {
@@ -155,6 +171,24 @@ fun ActivityGraph (
     LaunchedEffect(Unit) {
         selectActivity(null)
     }
+
+    // Update the clock every minute
+    LaunchedEffect(true) {
+        while (true) {
+            delay(1000L * SECONDS_IN_MINUTE)
+            clockTime = Time(LocalTime.now().hour, LocalTime.now().minute)
+        }
+    }
+
+//    LaunchedEffect(dayState.date) {//FIXME: Scroll to beginning only when the selected date changes
+//        // Scroll to the beginning of the graph when the date changes
+//        canvasScrollState.animateScrollTo(
+//            value = 0,
+//            animationSpec = tween(
+//                durationMillis = 1000
+//            )
+//        )
+//    }
 
     // Graph
     Box (
@@ -221,11 +255,11 @@ fun ActivityGraph (
                     // We have to offset these angles because startMinute * taskDialState.minuteAngle returns a biased angle
                     val taskMinutesFromActiveTimeStart = TouchGestureUtils.calculateTotalNumberOfMinutes (
                         activeTimeStart,
-                        task.startTime
+                        task.startTime!!
                     )
                     val taskDuration = TouchGestureUtils.calculateTotalNumberOfMinutes(
-                        task.startTime,
-                        task.endTime
+                        task.startTime!!,
+                        task.endTime!!
                     )
 
                     drawTask(
@@ -238,6 +272,7 @@ fun ActivityGraph (
                         taskTitle = task.title,
                         textMeasurer = textMeasurer,
                         canvasHeight = canvasHeight,
+                        xOffsetInMinutes = xOffsetInMinutesTask,
                         yOffset = 0.25f,
                         type = Type.TASK
                     )
@@ -252,7 +287,7 @@ fun ActivityGraph (
                     )
                     val activityDuration = TouchGestureUtils.calculateTotalNumberOfMinutes(
                         activity.startTime,
-                        activity.endTime
+                        activity.endTime ?: Time(LocalTime.now().hour, LocalTime.now().minute)//TODO: Test me
                     )
 
                     drawTask(
@@ -270,25 +305,43 @@ fun ActivityGraph (
                     )
                 }
 
-                val minutesBetweenHoursAccumulated: Array<Int> =
+                val minutesBetweenHoursAccumulatedTask =
                     TouchGestureUtils.calculateMinutesBetweenHoursAccumulated(
                         activeTimeStart,
                         activeTimeEnd
                     )
-                val activeTimeHourSteps: Array<Time> = TouchGestureUtils.createClockHoursArray(
+                // We are going to draw a separate axis for activities which may be longer than the task axis, if an activity was recorded before the planned active time start or after the planned active time end
+                val minutesBetweenHoursAccumulatedActivity = TouchGestureUtils.calculateMinutesBetweenHoursAccumulated(
+                    actualActiveTimeStart ?: activeTimeStart,
+                    actualActiveTimeEnd ?: activeTimeEnd
+                )
+
+                val activeTimeHourSteps = TouchGestureUtils.createClockHoursArray(
+                    actualActiveTimeStart ?: activeTimeStart,
+                    actualActiveTimeEnd ?: activeTimeEnd
+                )
+
+                // Total number of minutes between the planned start and end time of the day
+                val totalMinutesTask = TouchGestureUtils.calculateTotalNumberOfMinutes(
                     activeTimeStart,
                     activeTimeEnd
                 )
 
                 // Draw the time axis starting from the active time start
-                drawAxisAndGrid(
+                drawGraph(
+                    activeTimeStart = activeTimeStart,
                     axisHorizontalPadding = with(localDensity) { axisHorizontalPadding.toPx() },
                     canvasHeight = canvasHeight,
+                    clockTime = clockTime,
+                    drawClockHand = drawClockHand && TouchGestureUtils.checkIfTimeInRange(clockTime, activeTimeStart, activeTimeEnd),
                     minuteWidth = with(localDensity) { minuteWidth.toPx() },
-                    minutesBetweenHoursAccumulated = minutesBetweenHoursAccumulated,
+                    minutesBetweenHoursAccumulatedTask = minutesBetweenHoursAccumulatedTask,
+                    minutesBetweenHoursAccumulatedActivity = minutesBetweenHoursAccumulatedActivity,
                     activeTimeHourSteps = activeTimeHourSteps,
                     textMeasurer = textMeasurer,
-                    totalMinutes = totalMinutes
+                    totalMinutesTask = totalMinutesTask,
+                    totalMinutesActivity = totalMinutes,
+                    xOffsetInMinutesTask = xOffsetInMinutesTask
                 )
             }
         }
@@ -392,14 +445,131 @@ fun ActivityGraph (
     }
 }
 
-fun DrawScope.drawAxisAndGrid(
+fun DrawScope.drawClockHand(
+    activeTimeStart: Time,
+    axisHorizontalPadding: Float,
+    canvasHeight: Float,
+    clockTime: Time,
+    minuteWidth: Float
+) {
+    val minutesFromActiveTimeStart = TouchGestureUtils.calculateTotalNumberOfMinutes(activeTimeStart, clockTime)
+    var startOffset = Offset(
+        x = axisHorizontalPadding + minutesFromActiveTimeStart * minuteWidth,
+        y = canvasHeight * 0.4f
+    )
+    var endOffset = Offset(
+        x = axisHorizontalPadding + minutesFromActiveTimeStart * minuteWidth,
+        y = 0f
+    )
+    val path = Path()
+
+    path.moveTo(
+        x = startOffset.x,
+        y = startOffset.y
+    )
+    path.lineTo(
+        x = endOffset.x,
+        y = endOffset.y
+    )
+    path.moveTo(
+        x = startOffset.x,
+        y = canvasHeight * 0.6f
+    )
+    path.lineTo(
+        x = endOffset.x,
+        y = canvasHeight
+    )
+    drawPath(
+        path,
+//        color = Color(0xff000000),
+        color = Color(CLOCK_LABEL_COLOR),
+        alpha = 0.35f,
+        style = Stroke(
+            width = 8f,
+//            cap = StrokeCap.Round,
+//            pathEffect = PathEffect.dashPathEffect(floatArrayOf(40f, 25f), 0f)
+        )
+    )
+}
+
+fun DrawScope.drawGraph(
+    activeTimeStart: Time,
+    axisHorizontalPadding: Float,
+    canvasHeight: Float,
+    clockTime: Time,
+    drawClockHand: Boolean,
+    minuteWidth: Float,
+    minutesBetweenHoursAccumulatedTask: Array<Int>,
+    minutesBetweenHoursAccumulatedActivity: Array<Int>,
+    activeTimeHourSteps: Array<Time>,
+    textMeasurer: TextMeasurer,
+    totalMinutesTask: Int,
+    totalMinutesActivity: Int,
+    xOffsetInMinutesTask: Int
+) {
+    if (drawClockHand) {
+        drawClockHand(
+            activeTimeStart = activeTimeStart,
+            axisHorizontalPadding = axisHorizontalPadding,
+            canvasHeight = canvasHeight,
+            clockTime = clockTime,
+            minuteWidth = minuteWidth,
+        )
+    }
+
+    drawHourLabels(
+        axisHorizontalPadding = axisHorizontalPadding,
+        canvasHeight = canvasHeight,
+        minuteWidth = minuteWidth,
+        minutesBetweenHoursAccumulated = minutesBetweenHoursAccumulatedActivity,
+        activeTimeHourSteps = activeTimeHourSteps,
+        textMeasurer = textMeasurer
+    )
+    // Draw hour steps on the task axis
+    drawHourSteps(
+        axisHorizontalPadding = axisHorizontalPadding,
+        canvasHeight = canvasHeight,
+        minuteWidth = minuteWidth,
+        minutesBetweenHoursAccumulated = minutesBetweenHoursAccumulatedTask,
+        xOffsetInMinutes = xOffsetInMinutesTask,
+        yOffset = 0.4f
+    )
+    // Draw minute steps on the task axis
+    drawMinuteSteps(// FIXME: Correct draw minutes
+        axisHorizontalPadding = axisHorizontalPadding,
+        canvasHeight = canvasHeight,
+        minuteWidth = minuteWidth,
+        totalMinutes = totalMinutesTask,
+        minutesBetweenHoursAccumulated = minutesBetweenHoursAccumulatedTask,
+        xOffsetInMinutes = xOffsetInMinutesTask,
+        yOffset = 0.4f
+    )
+    // Draw hour steps on the activity axis
+    drawHourSteps(
+        axisHorizontalPadding = axisHorizontalPadding,
+        canvasHeight = canvasHeight,
+        minuteWidth = minuteWidth,
+        minutesBetweenHoursAccumulated = minutesBetweenHoursAccumulatedActivity,
+        yOffset = 0.6f
+    )
+    // Draw minutes on the activity axis
+    drawMinuteSteps(
+        axisHorizontalPadding = axisHorizontalPadding,
+        canvasHeight = canvasHeight,
+        minuteWidth = minuteWidth,
+        totalMinutes = totalMinutesActivity,
+        minutesBetweenHoursAccumulated = minutesBetweenHoursAccumulatedActivity,
+        yOffset = 0.6f
+    )
+}
+
+fun DrawScope.drawHourLabels(
     axisHorizontalPadding: Float,
     canvasHeight: Float,
     minuteWidth: Float,
     minutesBetweenHoursAccumulated: Array<Int>,
     activeTimeHourSteps: Array<Time>,
-    textMeasurer: TextMeasurer,
-    totalMinutes: Int
+    textMeasurer: TextMeasurer
 ) {
     val textStyle = TextStyle(
         textAlign = TextAlign.Center,
@@ -409,7 +579,7 @@ fun DrawScope.drawAxisAndGrid(
     // Draw grid - hour steps
     for (i in 0..(minutesBetweenHoursAccumulated.size - 1)) {
         var hourOffset = Offset(
-            x = (axisHorizontalPadding + (minutesBetweenHoursAccumulated[i] * minuteWidth)),
+            x = (axisHorizontalPadding + (minutesBetweenHoursAccumulated[i]) * minuteWidth),
             y = canvasHeight * 0.5f
         )
 
@@ -436,50 +606,57 @@ fun DrawScope.drawAxisAndGrid(
             hourOffset.y - hourStepLabelTextLayout.size.height * 0.5f
         )
 
-        drawText(
-            textMeasurer = textMeasurer,
-            text = hourStepLabel,
-            topLeft = hourOffset,
-            style = textStyle
-        )
-
-        drawCircle(
-            color = Color(HOUR_LABEL_COLOR),
-            radius = 10f,
-            center = Offset(
-                x = (axisHorizontalPadding + (minutesBetweenHoursAccumulated[i] * minuteWidth)),
-                y = canvasHeight * 0.4f
+        // If i refers to the second or second last hour label
+        if (i == 1 || i == (minutesBetweenHoursAccumulated.size - 2)) {
+            // If the interval between the two consecutive hour labels is less than 30 minutes, don't draw it the second/second last label
+            if (i == 1 && minutesBetweenHoursAccumulated[i] - minutesBetweenHoursAccumulated[0] >= 30) {
+                // Draw the hour labels between the two axes
+                drawText(
+                    textMeasurer = textMeasurer,
+                    text = hourStepLabel,
+                    topLeft = hourOffset,
+                    style = textStyle
+                )
+            }
+            if (i == (minutesBetweenHoursAccumulated.size - 2) && (minutesBetweenHoursAccumulated[minutesBetweenHoursAccumulated.size - 1] - minutesBetweenHoursAccumulated[i]) >= 30) {
+                // Draw the hour labels between the two axes
+                drawText(
+                    textMeasurer = textMeasurer,
+                    text = hourStepLabel,
+                    topLeft = hourOffset,
+                    style = textStyle
+                )
+            }
+        } else {
+            // Draw the hour labels between the two axes
+            drawText(
+                textMeasurer = textMeasurer,
+                text = hourStepLabel,
+                topLeft = hourOffset,
+                style = textStyle
             )
-        )
+        }
+    }
+}
 
+fun DrawScope.drawHourSteps(
+    axisHorizontalPadding: Float,
+    canvasHeight: Float,
+    minuteWidth: Float,
+    minutesBetweenHoursAccumulated: Array<Int>,
+    xOffsetInMinutes: Int = 0,
+    yOffset: Float
+) {
+    for (i in 0..(minutesBetweenHoursAccumulated.size - 1)) {
         drawCircle(
             color = Color(HOUR_LABEL_COLOR),
             radius = 10f,
             center = Offset(
-                x = (axisHorizontalPadding + (minutesBetweenHoursAccumulated[i] * minuteWidth)),
-                y = canvasHeight * 0.6f
+                x = (axisHorizontalPadding + (minutesBetweenHoursAccumulated[i] + xOffsetInMinutes) * minuteWidth),
+                y = canvasHeight * yOffset
             )
         )
     }
-
-    // Draw minutes of the task axis
-    drawMinuteSteps(
-        axisHorizontalPadding = axisHorizontalPadding,
-        canvasHeight = canvasHeight,
-        minuteWidth = minuteWidth,
-        totalMinutes = totalMinutes,
-        minutesBetweenHoursAccumulated = minutesBetweenHoursAccumulated,
-        yOffset = 0.4f
-    )
-    // Draw minutes of the activity axis
-    drawMinuteSteps(
-        axisHorizontalPadding = axisHorizontalPadding,
-        canvasHeight = canvasHeight,
-        minuteWidth = minuteWidth,
-        totalMinutes = totalMinutes,
-        minutesBetweenHoursAccumulated = minutesBetweenHoursAccumulated,
-        yOffset = 0.6f
-    )
 }
 
 fun DrawScope.drawMinuteSteps(
@@ -488,9 +665,9 @@ fun DrawScope.drawMinuteSteps(
     minuteWidth: Float,
     totalMinutes: Int,
     minutesBetweenHoursAccumulated: Array<Int>,
+    xOffsetInMinutes: Int = 0,
     yOffset: Float
-)
-{
+) {
     // Draw minute 10-minute steps
     val minuteStep = 10
 
@@ -500,7 +677,7 @@ fun DrawScope.drawMinuteSteps(
                 color = Color(ACTIVITY_MINUTE_STEP_COLOR),
                 radius = 5f,
                 center = Offset(
-                    x = (axisHorizontalPadding + (i * minuteWidth)),
+                    x = (axisHorizontalPadding + ((i + xOffsetInMinutes) * minuteWidth)),
                     y = canvasHeight * yOffset
                 )
             )
@@ -508,7 +685,7 @@ fun DrawScope.drawMinuteSteps(
     }
 }
 
-fun DrawScope.drawTask(
+fun DrawScope.drawTask(// FIXME: Area is drawn outside the axis, if activity is started before planned active start time
     type: Type,
     axisHorizontalPadding: Float,
     taskMinutesFromActiveTimeStart: Int,
@@ -519,13 +696,14 @@ fun DrawScope.drawTask(
     taskTitle: String,
     textMeasurer: TextMeasurer,
     canvasHeight: Float,
+    xOffsetInMinutes: Int = 0,
     yOffset: Float
 ) {
     // Draw task area
     val taskWidth = minuteWidth * taskDuration
     val taskHeight = canvasHeight * 0.15f
     val taskOffset = Offset(
-        x = (axisHorizontalPadding + (minuteWidth * taskMinutesFromActiveTimeStart)),
+        x = (axisHorizontalPadding + (minuteWidth * (taskMinutesFromActiveTimeStart + xOffsetInMinutes))),
         y = canvasHeight * yOffset
     )
 
@@ -554,7 +732,8 @@ fun DrawScope.drawTask(
     )
 
     // Draw task labels:
-    val fullText = taskStartTime + " - " + taskEndTime + "    " + taskTitle
+    val taskTitleTrimmed = taskTitle.trim()
+    val fullText = taskStartTime + " - " + taskEndTime + "    " + taskTitleTrimmed
     val timeText = taskStartTime + " - " + taskEndTime
 
     val fullTextMeasure = textMeasurer.measure(fullText)
@@ -586,15 +765,15 @@ fun DrawScope.drawTask(
     // If not even half of the full text fits within the task area, we're going to split the text into time and title sections.
     else if ((timeWidth + pathPadding * 2) <= taskWidth) {
         horizontalText = timeText
-        diagonalText = taskTitle
+        diagonalText = taskTitleTrimmed
     }
     else if ((startTimeWidth + pathPadding * 2) <= taskWidth) {
         horizontalText = taskStartTime
-        diagonalText = taskTitle
+        diagonalText = taskTitleTrimmed
     }
     else if (textHeight <= taskWidth) {
         horizontalText = ""
-        diagonalText = taskTitle
+        diagonalText = taskTitleTrimmed
     }
     // If the task area is not wide enough to diagonally draw the title above it
     else {
@@ -825,6 +1004,7 @@ fun DrawScope.drawTask(
                 )
 
                 val text = lineTexts[i]
+                Log.i("text", text)
                 textMeasure = textMeasurer.measure(text = text)
                 textWidth = textMeasure.getBoundingBox(text.lastIndex).bottomRight.x
                 horizontalOffset = (textMeasure.size.width - pathMeasure.length) * 0.5f

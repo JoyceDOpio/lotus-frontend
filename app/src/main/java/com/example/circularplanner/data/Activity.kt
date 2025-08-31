@@ -10,10 +10,11 @@ import java.util.UUID
 class Activity (
     val date: LocalDate,
     var title: String,
+    var note: String = "",
     @ColumnInfo(name = "start_time")
     var startTime: Time,
     @ColumnInfo(name = "end_time")
-    var endTime: Time,
+    var endTime: Time?,
     @PrimaryKey
     val id: UUID
 )

@@ -1,15 +1,22 @@
 package com.example.circularplanner.ui.component
 
 import android.graphics.Paint
+import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,12 +35,15 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
@@ -44,6 +54,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.circularplanner.data.Task
 import com.example.circularplanner.data.Time
@@ -51,12 +62,13 @@ import com.example.circularplanner.ui.viewmodel.DayState
 import com.example.circularplanner.ui.viewmodel.TaskUiState
 import com.example.circularplanner.ui.viewmodel.UserInput
 import com.example.circularplanner.utils.AngleMode
-import com.example.circularplanner.utils.TaskMode
+import com.example.circularplanner.utils.TaskDialMode
 import com.example.circularplanner.utils.TouchGestureUtils
 import com.example.circularplanner.utils.TouchGestureUtils.DEG_OFFSET
 import com.example.circularplanner.utils.TouchGestureUtils.DEG_TO_RAD
 import com.example.circularplanner.utils.TouchGestureUtils.TOUCH_STROKE
 import kotlinx.coroutines.delay
+import java.time.LocalDate
 import java.time.LocalTime
 import java.util.UUID
 import kotlin.math.cos
@@ -72,20 +84,22 @@ const val CLOCK_CENTER_COLOR = 0xffffffff
 @Composable
 fun TaskDial(
     dayState: DayState,
+    drawClockHand: Boolean = false,
     taskUiState: TaskUiState,
     userInput: UserInput,
     onNavigateToTaskEdit: () -> Unit,
     onNavigateToTaskInfo: () -> Unit,
     onPressActiveTime: () -> Unit,
-    onSetTaskEndTime: (Time) -> Unit,
-    onSetTaskStartTime: (Time) -> Unit,
+    setTaskEndTime: (Time) -> Unit,
+    setTaskStartTime: (Time) -> Unit,
     saveTask: () -> Unit,
-    selectTask: (UUID?) -> Unit
+    selectTask: (UUID?) -> Unit,
+    setTaskDate: (LocalDate?) -> Unit
 ) {
     val textMeasurer = rememberTextMeasurer()
     val activeTimeStart: Time = dayState.activeTimeStart
     val activeTimeEnd: Time = dayState.activeTimeEnd
-    var taskMode: TaskMode by remember { mutableStateOf(TaskMode.CREATE) }
+    var taskDialMode: TaskDialMode by remember { mutableStateOf(TaskDialMode.VIEW) }
     var angleMode: AngleMode by remember { mutableStateOf(AngleMode.NONE) }
     val activeTimeColor = MaterialTheme.colorScheme.primary
 
@@ -117,6 +131,9 @@ fun TaskDial(
     var touchInsideTheDial by remember { mutableStateOf(false) }
     var drawNewTaskTimeRange by remember { mutableStateOf(false) }
     var center by remember { mutableStateOf(Offset.Zero) }
+    // Task area padding from the end of the dial's outer radius
+    val taskPadding = 40f
+    val clockHandPadding = 0f
 
     // Basically the width of the finger touch on the screen
     val touchStroke: Float = TOUCH_STROKE
@@ -133,24 +150,41 @@ fun TaskDial(
     // If I save the taskUiState under the touchedTask it seems it is not updated in time after touching it. The dial tries to draw it before its value is updated.
     var touchedTask by remember { mutableStateOf<Task?>(null) }
 
-    var clockCenterTime by remember { mutableStateOf(Time(LocalTime.now().hour, LocalTime.now().minute)) }
-    // Draw a pointer on the dial to illustrate the finger's movement along the dial edge
+    var clockTime by remember { mutableStateOf(Time(LocalTime.now().hour, LocalTime.now().minute)) }
+    var taskClockTime by remember { mutableStateOf(Time(LocalTime.now().hour, LocalTime.now().minute)) }
 
     val tasks = dayState.tasks
 
-    fun checkIfTouchWithinTaskArea(angle: Float, tasks: List<Task>): Boolean {
+    fun checkIfTouchWithinTaskArea(angle: Float, taskStart: Time, taskEnd: Time): Boolean {
+        val taskStartAngle = TouchGestureUtils.calculateTaskAngle (
+            activeTimeStart,
+            taskStart,
+            minuteAngle
+        )
+        val taskEndAngle = TouchGestureUtils.calculateTaskAngle (
+            activeTimeStart,
+            taskEnd,
+            minuteAngle
+        )
+        val isTouchWithinTaskArea =
+            TouchGestureUtils.checkIfTouchWithinAngleRange(angle, taskStartAngle, taskEndAngle)
+
+        return isTouchWithinTaskArea
+    }
+
+    fun checkIfTouchWithinTasks(angle: Float, tasks: List<Task>): Boolean {
         // The task stores the appropriate angle values, i.e. values corresponding to how the circle is drawn (the 0 degree starts at the right-hand side (east) of the circle). We want to 'correct' these angles as if 0 degree starts at the top of the circle (north)
         var isTouchWithinAnyTask = false
 
         for (task in tasks) {
             val taskStartAngle = TouchGestureUtils.calculateTaskAngle (
                 activeTimeStart,
-                task.startTime,
+                task.startTime!!,
                 minuteAngle
             )
             val taskEndAngle = TouchGestureUtils.calculateTaskAngle (
                 activeTimeStart,
-                task.endTime,
+                task.endTime!!,
                 minuteAngle
             )
             isTouchWithinAnyTask =
@@ -158,6 +192,7 @@ fun TaskDial(
 
             if (isTouchWithinAnyTask) {
                 selectTask(task.id)
+                Log.i("task", task.toString())
                 touchedTask = task.copy()
 
                 return isTouchWithinAnyTask
@@ -172,10 +207,6 @@ fun TaskDial(
         drawNewTaskTimeRange = false
         touchWithinTaskArea = false
         selectTask(null)
-    }
-
-    fun resetClockCenter() {
-        clockCenterTime = Time(LocalTime.now().hour, LocalTime.now().minute)
     }
 
     // Reset the start and end angles of where the finger touched the dial
@@ -193,7 +224,6 @@ fun TaskDial(
 
     fun reset() {
         resetDialParameters()
-        resetClockCenter()
         resetStartAndEndAngles()
         resetTask()
     }
@@ -202,7 +232,7 @@ fun TaskDial(
     LaunchedEffect(true) {
         while (true) {
             delay(1000L * SECONDS_IN_MINUTE)
-            clockCenterTime = Time(LocalTime.now().hour, LocalTime.now().minute)
+            clockTime = Time(LocalTime.now().hour, LocalTime.now().minute)
         }
     }
 
@@ -211,16 +241,59 @@ fun TaskDial(
         selectTask(null)// TODO: This should clear the task UI state after coming back from the TaskInfoScreen, but it will not do anything when the user drags task along the dial, since then the component is not drawn for the first time (instead, it's redrawn). This could be solved if for example I cleared the task UI state based on the component's state
     }
 
-    Box(
+    Column (
         modifier = Modifier
-            .fillMaxSize()
-//            .defaultMinSize(
-//                minWidth = 300.dp,
-//                minHeight = 300.dp
-//            )
-//            .widthIn(min = 300.dp)
-//            .heightIn(min = 300.dp)
+            .width(380.dp)
+            .height(440.dp),
+        verticalArrangement = Arrangement.SpaceAround,
+        horizontalAlignment = Alignment.CenterHorizontally
+
     ) {
+        Row (
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(60.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Box (
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(activeTimeColor)
+                    .aspectRatio(1f)
+                    .fillMaxSize(1f)
+                    .clickable {
+                        // Show active time setup
+                        onPressActiveTime()
+                    }
+            ) {
+                val label: AnnotatedString
+
+                if (taskDialMode == TaskDialMode.VIEW) {
+                    label = buildAnnotatedString {
+                        append("%d:%02d".format(activeTimeStart.hour, activeTimeStart.minute))
+                        appendLine()
+                        append("%d:%02d".format(activeTimeEnd.hour, activeTimeEnd.minute))
+                    }
+                } else {
+                    label = buildAnnotatedString {
+                        append("%d:%02d".format(taskClockTime.hour, taskClockTime.minute))
+                    }
+                }
+
+                Text(
+                    text = label,
+                    modifier = Modifier
+                        .align(Alignment.Center),
+                    color = Color.White,
+                    fontSize = if (taskDialMode != TaskDialMode.VIEW) 18.sp else 14.sp,
+                    fontWeight = if (taskDialMode != TaskDialMode.VIEW) FontWeight.Bold else FontWeight.Normal,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 16.sp
+                )
+            }
+        }
+
         Canvas (
             modifier = Modifier
                 .fillMaxSize()
@@ -229,11 +302,11 @@ fun TaskDial(
                     height = it.size.height
                     center = Offset(width / 2f, height / 2f)
                     // The radius of the dial
-                    outerRadius = min(width.toFloat(), height.toFloat()) / 2f
+                    outerRadius = min(width.toFloat(), height.toFloat()) / 2f * 0.9f
                     // The radius from the center to the clock steps
-                    innerRadius = outerRadius * .8f
+                    innerRadius = outerRadius * 0.8f
                     // The radius of the clock center (the one that displays time)
-                    centerRadius = outerRadius * 0.25f
+                    centerRadius = outerRadius * 0.3f
                 }
                 .pointerInput(dayState, taskUiState, userInput) {
                     // Defining time range: TASK CREATION
@@ -248,7 +321,11 @@ fun TaskDial(
                             // Clear the task UI state
                             selectTask(null)
 
-                            if (taskMode == TaskMode.CREATE) {
+                            if (taskDialMode == TaskDialMode.VIEW) {
+                                taskDialMode = TaskDialMode.CREATE
+                            }
+
+                            if (taskDialMode == TaskDialMode.CREATE) {
                                 touchNearTheDialEdge =
                                     TouchGestureUtils.checkIfTouchNearDialEdge(
                                         distance,
@@ -257,6 +334,7 @@ fun TaskDial(
                                         touchStroke
                                     )
 
+                                // Set the start angle
                                 if (touchNearTheDialEdge) {
                                     startAngle = angle
                                     tmpStartAngle = startAngle
@@ -264,8 +342,8 @@ fun TaskDial(
                             }
                         },
                         onDrag = { change, dragAmount ->
-                            if (taskMode == TaskMode.CREATE) {
-                                // If touch is within dial, keep track of the coordinate
+                            if (taskDialMode == TaskDialMode.CREATE) {
+                                // If touch is within dial, keep track of the coordinates
                                 val offset = change.position
                                 val distance = TouchGestureUtils.distance(offset, center)
                                 touchNearTheDialEdge =
@@ -288,7 +366,7 @@ fun TaskDial(
                                         TouchGestureUtils.angleForTimeCalculation(angle),
                                         minuteAngle
                                     )
-                                    clockCenterTime =
+                                    taskClockTime =
                                         TouchGestureUtils.calculateClockTimeBasedOnMinutesFromStartTime(
                                             start = activeTimeStart,
                                             minutes = minute
@@ -297,7 +375,7 @@ fun TaskDial(
                             }
                         },
                         onDragEnd = {
-                            if (taskMode == TaskMode.CREATE) {
+                            if (taskDialMode == TaskDialMode.CREATE) {
                                 if (touchNearTheDialEdge) {
                                     // The number of minutes from start active start time
                                     val taskStartTimeMinute =
@@ -321,12 +399,12 @@ fun TaskDial(
                                             taskEndTimeMinute
                                         )
 
-                                    onSetTaskStartTime(clockTaskStartTime)
-                                    onSetTaskEndTime(clockTaskEndTime)
-
-                                    onNavigateToTaskEdit()
+                                    setTaskStartTime(clockTaskStartTime)
+                                    setTaskEndTime(clockTaskEndTime)
+                                    setTaskDate(userInput.selectedDate)
                                 }
-                            } else {
+                            }
+                            else {
                                 reset()
                             }
                         }
@@ -345,10 +423,10 @@ fun TaskDial(
                             angle = TouchGestureUtils.angle(center, offset)
 
                             if (touchInsideTheDial) {
-                                if (taskMode == TaskMode.CREATE) {
+                                if (taskDialMode == TaskDialMode.VIEW) {
                                     // Check whether the touch is within the ANY task area
                                     touchWithinTaskArea =
-                                        checkIfTouchWithinTaskArea(
+                                        checkIfTouchWithinTasks(
                                             angle,
                                             tasks
                                         )
@@ -357,7 +435,7 @@ fun TaskDial(
                                         // Show task info
                                         onNavigateToTaskInfo()
                                     }
-                                } else if (taskMode == TaskMode.EDIT) {
+                                } else if (taskDialMode == TaskDialMode.EDIT) {
                                     // Check whether the touch is within the GIVEN task area
                                     touchWithinTaskArea =
                                         TouchGestureUtils.checkIfTouchWithinAngleRange(
@@ -393,18 +471,36 @@ fun TaskDial(
                                                 minutes = endMinute
                                             )
 
-                                        onSetTaskStartTime(clockTaskStartTime)
-                                        onSetTaskEndTime(clockTaskEndTime)
+                                        setTaskStartTime(clockTaskStartTime)
+                                        setTaskEndTime(clockTaskEndTime)
+                                        // Set the task's date
+                                        setTaskDate(userInput.selectedDate)
                                         saveTask()
 
-                                        // Switch the task mode to CREATE and reset
-                                        taskMode = TaskMode.CREATE
+                                        // Switch the task mode to VIEW and reset
+                                        taskDialMode = TaskDialMode.VIEW
+                                        reset()
+                                    }
+                                } else if (taskDialMode == TaskDialMode.CREATE) {
+                                    // Check whether the touch is within the new task area
+                                    touchWithinTaskArea =
+                                        checkIfTouchWithinTaskArea(
+                                            angle,
+                                            taskUiState.startTime!!,
+                                            taskUiState.endTime!!
+                                        )
+
+                                    if (touchWithinTaskArea) {
+                                        // Show task creation screen
+                                        onNavigateToTaskEdit()
+                                    } else {
+                                        taskDialMode = TaskDialMode.VIEW
                                         reset()
                                     }
                                 }
                             } else {
                                 // Cancel everything if touch is outside the dial
-                                taskMode = TaskMode.CREATE
+                                taskDialMode = TaskDialMode.VIEW
                                 reset()
                             }
                         },
@@ -421,21 +517,21 @@ fun TaskDial(
                             if (touchInsideTheDial) {
                                 // Check if touch is within ANY task area
                                 touchWithinTaskArea =
-                                    checkIfTouchWithinTaskArea(
+                                    checkIfTouchWithinTasks(
                                         angle,
                                         tasks
                                     )
 
                                 if (touchWithinTaskArea) {
-                                    taskMode = TaskMode.EDIT
+                                    taskDialMode = TaskDialMode.EDIT
                                     val taskStartAngle = TouchGestureUtils.calculateTaskAngle(
                                         activeTimeStart,
-                                        touchedTask!!.startTime,
+                                        touchedTask!!.startTime!!,
                                         minuteAngle
                                     )
                                     val taskEndAngle = TouchGestureUtils.calculateTaskAngle(
                                         activeTimeStart,
-                                        touchedTask!!.endTime,
+                                        touchedTask!!.endTime!!,
                                         minuteAngle
                                     )
                                     tmpStartAngle = taskStartAngle
@@ -446,6 +542,7 @@ fun TaskDial(
                                 }
                             } else {
                                 // Cancel everything if touch is outside the dial
+                                taskDialMode = TaskDialMode.VIEW
                                 reset()
                             }
                         },
@@ -479,7 +576,7 @@ fun TaskDial(
                         },
                         onDrag = { change, dragAmount ->
                             // Engage only if in task EDITING mode
-                            if (taskMode == TaskMode.EDIT) {
+                            if (taskDialMode == TaskDialMode.CREATE || taskDialMode == TaskDialMode.EDIT) {
                                 // If touch is within dial, keep track of the coordinate
                                 val offset = change.position
                                 val distance = TouchGestureUtils.distance(offset, center)
@@ -518,43 +615,11 @@ fun TaskDial(
                                         if (angleMode == AngleMode.START) {
                                             startAngle = angle
                                             tmpStartAngle = startAngle
-
-                                            val startMinute = TouchGestureUtils.calculateMinutes(
-                                                TouchGestureUtils.angleForTimeCalculation(
-                                                    tmpStartAngle
-                                                ),
-                                                minuteAngle
-                                            )
-                                            val clockTaskStartTime =
-                                                TouchGestureUtils.calculateClockTimeBasedOnMinutesFromStartTime(
-                                                    start = activeTimeStart,
-                                                    minutes = startMinute
-                                                )
-
-                                            // If I update the task end time in the task UI state for saving purposes (using the onSetTaskStartTime(clockTaskStartTime) method), it interrupts the drawing. So I update the final start- and end time of the task just before saving it.
-                                            // Update the task start time in the local state so that changes are drawn accordingly
-                                            touchedTask!!.startTime = clockTaskStartTime
                                         }
                                         // If we are setting the end time of the given task
                                         else if (angleMode == AngleMode.END) {
                                             endAngle = angle
                                             tmpEndAngle = endAngle
-
-                                            val endMinute = TouchGestureUtils.calculateMinutes(
-                                                TouchGestureUtils.angleForTimeCalculation(
-                                                    tmpEndAngle
-                                                ),
-                                                minuteAngle
-                                            )
-                                            val clockTaskEndTime =
-                                                TouchGestureUtils.calculateClockTimeBasedOnMinutesFromStartTime(
-                                                    start = activeTimeStart,
-                                                    minutes = endMinute
-                                                )
-
-                                            // If I update the task end time in the task UI state for saving purposes (using the onSetTaskEndTime(clockTaskEndTime) method), it interrupts the drawing. So I update the final start- and end time of the task just before saving it.
-                                            // Update the task end time in the local state so that changes are drawn accordingly
-                                            touchedTask!!.startTime = clockTaskEndTime
                                         }
 
                                         // Show the clock time the angle corresponds to
@@ -562,7 +627,7 @@ fun TaskDial(
                                             TouchGestureUtils.angleForTimeCalculation(angle),
                                             minuteAngle
                                         )
-                                        clockCenterTime =
+                                        taskClockTime =
                                             TouchGestureUtils.calculateClockTimeBasedOnMinutesFromStartTime(
                                                 start = activeTimeStart,
                                                 minutes = minute
@@ -573,19 +638,70 @@ fun TaskDial(
 
                         },
                         onDragEnd = {
+                            if (angleMode == AngleMode.START) {
+                                val startMinute = TouchGestureUtils.calculateMinutes(
+                                    TouchGestureUtils.angleForTimeCalculation(
+                                        tmpStartAngle
+                                    ),
+                                    minuteAngle
+                                )
+                                val clockTaskStartTime =
+                                    TouchGestureUtils.calculateClockTimeBasedOnMinutesFromStartTime(
+                                        start = activeTimeStart,
+                                        minutes = startMinute
+                                    )
+
+                                if (taskDialMode == TaskDialMode.CREATE) {
+                                    setTaskStartTime(clockTaskStartTime)
+                                } else {
+                                    // Update the task start time in the local state so that changes are drawn accordingly
+                                    touchedTask!!.startTime = clockTaskStartTime//TODO: Move the updating to the task UI state
+                                }
+                            } else if (angleMode == AngleMode.END) {
+                                val endMinute = TouchGestureUtils.calculateMinutes(
+                                    TouchGestureUtils.angleForTimeCalculation(
+                                        tmpEndAngle
+                                    ),
+                                    minuteAngle
+                                )
+                                val clockTaskEndTime =
+                                    TouchGestureUtils.calculateClockTimeBasedOnMinutesFromStartTime(
+                                        start = activeTimeStart,
+                                        minutes = endMinute
+                                    )
+
+                                if (taskDialMode == TaskDialMode.CREATE) {
+                                    setTaskEndTime(clockTaskEndTime)
+                                } else {
+                                    // Update the task end time in the local state so that changes are drawn accordingly
+                                    touchedTask!!.endTime = clockTaskEndTime//TODO: Move the updating to the task UI state
+                                }
+                            }
+
                             if (touchNearTheDialEdge || touchInsideTheDial) {
                                 // Reset the angle mode
                                 angleMode = AngleMode.NONE
                                 // Set new startAngle and endAngle values
                                 startAngle = tmpStartAngle
                                 endAngle = tmpEndAngle
-                            } else {
-                                reset()
                             }
+//                            else {
+//                                reset()
+//                            }
                         }
                     )
                 }
         ) {
+            if (drawClockHand && TouchGestureUtils.checkIfTimeInRange(clockTime, activeTimeStart, activeTimeEnd)) {
+                drawClockHand(
+                    activeTimeStart = activeTimeStart,
+                    clockTime = clockTime,
+                    minuteAngle = minuteAngle,
+                    startRadius = outerRadius - clockHandPadding,
+                    endRadius = centerRadius
+                )
+            }
+
             val minutesBetweenHoursAccumulated: Array<Int> =
                 TouchGestureUtils.calculateMinutesBetweenHoursAccumulated(
                     activeTimeStart,
@@ -595,15 +711,13 @@ fun TaskDial(
                 activeTimeStart,
                 activeTimeEnd
             )
-            outerRadius = min(width, height) / 2f * 0.8f
-            innerRadius = outerRadius * .8f
 
             if (drawNewTaskTimeRange) {
 
                 drawNewTaskArea(
                     startAngle = tmpStartAngle,
                     size = size,
-                    outerRadius = outerRadius - 40f,
+                    outerRadius = outerRadius - taskPadding,
                     sweepAngle = TouchGestureUtils.sweepAngle(
                         tmpStartAngle,
                         tmpEndAngle
@@ -615,21 +729,21 @@ fun TaskDial(
                 // We have to offset these angles because startMinute * taskDialState.minuteAngle returns a biased angle
                 val taskStartAngle = TouchGestureUtils.calculateTaskAngle (
                     activeTimeStart,
-                    task.startTime,
+                    task.startTime!!,
                     minuteAngle
                 )
                 val taskDuration = TouchGestureUtils.calculateTotalNumberOfMinutes(
-                    task.startTime,
-                    task.endTime
+                    task.startTime!!,
+                    task.endTime!!
                 )
 
                 // Don't draw the task whose time bounds are being edited
-                if (!(task.id == touchedTask?.id && taskMode == TaskMode.EDIT)) {
+                if (!(task.id == touchedTask?.id && taskDialMode == TaskDialMode.EDIT)) {
                     drawTask(
                         taskStartAngle = taskStartAngle,
                         minuteAngle = minuteAngle,
                         innerRadius = centerRadius,
-                        outerRadius = outerRadius - 40f,
+                        outerRadius = outerRadius - taskPadding,
                         taskDuration = taskDuration,
                         taskTitle = task.title,
                         textMeasurer = textMeasurer,
@@ -659,37 +773,7 @@ fun TaskDial(
                 textMeasurer = textMeasurer,
                 radius = centerRadius,
                 fontSize = 32.sp,
-                label = clockCenterTime
-            )
-        }
-
-        // The Box has to be defined after the Canvas in order to be placed on the Canvas and be clickable
-        Box (//FIXME: The Box's position is not fixed - it moves in relation to the canvas depending on the size of the component
-            modifier = Modifier
-                .fillMaxSize(0.16f)
-                .aspectRatio(1f)
-                .clip(CircleShape)
-                .background(activeTimeColor)
-                .clickable {
-                    // Show active time setup
-                    onPressActiveTime()
-                }
-                .align(Alignment.TopCenter)
-        ) {
-            val hourStepLabel = buildAnnotatedString {
-                append("%d:%02d".format(activeTimeStart.hour, activeTimeStart.minute))
-                appendLine()
-                append("%d:%02d".format(activeTimeEnd.hour, activeTimeEnd.minute))
-            }
-
-            Text(
-                text = hourStepLabel,
-                modifier = Modifier
-                    .align(Alignment.Center),
-                color = Color.White,
-                fontSize = 14.sp,
-                textAlign = TextAlign.Center,
-                lineHeight = 16.sp
+                label = clockTime
             )
         }
     }
@@ -734,6 +818,49 @@ fun DrawScope.drawClockCenter(
         topLeft = clockCenterLabelOffset,
         style = TextStyle(
             color = Color(CLOCK_LABEL_COLOR)
+        )
+    )
+}
+
+fun DrawScope.drawClockHand(
+    activeTimeStart: Time,
+    startRadius: Float,
+    clockTime: Time,
+    minuteAngle: Float,
+    endRadius: Float
+) {
+    val minutesFromActiveTimeStart = TouchGestureUtils.calculateTotalNumberOfMinutes(activeTimeStart, clockTime)
+    var angle = minuteAngle * minutesFromActiveTimeStart
+
+    if (angle in 270f..360f) angle -= 90f else angle += 270f
+
+    val startOffset = Offset(
+        x = center.x + (startRadius * cos(angle * DEG_TO_RAD)).toFloat(),
+        y = center.y + (startRadius * sin(angle * DEG_TO_RAD)).toFloat()
+    )
+    val endOffset = Offset(
+        x = center.x + (endRadius * cos(angle * DEG_TO_RAD)).toFloat(),
+        y = center.y + (endRadius * sin(angle * DEG_TO_RAD)).toFloat()
+    )
+    val path = Path()
+
+    path.moveTo(
+        x = startOffset.x,
+        y = startOffset.y
+    )
+    path.lineTo(
+        x = endOffset.x,
+        y = endOffset.y
+    )
+    drawPath(
+        path,
+//        color = Color(0xff000000),
+        color = Color(CLOCK_LABEL_COLOR),
+        alpha = 0.7f,
+        style = Stroke(
+            width = 8f,
+//            cap = StrokeCap.Round,
+//            pathEffect = PathEffect.dashPathEffect(floatArrayOf(38f, 15f), 0f)
         )
     )
 }
@@ -947,7 +1074,7 @@ fun DrawScope.drawTask(
     else {
         var startRadius: Float
         var endRadius: Float
-        pathPadding = textMeasurer.measure("00").size.width.toFloat()
+        pathPadding = textMeasurer.measure("0").size.width.toFloat()
 
         // Draw the text from the center out...
         if (middleAngle in 270f..360f || middleAngle in 0f..90f) {

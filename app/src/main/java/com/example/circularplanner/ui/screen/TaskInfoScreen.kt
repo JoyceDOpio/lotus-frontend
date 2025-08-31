@@ -17,13 +17,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.circularplanner.R
+import com.example.circularplanner.ui.component.DropDownItem
 import com.example.circularplanner.ui.component.TaskCard
+import com.example.circularplanner.ui.component.TaskDropdownMenu
 import com.example.circularplanner.ui.viewmodel.TaskUiState
 import com.example.circularplanner.ui.viewmodel.UserInput
 
@@ -31,8 +34,10 @@ import com.example.circularplanner.ui.viewmodel.UserInput
 fun TaskInfoScreen(
     modifier: Modifier = Modifier,
     taskUiState: TaskUiState,
-    userInput: UserInput,
-    onCancel: () -> Unit,
+    deleteTask: () -> Unit,
+    onBack: () -> Unit,
+    onNavigateToMoveToCalendar: () -> Unit,
+    onMoveToToDoList: () -> Unit,
     onNavigateToTaskEdit: () -> Unit
 ) {
     val taskDetails = taskUiState
@@ -40,7 +45,7 @@ fun TaskInfoScreen(
     Scaffold (
         bottomBar = {
             BottomAppBar (
-//                contentColor = MaterialTheme.colorScheme.primaryContainer
+                containerColor = Color(BOTTOM_BAR_COLOR),
                 actions = {
 //                    // Leading icons should typically have a high content alpha
 //                    CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.high) {
@@ -52,12 +57,13 @@ fun TaskInfoScreen(
                     // Close button
                     IconButton(onClick = {
                         // Navigate to previous stack entry
-                        onCancel()
+                        onBack()
                     }) {
                         Icon(
-                            imageVector = ImageVector.vectorResource(id = R.drawable.cancel_24dp_5f6368_fill0_wght400_grad0_opsz24),
-                            contentDescription = "Open time picker",
-                            modifier = Modifier.fillMaxSize(0.8F)
+                            imageVector = ImageVector.vectorResource(id = R.drawable.cancel_svgrepo_com),
+                            contentDescription = "Cancel",
+                            modifier = Modifier.fillMaxSize(0.8F),
+                            tint = Color(BOTTOM_BAR_TEXT_COLOR)
                         )
                     }
 
@@ -66,16 +72,35 @@ fun TaskInfoScreen(
                     // The Spacer pushes the other icons to the end of the app bar
                     Spacer(Modifier.weight(1f, true))
 
-                    // Edit button
-                    IconButton(onClick = {
-                        onNavigateToTaskEdit()
-                    }) {
-                        Icon(
-                            imageVector = ImageVector.vectorResource(id = R.drawable.edit_24dp_5f6368_fill0_wght400_grad0_opsz24),
-                            contentDescription = "Open time picker",
-                            modifier = Modifier.fillMaxSize(0.8F)
+                    val dropdownItems = listOf<DropDownItem>(
+                        DropDownItem(
+                            text = "Edit",
+                            iconId = R.drawable.edit_24dp_5f6368_fill0_wght400_grad0_opsz24,
+                            onClick = {
+                                onNavigateToTaskEdit()
+                            }
+                        ),
+                        DropDownItem(
+                            text = "Delete",
+                            iconId = R.drawable.delete_24dp_5f6368_fill0_wght400_grad0_opsz24,
+                            onClick = {
+                                deleteTask()
+                                onBack()
+                            }
+                        ),
+                        DropDownItem(
+                            text = if (taskDetails.date == null) "Move to calendar" else "Move to TO-DO list",
+                            iconId = if (taskDetails.date == null) R.drawable.calendar_month_24dp_5f6368_fill0_wght400_grad0_opsz24 else R.drawable.list_svgrepo_com,
+                            onClick = {
+                                if (taskDetails.date == null) onNavigateToMoveToCalendar() else onMoveToToDoList()
+                                onBack()
+                            }
                         )
-                    }
+                    )
+                    TaskDropdownMenu(
+                        dropdownItems = dropdownItems,
+                        modifier = Modifier.fillMaxSize(0.7F)
+                    )
                 }
             )
         }
@@ -87,7 +112,7 @@ fun TaskInfoScreen(
             TaskCard (
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
-                date = userInput.selectedDate,
+                date = taskDetails.date,
                 endTime = taskDetails.endTime,
                 startTime = taskDetails.startTime,
                 title = taskDetails.title

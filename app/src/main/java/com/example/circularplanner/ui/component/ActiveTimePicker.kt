@@ -27,7 +27,7 @@ fun ActiveTimePicker(
             title += " End"
         }
 
-        value = String.format("%d:%02d", timePicker.hour, timePicker.minute)
+        value = "%d:%02d".format(timePicker.hour, timePicker.minute)
 
         Text (title, fontWeight = FontWeight.Bold)
         Text (value)

@@ -35,4 +35,7 @@ interface DaoActivity {
 
     @Query("SELECT * FROM activities WHERE date = :date ORDER BY start_time ASC")
     fun getAllActivities(date: String): Flow<List<Activity>>
+
+    @Query("SELECT * FROM activities WHERE end_time IS NULL")
+    fun getRecordedActivity(): Flow<Activity>
 }

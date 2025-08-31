@@ -26,4 +26,10 @@ interface DaoTask {
     // Return a list of Task entities as Flow. Room keeps this Flow updated for you, which means you only need to explicitly get the data once.
     @Query("SELECT * FROM tasks WHERE date = :date ORDER BY start_time ASC")
     fun getAllTasks(date: String): Flow<List<Task>>
+
+    @Query("SELECT MAX(priority) FROM tasks")
+    fun getLastPriority(): Flow<Int>
+
+    @Query("SELECT * FROM tasks WHERE date IS NULL")
+    fun getTasksWithoutDate(): Flow<List<Task>>
 }

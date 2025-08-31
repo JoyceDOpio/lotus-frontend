@@ -35,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
@@ -45,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import com.example.circularplanner.R
 import com.example.circularplanner.data.Time
 import com.example.circularplanner.ui.component.TimePickerDialog
+import com.example.circularplanner.ui.viewmodel.DayState
 import com.example.circularplanner.ui.viewmodel.TaskUiState
 import java.util.UUID
 
@@ -52,13 +54,16 @@ import java.util.UUID
 @Composable
 fun TaskEditScreen(
     modifier: Modifier = Modifier,
+    dayState: DayState,
+    lastTaskPriority: Int,
     taskUiState: TaskUiState,
     onBack: () -> Unit,
     saveTask: () -> Unit,
     setTaskStartTime: (Time) -> Unit,
     setTaskEndTime: (Time) -> Unit,
     setTaskDescription: (String) -> Unit,
-    setTaskTitle: (String) -> Unit,
+    setTaskPriority: (Int) -> Unit,
+    setTaskTitle: (String) -> Unit
 ) {
     fun getLabel(taskId: UUID?): String {
         if (taskId == null) {
@@ -73,17 +78,27 @@ fun TaskEditScreen(
     var showStartTimePicker by remember { mutableStateOf(false) }
     val taskDetails = taskUiState
 
-    val startTimePickerState: TimePickerState = rememberTimePickerState(
-        initialHour = taskDetails.startTime.hour,
-        initialMinute = taskDetails.startTime.minute
-    )
-    val endTimePickerState: TimePickerState = rememberTimePickerState(
-        initialHour = taskDetails.endTime.hour,
-        initialMinute = taskDetails.endTime.minute
-    )
+    var startTimePickerState: TimePickerState? = null
+    var endTimePickerState: TimePickerState? = null
+
+    if (taskDetails.date != null) {
+        startTimePickerState = rememberTimePickerState(
+            initialHour = taskDetails.startTime?.hour ?: dayState.activeTimeStart.hour,
+            initialMinute = taskDetails.startTime?.minute ?: dayState.activeTimeStart.minute
+        )
+        endTimePickerState = rememberTimePickerState(
+            initialHour = taskDetails.endTime?.hour ?: dayState.activeTimeEnd.hour,
+            initialMinute = taskDetails.endTime?.minute  ?: dayState.activeTimeEnd.minute
+        )
+    }
 
     val confirmButtonText = "OK"
     val dismissButtonText = "Cancel"
+
+    // If the task is a TO-DO task and it doesn't have a priority value, set the priority
+    if (taskDetails.date == null && taskDetails.priority == null) {
+        setTaskPriority(lastTaskPriority + 1)
+    }
 
     fun onDismissCloseTimePicker() {
         showTimePicker = false
@@ -92,8 +107,8 @@ fun TaskEditScreen(
 
     fun onSaveCloseTimePicker() {
         //TODO: Validate if task start- and end time are within active time bounds
-        setTaskStartTime(Time(startTimePickerState.hour, startTimePickerState.minute))
-        setTaskEndTime(Time(endTimePickerState.hour, endTimePickerState.minute))
+        setTaskStartTime(Time(startTimePickerState?.hour ?: 0, startTimePickerState?.minute ?: 0))
+        setTaskEndTime(Time(endTimePickerState?.hour ?: 0, endTimePickerState?.minute ?: 0))
         showTimePicker = false
         showStartTimePicker = false
     }
@@ -105,7 +120,7 @@ fun TaskEditScreen(
     Scaffold (
         bottomBar = {
             BottomAppBar (
-//                contentColor = MaterialTheme.colorScheme.primaryContainer
+                containerColor = Color(BOTTOM_BAR_COLOR),
                 actions = {
 //                    // Leading icons should typically have a high content alpha
 //                    CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.high) {
@@ -120,9 +135,10 @@ fun TaskEditScreen(
                         onBack()
                     }) {
                         Icon(
-                            imageVector = ImageVector.vectorResource(id = R.drawable.cancel_24dp_5f6368_fill0_wght400_grad0_opsz24),
+                            imageVector = ImageVector.vectorResource(id = R.drawable.cancel_svgrepo_com),
                             contentDescription = "Cancel",
-                            modifier = Modifier.fillMaxSize(0.8F)
+                            modifier = Modifier.fillMaxSize(0.8F),
+                            tint = Color(BOTTOM_BAR_TEXT_COLOR)
                         )
                     }
 
@@ -131,8 +147,6 @@ fun TaskEditScreen(
                     // The Spacer pushes the other icons to the end of the app bar
                     Spacer(Modifier.weight(1f, true))
 
-
-
                     // Save button
                     IconButton(onClick = {
                         //TODO: Validate start- and end-time input - the values should remain within the active time boundaries
@@ -140,9 +154,10 @@ fun TaskEditScreen(
                         onBack()
                     }) {
                         Icon(
-                            imageVector = ImageVector.vectorResource(id = R.drawable.save_24dp_5f6368_fill0_wght400_grad0_opsz24),
-                            contentDescription = "Open time picker",
-                            modifier = Modifier.fillMaxSize(0.8F)
+                            imageVector = ImageVector.vectorResource(id = R.drawable.save_alt_svgrepo_com),
+                            contentDescription = "Save task",
+                            modifier = Modifier.fillMaxSize(0.6F),
+                            tint = Color(BOTTOM_BAR_TEXT_COLOR)
                         )
                     }
                 }
@@ -151,7 +166,6 @@ fun TaskEditScreen(
     ) { innerPadding ->
         Column(
             modifier = modifier
-//                .weight(0.6f)
                 .padding(horizontal = 30.dp)
                 .padding(innerPadding)
                 .fillMaxWidth()
@@ -169,65 +183,67 @@ fun TaskEditScreen(
                 color = MaterialTheme.colorScheme.primary
             )
 
-            Column (
-                modifier = modifier
-                    .fillMaxWidth(),
-            ) {
-                Row (
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
+            if (taskDetails.date != null) {
+                Column (
+                    modifier = modifier
+                        .fillMaxWidth(),
                 ) {
-                    // Start time
-                    Box (
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .clickable(
-                                onClick = {
-                                    showStartTimePicker = true
-                                    openTimePicker()
-                                }
-                            )
+                    Row (
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
+                        // Start time
+                        Box (
                             modifier = Modifier
-                                .padding(10.dp),
-                            text = "%d:%02d".format(
-                                taskDetails.startTime.hour,
-                                taskDetails.startTime.minute
-                            ),
-                            fontSize = 20.sp,
+                                .clip(CircleShape)
+                                .clickable(
+                                    onClick = {
+                                        showStartTimePicker = true
+                                        openTimePicker()
+                                    }
+                                )
+                        ) {
+                            Text(
+                                modifier = Modifier
+                                    .padding(10.dp),
+                                text = "%d:%02d".format(
+                                    taskDetails.startTime?.hour ?: dayState.activeTimeStart.hour,
+                                    taskDetails.startTime?.minute ?: dayState.activeTimeStart.minute
+                                ),
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        Text(
+                            " - ",
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.primary
                         )
-                    }
 
-                    Text(
-                        " - ",
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    // End time
-                    Box (
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .clickable(
-                                onClick = {
-                                    openTimePicker()
-                                }
-                            )
-                    ) {
-                        Text(
+                        // End time
+                        Box (
                             modifier = Modifier
-                                .padding(10.dp),
-                            text = "%d:%02d".format(
-                                taskDetails.endTime.hour,
-                                taskDetails.endTime.minute
-                            ),
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                                .clip(CircleShape)
+                                .clickable(
+                                    onClick = {
+                                        openTimePicker()
+                                    }
+                                )
+                        ) {
+                            Text(
+                                modifier = Modifier
+                                    .padding(10.dp),
+                                text = "%d:%02d".format(
+                                    taskDetails.endTime?.hour ?: dayState.activeTimeEnd.hour,
+                                    taskDetails.endTime?.minute ?: dayState.activeTimeEnd.minute
+                                ),
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
             }
@@ -243,7 +259,7 @@ fun TaskEditScreen(
                 label = { Text("Title") },
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 singleLine = true,
-                shape = RoundedCornerShape(15.dp),
+                shape = RoundedCornerShape(15.dp)
             )
 
             // Description field
@@ -258,196 +274,38 @@ fun TaskEditScreen(
                 label = { Text("Description") },
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 singleLine = false,
-                shape = RoundedCornerShape(15.dp),
+                shape = RoundedCornerShape(15.dp)
             )
         }
     }
 
-//    Row (
-//        modifier = modifier
-//            .padding(vertical = 10.dp)
-//            .fillMaxSize()
-//    ) {
-//        Column () {
-//            Column(
-//                modifier = modifier
-//                    .weight(0.6f)
-//                    .padding(horizontal = 10.dp)
-//                    .fillMaxWidth(0.85f)
-//                    .fillMaxHeight()
-//                    .verticalScroll(rememberScrollState()),
-//                verticalArrangement = Arrangement.Center,
-//                horizontalAlignment = Alignment.CenterHorizontally
-//            ) {
-//                // Label
-//                Text(
-//                    modifier = Modifier
-//                        .padding(bottom = 10.dp),
-//                    text = label,
-//                    fontSize = 20.sp,
-//                    color = MaterialTheme.colorScheme.primary
-//                )
-//
-//                Column (
-//                    modifier = modifier
-//                        .fillMaxWidth(),
-//                ) {
-//                    Row (
-//                        horizontalArrangement = Arrangement.Center,
-//                        verticalAlignment = Alignment.CenterVertically
-//                    ) {
-//                        // Start time
-//                        Box (
-//                            modifier = Modifier
-//                                .clip(CircleShape)
-//                                .clickable(
-//                                    onClick = {
-//                                        showStartTimePicker = true
-//                                        openTimePicker()
-//                                    }
-//                                )
-//                        ) {
-//                            Text(
-//                                modifier = Modifier
-//                                    .padding(10.dp),
-//                                text = String.format(
-//                                    "%d:%02d",
-//                                    taskDetails.startTime.hour,
-//                                    taskDetails.startTime.minute
-//                                ),
-//                                fontSize = 20.sp,
-//                                fontWeight = FontWeight.SemiBold,
-//                                color = MaterialTheme.colorScheme.primary
-//                            )
-//                        }
-//
-//                        Text(
-//                            " - ",
-//                            fontWeight = FontWeight.SemiBold,
-//                            color = MaterialTheme.colorScheme.primary
-//                        )
-//
-//                        // End time
-//                        Box (
-//                            modifier = Modifier
-//                                .clip(CircleShape)
-//                                .clickable(
-//                                    onClick = {
-//                                        openTimePicker()
-//                                    }
-//                                )
-//                        ) {
-//                            Text(
-//                                modifier = Modifier
-//                                    .padding(10.dp),
-//                                text = String.format(
-//                                    "%d:%02d",
-//                                    taskDetails.endTime.hour,
-//                                    taskDetails.endTime.minute
-//                                ),
-//                                fontSize = 20.sp,
-//                                fontWeight = FontWeight.SemiBold,
-//                                color = MaterialTheme.colorScheme.primary
-//                            )
-//                        }
-//                    }
-//                }
-//
-//                // Title field
-//                OutlinedTextField(
-//                    value = taskDetails.title,
-//                    onValueChange = setTaskTitle,
-//                    modifier = Modifier
-//                        .padding(vertical = 5.dp)
-//                        .fillMaxWidth(),
-//                    textStyle = TextStyle(fontSize = 20.sp),
-//                    label = { Text("Title") },
-//                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-//                    singleLine = true,
-//                    shape = RoundedCornerShape(15.dp),
-//                )
-//
-//                // Description field
-//                OutlinedTextField(
-//                    value = taskDetails.description,
-//                    onValueChange = setTaskDescription,
-//                    modifier = Modifier
-//                        .padding(vertical = 5.dp)
-//                        .fillMaxWidth()
-//                        .fillMaxHeight(0.5f),
-//                    textStyle = TextStyle(fontSize = 18.sp),
-//                    label = { Text("Description") },
-//                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-//                    singleLine = false,
-//                    shape = RoundedCornerShape(15.dp),
-//                )
-//            }
-//        }
-
-//        VerticalDivider(
-//            modifier = Modifier
-//                .fillMaxHeight(),
-//            thickness = 2.dp,
-//        )
-//
-//        Column (
-//            modifier = modifier
-//                .fillMaxWidth(1f)
-//                .fillMaxHeight(),
-//            verticalArrangement = Arrangement.Center,
-//            horizontalAlignment = Alignment.CenterHorizontally
-//        ) {
-//            // Close button
-//            IconButton(onClick = {
-//                // Navigate to previous stack entry
-//                onBack()
-//            }) {
-//                Icon(
-//                    imageVector = ImageVector.vectorResource(id = R.drawable.cancel_24dp_5f6368_fill0_wght400_grad0_opsz24),
-//                    contentDescription = "Cancel",
-//                    modifier = Modifier.fillMaxSize(0.8F)
-//                )
-//            }
-//
-//            // Save button
-//            IconButton(onClick = {
-//                //TODO: Validate start- and end-time input - the values should remain within the active time boundaries
-//                saveTask()
-//                onBack()
-//            }) {
-//                Icon(
-//                    imageVector = ImageVector.vectorResource(id = R.drawable.save_24dp_5f6368_fill0_wght400_grad0_opsz24),
-//                    contentDescription = "Open time picker",
-//                    modifier = Modifier.fillMaxSize(0.8F)
-//                )
-//            }
-//        }
-//    }
-
     if (showTimePicker) {
-        TimePickerDialog(
-            onDismissRequest = {
-                onDismissCloseTimePicker()
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onSaveCloseTimePicker()
-                    }
-                ) { Text(confirmButtonText) } },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        onDismissCloseTimePicker()
-                    }
-                ) { Text(dismissButtonText) }
-            }
-        )
-        {
-            if (showStartTimePicker) {
-                TimePicker(state = startTimePickerState)
-            } else {
-                TimePicker(state = endTimePickerState)
+        if (startTimePickerState != null && endTimePickerState != null) {
+            TimePickerDialog(
+                onDismissRequest = {
+                    onDismissCloseTimePicker()
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            onSaveCloseTimePicker()
+                        }
+                    ) { Text(confirmButtonText) }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            onDismissCloseTimePicker()
+                        }
+                    ) { Text(dismissButtonText) }
+                }
+            )
+            {
+                if (showStartTimePicker) {
+                    TimePicker(state = startTimePickerState)
+                } else {
+                    TimePicker(state = endTimePickerState)
+                }
             }
         }
     }

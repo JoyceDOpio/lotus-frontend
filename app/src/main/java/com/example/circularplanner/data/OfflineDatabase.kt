@@ -1,6 +1,7 @@
 package com.example.circularplanner.data
 
 import android.content.Context
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -12,12 +13,17 @@ import androidx.room.TypeConverters
         Day::class,
         Task::class,
         Activity:: class,
-        VoiceNote::class
+        VoiceNote::class,
+        Goal::class
     ],
     // Whenever you change the schema of the database table, you have to increase the version number
-    version = 3,
+    version = 10,
     // Keep schema version history backups
-    exportSchema = true
+    exportSchema = false,
+//    exportSchema = true,
+//    autoMigrations = [
+//        AutoMigration (from = 8, to = 9)
+//    ]
 )
 @TypeConverters(Converters::class
 )
@@ -26,6 +32,7 @@ abstract class OfflineDatabase : RoomDatabase() {
     abstract fun taskDao() : DaoTask
     abstract fun activityDao() : DaoActivity
     abstract fun voiceNoteDao(): DaoVoiceNote
+    abstract fun goalDao(): DaoGoal
 
     companion object {
         // The value of a volatile variable is never cached, and all reads and writes are to and from the main memory. These features help ensure the value of Instance is always up to date and is the same for all execution threads. It means that changes made by one thread to Instance are immediately visible to all other threads.

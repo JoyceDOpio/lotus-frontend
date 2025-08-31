@@ -8,6 +8,7 @@ interface AppContainer {
     val tasksRepository: ITasksRepository
     val activitiesRepository: IActivitiesRepository
     val voiceNotesRepository: IVoiceNotesRepository
+    val goalsRepository: IGoalsRepository
 }
 
 class AppDataContainer(
@@ -27,5 +28,9 @@ class AppDataContainer(
 
     override val voiceNotesRepository: IVoiceNotesRepository by lazy {
         RepositoryVoiceNotes(OfflineDatabase.getDatabase(context).voiceNoteDao())
+    }
+
+    override val goalsRepository: IGoalsRepository by lazy {
+        RepositoryGoals(OfflineDatabase.getDatabase(context).goalDao())
     }
 }

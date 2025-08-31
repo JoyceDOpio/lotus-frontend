@@ -187,7 +187,10 @@ fun Calendar(
         if (reachedListEnd) loadMore(ListDirection.END)
     }
 
-    Column () {
+    Column (
+//        modifier = Modifier
+//            .background(Color(BACKGROUND_COLOR))
+    ) {
         // Circled date
         Row (
             modifier = Modifier

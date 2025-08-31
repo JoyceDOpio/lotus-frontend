@@ -9,11 +9,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
@@ -69,28 +69,18 @@ fun VoiceNoteListItem (
         }
     }
 
-    Card(
+    OutlinedCard(
         modifier = Modifier
             .padding(vertical = 3.dp)
             .sizeIn(maxHeight = 50.dp)
             .fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
-        ),
-        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface),
+        border = CardDefaults.outlinedCardBorder()
     ) {
         Column () {
             Row (
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-//                // Time
-//                Text(
-//                    text = millisecondsToTime(voiceNote.timestamp!!),
-//                    modifier = Modifier
-//                        .padding(horizontal = 5.dp)
-//                )
-
                 // Play/pause button
                 IconButton(
                     modifier = Modifier

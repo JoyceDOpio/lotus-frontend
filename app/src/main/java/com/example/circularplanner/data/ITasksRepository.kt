@@ -7,7 +7,11 @@ import java.util.UUID
 interface ITasksRepository {
     fun getAllTasksPerDayStream(date: String): Flow<List<Task>>
 
+    fun getAllTasksWithoutDate(): Flow<List<Task>>
+
     fun getTaskStream(id: UUID): Flow<Task?>
+
+    fun getLastPriority(): Flow<Int?>
 
     suspend fun insertTask(task: Task): Long
 

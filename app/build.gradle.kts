@@ -9,6 +9,10 @@ plugins {
     id("com.google.devtools.ksp")
 
     id("kotlin-parcelize")
+
+    id("dagger.hilt.android.plugin")
+
+    id("androidx.room")
 }
 
 android {
@@ -25,6 +29,17 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
+        }
+
+//        javaCompileOptions {
+//            annotationProcessorOptions {
+//                arguments["room.schemaLocation"] =
+//                    "$projectDir/schemas"
+//            }
+//        }
+
+        ksp {
+            arg("room.schemaLocation", "$projectDir/schemas")
         }
     }
 
@@ -54,6 +69,10 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+    room {
+        schemaDirectory("$projectDir/schemas")
+//        schemaDirectory("/schemas")
     }
 }
 
@@ -104,7 +123,12 @@ dependencies {
     implementation("androidx.media3:media3-common:1.3.1")
     implementation("androidx.media3:media3-session:1.3.1")
 
+    // Permission management
     implementation("com.google.accompanist:accompanist-permissions:0.37.3")
+
+    //Dagger - Hilt
+    implementation("com.google.dagger:hilt-android:2.56.2")
+    ksp("com.google.dagger:hilt-android-compiler:2.56.2")
 }
 
 configurations.implementation{

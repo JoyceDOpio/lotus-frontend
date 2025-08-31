@@ -80,25 +80,8 @@ fun VoiceNoteList (
         }
     }
 
-//    val rainbowColors = listOf(
-//        Color(0xfff78f0a),
-//        Color(0xfff78f0a),
-//        Color(0xffc4067c),
-//        Color(0xffc4067c),
-//        Color(0xff06aac4),
-//        Color(0xff06aac4),
-//    )
-//
-//    val gradient = Brush.verticalGradient(
-//        colors = rainbowColors,
-////        startY = 0.0f,
-////        endY = 500.0f
-//    )
-
     LazyColumn(
         modifier = Modifier
-//            .background(gradient)
-//            .alpha(0.68f)
             .padding(vertical = 5.dp)
             .fillMaxWidth()
             .fillMaxHeight()

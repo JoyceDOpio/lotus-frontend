@@ -23,9 +23,9 @@ fun TaskCard (
     modifier: Modifier = Modifier,
     verticalArrangement: Arrangement.Vertical = Arrangement.Top,
     horizontalAlignment: Alignment.Horizontal = Alignment.Start,
-    date: LocalDate,
-    endTime: Time,
-    startTime: Time,
+    date: LocalDate?,
+    endTime: Time?,
+    startTime: Time?,
     title: String,
     content: @Composable () -> Unit
 ) {
@@ -63,64 +63,68 @@ fun TaskCard (
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Top
         ) {
-            Column (
-                modifier = modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-            ) {
-                // Date
-                Text(
-                    text = date.format(dateFormatter),
-                    fontWeight = FontWeight.Normal,
-                    fontSize = 18.sp
-                )
+            if (date != null) {
+                Column (
+                    modifier = modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                ) {
+                    // Date
+                    Text(
+                        text = date.format(dateFormatter),
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 18.sp
+                    )
 
-                Text(
-                    text = date.format(weekDayFormatter),
-                    fontWeight = FontWeight.Thin,
-                    fontSize = 18.sp
-                )
+                    Text(
+                        text = date.format(weekDayFormatter),
+                        fontWeight = FontWeight.Thin,
+                        fontSize = 18.sp
+                    )
+                }
             }
 
-            Column (
-                modifier = modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.End
-            ) {
-                // Time range
-                val timeRangeText = "%d:%02d - %d:%02d".format(startTime.hour, startTime.minute, endTime.hour, endTime.minute)
-                Text(
-                    text = timeRangeText,
-                    fontWeight = FontWeight.Normal,
-                    fontSize = 18.sp
-                )
+            if (startTime != null && endTime != null) {
+                Column (
+                    modifier = modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.End
+                ) {
+                    // Time range
+                    val timeRangeText = "%d:%02d - %d:%02d".format(startTime.hour, startTime.minute, endTime.hour, endTime.minute)
+                    Text(
+                        text = timeRangeText,
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 18.sp
+                    )
 
-                // Time duration
-                val totalMinutes = TouchGestureUtils.calculateTotalNumberOfMinutes(startTime, endTime)
-                val hours = totalMinutes / TouchGestureUtils.MINUTES_IN_HOUR
-                val minutes = totalMinutes % TouchGestureUtils.MINUTES_IN_HOUR
-                val timeDurationText = if (hours == 0) {
-                    "%01d min".format(minutes)
-                } else if (minutes == 0) {
-                    if (hours > 1) {
-                        "%01d hours".format(hours)
+                    // Time duration
+                    val totalMinutes = TouchGestureUtils.calculateTotalNumberOfMinutes(startTime, endTime)
+                    val hours = totalMinutes / TouchGestureUtils.MINUTES_IN_HOUR
+                    val minutes = totalMinutes % TouchGestureUtils.MINUTES_IN_HOUR
+                    val timeDurationText = if (hours == 0) {
+                        "%01d min".format(minutes)
+                    } else if (minutes == 0) {
+                        if (hours > 1) {
+                            "%01d hours".format(hours)
+                        } else {
+                            "%01d hour".format(hours)
+                        }
                     } else {
-                        "%01d hour".format(hours)
+                        if (hours > 1) {
+                            "%01d hours %01d min".format(hours, minutes)
+                        } else {
+                            "%01d hour %01d min".format(hours, minutes)
+                        }
                     }
-                } else {
-                    if (hours > 1) {
-                        "%01d hours %01d min".format(hours, minutes)
-                    } else {
-                        "%01d hour %01d min".format(hours, minutes)
-                    }
+                    Text(
+                        text = timeDurationText,
+                        fontWeight = FontWeight.Thin,
+                        fontSize = 18.sp
+                    )
                 }
-                Text(
-                    text = timeDurationText,
-                    fontWeight = FontWeight.Thin,
-                    fontSize = 18.sp
-                )
             }
         }
 

@@ -11,11 +11,16 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.example.circularplanner.data.Task
+import com.example.circularplanner.service.StopwatchService
+import com.example.circularplanner.ui.screen.GoalEditScreen
 import com.example.circularplanner.ui.screen.MainScreen
 import com.example.circularplanner.ui.screen.TaskActivityComparisonScreen
 import com.example.circularplanner.ui.screen.TaskEditScreen
 import com.example.circularplanner.ui.screen.TaskInfoScreen
-import com.example.circularplanner.ui.viewmodel.AppViewModel
+import com.example.circularplanner.ui.screen.WelcomeScreen
+import com.example.circularplanner.ui.viewmodel.DayViewModel
+import com.example.circularplanner.ui.viewmodel.GoalViewModel
 import com.example.circularplanner.ui.viewmodel.toVoiceNote
 import com.example.circularplanner.utils.AudioRecorder
 import java.io.File
@@ -23,80 +28,42 @@ import java.io.File
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 @Composable
 fun Navigation(
-    navController: NavHostController
+    navController: NavHostController,
+    stopwatchService: StopwatchService
 ) {
-    val appViewModel: AppViewModel = viewModel(factory = AppViewModel.Factory)
+    val dayViewModel: DayViewModel = viewModel(factory = DayViewModel.Factory)
 
-    val activityUiState by appViewModel.activityUiState.collectAsState()
-    val dayState by appViewModel.dayState.collectAsState()
-    val recordedActivityState by appViewModel.recordedActivityState.collectAsState()
-    val dayUiState by appViewModel.dayUiState.collectAsState()
-    val taskUiState by appViewModel.taskUiState.collectAsState()
-    val userInput by appViewModel.userInput.collectAsState()
+    val activityUiState by dayViewModel.activityUiState.collectAsState()
+    val dayState by dayViewModel.dayState.collectAsState()
+    val recordedActivityUiState by dayViewModel.recordedActivityUiState.collectAsState()
+    val dayUiState by dayViewModel.dayUiState.collectAsState()
+    val lastTaskPriority by dayViewModel.lastTaskPriority.collectAsState(initial = 0)
+    val taskUiState by dayViewModel.taskUiState.collectAsState()
+    val toDoTasks by dayViewModel.toDoTasks.collectAsState(emptyList())
+    val userInput by dayViewModel.userInput.collectAsState()
 
     val context = LocalContext.current
     val audioRecorder = AudioRecorder()
 
+    val goalViewModel: GoalViewModel = viewModel(factory = GoalViewModel.Factory)
+    val goals by goalViewModel.goals.collectAsState()
+    val goalUiState by goalViewModel.goalUiState.collectAsState()
+    val lastGoalPriority by goalViewModel.lastPriority.collectAsState()
+
     NavHost(
         navController = navController,
-        startDestination = TaskDisplayRoute
+        startDestination = WelcomeRoute
     ) {
-        composable<TaskDisplayRoute> {
-            MainScreen(
-                context = context,
-                dayUiState = dayUiState,
-                recordedActivityState = recordedActivityState,
-                dayState = dayState,
-                taskUiState = taskUiState,
-                userInput = userInput,
-                addVoiceNoteToActivity = appViewModel::addVoiceNoteToActivity,
-                clearRecordedActivity = appViewModel::clearRecordedActivity,
-                deleteTask = { task ->
-                    appViewModel.deleteTask(task)
+        composable<GoalEditRoute> {
+            GoalEditScreen(
+                goalUiState = goalUiState,
+                lastPriority = lastGoalPriority ?: 0,
+                onBack = {
+                    navController.popBackStack()
                 },
-                deleteVoiceNote = {voiceNoteUiState ->
-                    try {
-                        val file = File(voiceNoteUiState.uri)
-                        if (file.exists()) {
-                            // Delete the voice note audio file from the local storage
-                            file.delete()
-                        }
-                        // The voice note from the database
-                        appViewModel.deleteVoiceNote(voiceNoteUiState.toVoiceNote())
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        Toast.makeText(context,"Error deleting the file", Toast.LENGTH_SHORT).show()
-                    }
-                },
-                onChangeDisplayForm = appViewModel::setIsList,
-                onClickSaveActiveTime = {
-                    appViewModel.saveDay()
-                    appViewModel.setIsActiveTimeSetUp(false)
-                },
-                onNavigateToTaskActivityComparison = { navController.navigate(route = TaskActivityComparisonRoute) },
-                onNavigateToTaskEdit = { navController.navigate(route = TaskEditRoute) },
-                onNavigateToTaskInfo = { navController.navigate(route = TaskInfoRoute) },
-                onSetSelectedDate = { date ->
-                    appViewModel.setSelectedDate(date)
-                },
-                onSwitchScreen = appViewModel::setIsActivityDisplay,
-                saveActivity = appViewModel::saveActivity,
-                saveTask = appViewModel::saveTask,
-                selectActivity = appViewModel::selectActivity,
-                selectTask = appViewModel::selectTask,
-                setActiveTimeStart = appViewModel::setActiveTimeStart,
-                setActiveTimeEnd = appViewModel::setActiveTimeEnd,
-                setActivityStartTime = appViewModel::setActivityStartTime,
-                setActivityEndTime = appViewModel::setActivityEndTime,
-                setActivityId = appViewModel::setActivityId,
-                setActivityTitle = appViewModel::setActivityTitle,
-                setIsActiveTimeSetUp = appViewModel::setIsActiveTimeSetUp,
-                setIsTimerRunning = appViewModel::setIsTimerRunning,
-                setTaskStartTime = appViewModel::setTaskStartTime,
-                setTaskEndTime = appViewModel::setTaskEndTime,
-                startRecording = audioRecorder::startRecording,
-                stopRecording = audioRecorder::stopRecording,
-                updateLastPlayedPosition = appViewModel::updateLastPlayedPositionRecordedActivity
+                saveGoal = goalViewModel::saveGoal,
+                setGoalPriority = goalViewModel::setPriority,
+                setGoalTitle = goalViewModel::setTitle
             )
         }
 
@@ -113,7 +80,7 @@ fun Navigation(
                             file.delete()
                         }
                         // The voice note from the database
-                        appViewModel.deleteVoiceNote(voiceNoteUiState.toVoiceNote())
+                        dayViewModel.deleteVoiceNote(voiceNoteUiState.toVoiceNote())
                     } catch (e: Exception) {
                         e.printStackTrace()
                         Toast.makeText(context,"Error deleting the file", Toast.LENGTH_SHORT).show()
@@ -122,36 +89,140 @@ fun Navigation(
                 onCancel = {
                     navController.popBackStack()
                 },
-                updateLastPlayedPosition = appViewModel::updateLastPlayedPosition
+                updateLastPlayedPosition = dayViewModel::updateLastPlayedPosition
+            )
+        }
+
+        composable<TaskDisplayRoute> {
+            MainScreen(
+                context = context,
+                dayUiState = dayUiState,
+                dayState = dayState,
+                goals = goals,
+                recordedActivityUiState = recordedActivityUiState,
+                stopwatchService = stopwatchService,
+                taskUiState = taskUiState,
+                toDoTasks = toDoTasks,
+                userInput = userInput,
+                clearRecordedActivity = dayViewModel::clearRecordedActivity,
+                deleteGoal = goalViewModel::deleteGoal,
+                deleteVoiceNote = { voiceNoteUiState ->
+                    try {
+                        val file = File(voiceNoteUiState.uri)
+                        if (file.exists()) {
+                            // Delete the voice note audio file from the local storage
+                            file.delete()
+                        }
+                        // The voice note from the database
+                        dayViewModel.deleteVoiceNote(voiceNoteUiState.toVoiceNote())
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        Toast.makeText(context,"Error deleting the file", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                onClickSaveActiveTime = {
+                    dayViewModel.saveDay()
+                    dayViewModel.setIsActiveTimeSetUp(false)
+                },
+                onNavigateToGoalEdit = { navController.navigate(route = GoalEditRoute) },
+                onNavigateToTaskActivityComparison = { navController.navigate(route = TaskActivityComparisonRoute) },
+                onNavigateToTaskEdit = { navController.navigate(route = TaskEditRoute) },
+                onNavigateToTaskInfo = { navController.navigate(route = TaskInfoRoute) },
+                onSetDayNote = dayViewModel::setDayNote,
+                onSetSelectedDate = { date ->
+                    dayViewModel.setSelectedDate(date)
+                },
+                onSwitchGoals = { firstId, secondId ->
+                    goalViewModel.switchPriorities(firstId, secondId)
+                },
+                onSwitchScreen = dayViewModel::setIsActivityDisplay,
+                saveRecordedActivity = dayViewModel::saveRecordedActivity,
+                saveDay = dayViewModel::saveDay,
+                saveTask = dayViewModel::saveTask,
+                saveVoiceNote = dayViewModel::saveVoiceNote,
+                selectActivity = dayViewModel::selectActivity,
+                selectGoal = goalViewModel::selectGoal,
+                selectTask = dayViewModel::selectTask,
+                setActiveTimeStart = dayViewModel::setActiveTimeStart,
+                setActiveTimeEnd = dayViewModel::setActiveTimeEnd,
+                setActualActiveTimeEnd = dayViewModel::setActualActiveTimeEnd,
+                setActualActiveTimeStart = dayViewModel::setActualActiveTimeStart,
+                setRecordedActivityEndTime = dayViewModel::setRecordedActivityEndTime,
+                setRecordedActivityId = dayViewModel::setRecordedActivityId,
+                setRecordedActivityNote = dayViewModel::setRecordedActivityNote,
+                setRecordedActivityStartTime = dayViewModel::setRecordedActivityStartTime,
+                setRecordedActivityTitle = dayViewModel::setRecordedActivityTitle,
+                setIsActiveTimeSetUp = dayViewModel::setIsActiveTimeSetUp,
+                setTaskDate = dayViewModel::setTaskDate,
+                setTaskStartTime = dayViewModel::setTaskStartTime,
+                setTaskEndTime = dayViewModel::setTaskEndTime,
+                startRecording = audioRecorder::startRecording,
+                stopRecording = audioRecorder::stopRecording,
             )
         }
 
         composable<TaskEditRoute> { backStackEntry ->
             TaskEditScreen(
+                dayState = dayState,
+                lastTaskPriority = lastTaskPriority ?: 0,
                 taskUiState = taskUiState,
                 onBack = {
                     navController.popBackStack()
                 },
-                saveTask = {
-                    appViewModel.saveTask()
-                },
-                setTaskStartTime = appViewModel::setTaskStartTime,
-                setTaskEndTime = appViewModel::setTaskEndTime,
-                setTaskDescription = appViewModel::setTaskDescription,
-                setTaskTitle = appViewModel::setTaskTitle,
+                saveTask = { dayViewModel.saveTask() },
+                setTaskStartTime = dayViewModel::setTaskStartTime,
+                setTaskEndTime = dayViewModel::setTaskEndTime,
+                setTaskDescription = dayViewModel::setTaskDescription,
+                setTaskPriority = dayViewModel::setTaskPriority,
+                setTaskTitle = dayViewModel::setTaskTitle,
             )
         }
 
         composable<TaskInfoRoute> { backStackEntry ->
             TaskInfoScreen(
                 taskUiState = taskUiState,
-                userInput = userInput,
-                onCancel = {
+                deleteTask = {
+                    var task: Task?
+
+                    // TODO: Find a more optimal way to find the task
+                    task = dayViewModel.toDoTasks.value.find { task -> task.id == dayViewModel.taskUiState.value.id }
+                    if (task == null) {
+                        task = dayViewModel.dayState.value.tasks.find { task -> task.id == dayViewModel.taskUiState.value.id }
+                    }
+
+                    if (task != null) {
+                        dayViewModel.deleteTask(task)
+                    }
+                },
+                onBack = {
                     navController.popBackStack()
+                },
+                onNavigateToMoveToCalendar = {
+//                    val task = toDoTasks.find { task -> task.id == taskUiState.id }
+                },
+                onMoveToToDoList = {
+                    val task = dayState.tasks.find { task -> task.id == taskUiState.id }
+
+                    if (task != null) {
+                        dayViewModel.updateTask(
+                            task.copy(
+                                date = null,
+                                startTime = null,
+                                endTime = null
+                            )
+                        )
+                    }
                 },
                 onNavigateToTaskEdit = {
                     navController.navigate(route = TaskEditRoute)
                 },
+            )
+        }
+
+        composable<WelcomeRoute>{
+            WelcomeScreen(
+                goals = goals,
+                onNext = { navController.navigate(route = TaskDisplayRoute) }
             )
         }
     }

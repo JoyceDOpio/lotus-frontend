@@ -6,9 +6,10 @@ import kotlin.math.atan2
 import kotlin.math.sqrt
 
 // Are we creating a new task or editing an existing task
-enum class TaskMode {
+enum class TaskDialMode {
     CREATE,
-    EDIT
+    EDIT,
+    VIEW
 }
 
 // Are we setting the start angle (start time) or end angle (end time) of a given task
@@ -77,9 +78,12 @@ object TouchGestureUtils {
         minutes += (60 - start.minute)
 
         if (numberOfClockHoursBetween > 0) {
-            for (i in 1..(numberOfClockHoursBetween - 1)) {
+            repeat(numberOfClockHoursBetween - 1) {
                 minutes += 60
             }
+//            for (i in 1..(numberOfClockHoursBetween - 1)) {
+//                minutes += 60
+//            }
         }
         if (end.minute != 0) {
             minutes += end.minute
@@ -117,14 +121,19 @@ object TouchGestureUtils {
     }
 
     fun calculateTotalNumberOfMinutes (start: Time, end: Time): Int {
-        var minutes: Int = 0
+        var minutes = 0
         val numberOfClockHoursBetween: Int = calculateClockHoursBetween(start, end)
 
         if (numberOfClockHoursBetween > 1) {
             minutes += (60 - start.minute)
-            for (i in 1..(numberOfClockHoursBetween - 1)) {
+
+            repeat(numberOfClockHoursBetween - 1) {
                 minutes += 60
             }
+//            for (i in 1..(numberOfClockHoursBetween - 1)) {
+//                minutes += 60
+//            }
+
             minutes += if (end.minute == 0) 0 else end.minute
         } else if (numberOfClockHoursBetween == 1) {
             minutes += (60 - start.minute)
@@ -134,6 +143,16 @@ object TouchGestureUtils {
         }
 
         return minutes
+    }
+
+    fun checkIfTimeInRange(time: Time, rangeStart: Time, rangeEnd: Time): Boolean {
+        if (time.hour in rangeStart.hour..rangeEnd.hour) {
+            if (time.hour == rangeStart.hour && time.minute < rangeStart.minute) return false
+            else if (time.hour == rangeEnd.hour && time.minute > rangeEnd.minute) return false
+            else return true
+        }
+
+        return false
     }
 
     fun checkIfTouchInsideDial(distance: Float, centerRadius: Float, innerRadius: Float, touchStroke: Float): Boolean {

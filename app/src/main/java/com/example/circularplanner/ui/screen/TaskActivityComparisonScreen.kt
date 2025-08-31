@@ -56,7 +56,7 @@ fun TaskActivityComparisonScreen (
     Scaffold (
         bottomBar = {
             BottomAppBar (
-//                contentColor = MaterialTheme.colorScheme.primaryContainer
+                containerColor = Color(BOTTOM_BAR_COLOR),
                 actions = {
 //                    // Leading icons should typically have a high content alpha
 //                    CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.high) {
@@ -71,9 +71,10 @@ fun TaskActivityComparisonScreen (
                         onCancel()
                     }) {
                         Icon(
-                            imageVector = ImageVector.vectorResource(id = R.drawable.cancel_24dp_5f6368_fill0_wght400_grad0_opsz24),
+                            imageVector = ImageVector.vectorResource(id = R.drawable.cancel_svgrepo_com),
                             contentDescription = "Open time picker",
-                            modifier = Modifier.fillMaxSize(0.8F)
+                            modifier = Modifier.fillMaxSize(0.8F),
+                            tint = Color(BOTTOM_BAR_TEXT_COLOR)
                         )
                     }
 

@@ -8,8 +8,16 @@ class RepositoryTasks(private val taskDao: DaoTask) : ITasksRepository {
         return taskDao.getAllTasks(date)
     }
 
+    override fun getAllTasksWithoutDate(): Flow<List<Task>> {
+        return taskDao.getTasksWithoutDate()
+    }
+
     override fun getTaskStream(id: UUID): Flow<Task?> {
         return taskDao.getTask(id)
+    }
+
+    override fun getLastPriority(): Flow<Int?> {
+        return taskDao.getLastPriority()
     }
 
     override suspend fun insertTask(task: Task): Long {

@@ -7,24 +7,33 @@ import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.vectorResource
 import com.example.circularplanner.R
+import com.example.circularplanner.data.Goal
 import com.example.circularplanner.data.Task
 import com.example.circularplanner.data.Time
-import com.example.circularplanner.ui.component.ActiveTimeHeader
+import com.example.circularplanner.data.VoiceNote
+import com.example.circularplanner.service.StopwatchService
 import com.example.circularplanner.ui.component.ActivityGraph
 import com.example.circularplanner.ui.component.Calendar
 import java.util.UUID
@@ -37,6 +46,17 @@ import com.example.circularplanner.ui.viewmodel.VoiceNoteUiState
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
+const val TOP_BAR_COLOR = 0xFFffffff
+const val TOP_BAR_TEXT_COLOR = 0xFF6650a4
+const val BOTTOM_BAR_COLOR = 0xFFffffff
+const val BOTTOM_BAR_TEXT_COLOR = 0xFF3D3061
+
+enum class State {
+    Goal,
+    Task,
+    ToDo
+}
+
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 @SuppressLint("ViewModelConstructorInComposable")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,53 +65,72 @@ fun MainScreen(
     context: Context,
     dayUiState: DayUiState,
     dayState: DayState,
-    recordedActivityState: ActivityUiState,
+    goals: List<Goal>,
+    stopwatchService: StopwatchService,
+    recordedActivityUiState: ActivityUiState,
     taskUiState: TaskUiState,
+    toDoTasks: List<Task>,
     userInput: UserInput,
-    addVoiceNoteToActivity: (VoiceNoteUiState) -> Unit,
     clearRecordedActivity: () -> Unit,
-    deleteTask: (Task) -> Unit,
+    deleteGoal: (Goal) -> Unit,
     deleteVoiceNote: (VoiceNoteUiState) ->Unit,
-    onChangeDisplayForm: (Boolean) -> Unit,
+    onNavigateToGoalEdit: () -> Unit,
     onNavigateToTaskActivityComparison: () -> Unit,
     onNavigateToTaskEdit: () -> Unit,
     onNavigateToTaskInfo: () -> Unit,
     onClickSaveActiveTime: () -> Unit,
+    onSetDayNote: (String) -> Unit,
     onSetSelectedDate: (LocalDate) -> Unit,
+    onSwitchGoals: (UUID, UUID) -> Unit,
     onSwitchScreen: (Boolean) -> Unit,
-    saveActivity: () -> Unit,
+    saveDay: () -> Unit,
+    saveRecordedActivity: () -> Unit,
     saveTask: () -> Unit,
+    saveVoiceNote: (VoiceNote) -> Unit,
     selectActivity: (UUID?) -> Unit,
+    selectGoal: (UUID?) -> Unit,
     selectTask: (UUID?) -> Unit,
     setActiveTimeEnd: (Time) -> Unit,
     setActiveTimeStart: (Time) -> Unit,
-    setActivityEndTime: (Time) -> Unit,
-    setActivityId: (UUID) -> Unit,
-    setActivityStartTime: (Time) -> Unit,
-    setActivityTitle: (String) -> Unit,
+    setActualActiveTimeEnd: (Time) -> Unit,
+    setActualActiveTimeStart: (Time) -> Unit,
+    setRecordedActivityEndTime: (Time) -> Unit,
+    setRecordedActivityId: (UUID) -> Unit,
+    setRecordedActivityNote: (String) -> Unit,
+    setRecordedActivityStartTime: (Time) -> Unit,
+    setRecordedActivityTitle: (String) -> Unit,
     setIsActiveTimeSetUp: (Boolean) -> Unit,
-    setIsTimerRunning: (Boolean) -> Unit,
+    setTaskDate: (LocalDate?) -> Unit,
     setTaskEndTime: (Time) -> Unit,
     setTaskStartTime: (Time) -> Unit,
     startRecording: (String) -> Unit,
     stopRecording: () -> Unit,
-    updateLastPlayedPosition: (Long, Int) -> Unit
 ) {
     val formatter = DateTimeFormatter.ofPattern("d. MMMM yyyy")
-    val showList = dayUiState.isList
     val selectedDate = userInput.selectedDate
     val showActivityScreen = dayUiState.isActivityDisplay
+
+    var state by remember { mutableStateOf(State.Task) }
+    var button1State by remember { mutableStateOf(State.Goal) }
+    var button2State by remember { mutableStateOf(State.ToDo) }
 
     Scaffold (
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("${selectedDate.format(formatter)}") },
-                colors = TopAppBarDefaults.topAppBarColors(MaterialTheme.colorScheme.primaryContainer),
+                title = { Text(
+                    text = when (state) {
+                        State.Goal -> "Goals"// TODO: Read string from resource
+                        State.ToDo -> "TO-DO List"// TODO: Read string from resource
+                        else -> "${selectedDate.format(formatter)}"
+                    },
+                    color = Color(TOP_BAR_TEXT_COLOR)
+                ) },
+                colors = TopAppBarDefaults.topAppBarColors(Color(TOP_BAR_COLOR))
             )
         },
         bottomBar = {
             BottomAppBar (
-//                contentColor = MaterialTheme.colorScheme.primaryContainer
+                containerColor = Color(BOTTOM_BAR_COLOR),
                 actions = {
 //                    // Leading icons should typically have a high content alpha
 //                    CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.high) {
@@ -104,40 +143,131 @@ fun MainScreen(
                     // The Spacer pushes the other icons to the end of the app bar
                     Spacer(Modifier.weight(1f, true))
 
-                    // If the selected date is not in the past, i.e. it is today or in the future
+                    // If the selected date is today or in the future
                     if (!selectedDate.isBefore(LocalDate.now())) {
                         // If the tasks screen is to be shown
                         if (!showActivityScreen) {
+                            // Add button
                             IconButton(
                                 onClick = {
-                                    selectTask(null)
-                                    onNavigateToTaskEdit()
+                                    when (state) {
+                                        State.Goal -> {
+                                            selectGoal(null)
+                                            onNavigateToGoalEdit()
+                                        }
+                                        State.Task -> {
+                                            selectTask(null)
+                                            setTaskDate(userInput.selectedDate)
+                                            onNavigateToTaskEdit()
+                                        }
+                                        State.ToDo -> {
+                                            selectTask(null)
+                                            setTaskDate(null)
+                                            onNavigateToTaskEdit()
+                                        }
+                                    }
                                 }
                             ) {
                                 Icon(
-                                    imageVector = ImageVector.vectorResource(id = R.drawable.add_circle_24dp_5f6368_fill0_wght400_grad0_opsz24),
+                                    imageVector = ImageVector.vectorResource(id = R.drawable.add_square_svgrepo_com),
                                     contentDescription = "Add task",
-                                    modifier = Modifier.fillMaxSize(0.8F)
+                                    modifier = Modifier.fillMaxSize(0.8F),
+                                    tint = Color(BOTTOM_BAR_TEXT_COLOR)
                                 )
                             }
 
-                            IconButton(onClick = {
-                                onChangeDisplayForm(!showList)
-                            }) {
-                                if (!showList) {
-                                    Icon(
-                                        imageVector = ImageVector.vectorResource(id = R.drawable.list_24dp_5f6368_fill0_wght400_grad0_opsz24),
-                                        contentDescription = "List view",
-                                        modifier = Modifier.fillMaxSize(0.8F)
-                                    )
+                            // Button 1
+                            IconButton(
+                                onClick = {
+                                    when (button1State) {
+                                        State.Goal -> {
+                                            button1State = if (button2State == State.ToDo) State.Task else State.ToDo
+                                            state = State.Goal
+                                        }
+                                        State.Task -> {
+                                            button1State = if (button2State == State.ToDo) State.Goal else State.ToDo
+                                            state = State.Task
+                                        }
+                                        State.ToDo -> {
+                                            button1State = if (button2State == State.Task) State.Goal else State.Task
+                                            state = State.ToDo
+                                        }
+                                    }
                                 }
-                                else {
-                                    Icon(
-                                        imageVector = ImageVector.vectorResource(id = R.drawable.clock_activity_svgrepo_com),
-                                        contentDescription = "Dial view",
-                                        modifier = Modifier.fillMaxSize(0.8F)
-                                    )
+                            ) {
+                                Icon(
+                                    imageVector = when (button1State) {
+                                            State.Goal -> {
+                                                ImageVector.vectorResource(id = R.drawable.target_love_svgrepo_com)
+                                            }
+                                            State.Task -> {
+                                                ImageVector.vectorResource(id = R.drawable.clock_svgrepo_com)
+                                            }
+                                            State.ToDo -> {
+                                                ImageVector.vectorResource(id = R.drawable.list_svgrepo_com)
+                                            }
+                                        },
+                                    contentDescription = when (button1State) {
+                                        State.Goal -> {
+                                            "Goals"
+                                        }
+                                        State.Task -> {
+                                            "Tasks"
+                                        }
+                                        State.ToDo -> {
+                                            "ToDo"
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxSize(0.8F),
+                                    tint = Color(BOTTOM_BAR_TEXT_COLOR)
+                                )
+                            }
+
+                            // Button 2
+                            IconButton(
+                                onClick = {
+                                    when (button2State) {
+                                        State.Goal -> {
+                                            button2State = if (button1State == State.ToDo) State.Task else State.ToDo
+                                            state = State.Goal
+                                        }
+                                        State.Task -> {
+                                            button2State = if (button1State == State.ToDo) State.Goal else State.ToDo
+                                            state = State.Task
+                                        }
+                                        State.ToDo -> {
+                                            button2State = if (button1State == State.Task) State.Goal else State.Task
+                                            state = State.ToDo
+                                        }
+                                    }
                                 }
+                            ) {
+                                Icon(
+                                    imageVector = when (button2State) {
+                                        State.Goal -> {
+                                            ImageVector.vectorResource(id = R.drawable.target_love_svgrepo_com)
+                                        }
+                                        State.Task -> {
+                                            ImageVector.vectorResource(id = R.drawable.clock_activity_svgrepo_com)
+                                        }
+                                        State.ToDo -> {
+                                            ImageVector.vectorResource(id = R.drawable.list_svgrepo_com)
+                                        }
+                                    },
+                                    contentDescription = when (button2State) {
+                                        State.Goal -> {
+                                            "Goals"
+                                        }
+                                        State.Task -> {
+                                            "Tasks"
+                                        }
+                                        State.ToDo -> {
+                                            "ToDo"
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxSize(0.8F),
+                                    tint = Color(BOTTOM_BAR_TEXT_COLOR)
+                                )
                             }
                         }
 
@@ -150,14 +280,16 @@ fun MainScreen(
                                     Icon(
                                         imageVector = ImageVector.vectorResource(id = R.drawable.graph_svgrepo_com),
                                         contentDescription = "Activity display",
-                                        modifier = Modifier.fillMaxSize(0.8F)
+                                        modifier = Modifier.fillMaxSize(0.8F),
+                                        tint = Color(BOTTOM_BAR_TEXT_COLOR)
                                     )
                                 }
                                 else {
                                     Icon(
                                         imageVector = ImageVector.vectorResource(id = R.drawable.graph_infographic_data_element_2_svgrepo_com),
                                         contentDescription = "Task display",
-                                        modifier = Modifier.fillMaxSize(0.8F)
+                                        modifier = Modifier.fillMaxSize(0.8F),
+                                        tint = Color(BOTTOM_BAR_TEXT_COLOR)
                                     )
                                 }
                             }
@@ -178,10 +310,8 @@ fun MainScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                ActiveTimeHeader(
-                    dayState = dayState,
-                    userInput = userInput
-                )
+                val focusRequester = remember { FocusRequester() }
+                val focusManager = LocalFocusManager.current
 
                 ActivityGraph(
                     dayState = dayState,
@@ -189,6 +319,58 @@ fun MainScreen(
                     selectActivity = selectActivity,
                     selectTask = selectTask
                 )
+
+//                Row (
+//                    modifier = Modifier
+//                        .padding(
+//                            horizontal = 10.dp,
+//                            vertical = 5.dp
+//                        ),
+//                    horizontalArrangement = Arrangement.SpaceBetween,
+//                    verticalAlignment = Alignment.CenterVertically
+//                ) {
+//                    // Day note
+//                    OutlinedTextField(
+//                        value = dayUiState.note,
+//                        onValueChange = onSetDayNote,
+//                        modifier = Modifier
+//                            .width(325.dp)
+//                            .height(190.dp)
+//                            .focusRequester(focusRequester),
+//                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+//                        textStyle = TextStyle(
+//                            fontSize = 16.sp,
+//                            color = Color(HOUR_LABEL_COLOR)
+//                        ),
+//                        label = { Text("Day Notes") },
+//                        singleLine = false,
+//                        shape = RoundedCornerShape(15.dp)
+//                    )
+//
+//                    Spacer(Modifier.width(5.dp))
+//
+//                    Column (
+//                        horizontalAlignment = Alignment.End,
+//                        verticalArrangement = Arrangement.Center
+//                    ) {
+//                        // Save button
+//                        IconButton(
+//                            onClick = {
+//                                saveDay()
+//                                focusManager.clearFocus()
+//                            }
+//                        ) {
+//                            Icon(
+//                                imageVector = ImageVector.vectorResource(id = R.drawable.save_alt_svgrepo_com),
+//                                contentDescription = "Save day note",
+//                                modifier = Modifier
+//                                    .fillMaxSize(0.8f)
+//                                ,
+//                                tint = Color(BOTTOM_BAR_TEXT_COLOR)
+//                            )
+//                        }
+//                    }
+//                }
 
                 Calendar(
                     userInput = userInput,
@@ -205,24 +387,31 @@ fun MainScreen(
             AnimatedVisibility(
                 visible = !showActivityScreen
             ) {
-                TaskScreen(
+                PlannerScreen(
                     innerPadding = innerPadding,
                     dayState = dayState,
                     dayUiState = dayUiState,
+                    goals = goals,
+                    state = state,
                     taskUiState = taskUiState,
+                    toDoTasks = toDoTasks,
                     userInput = userInput,
-                    deleteTask = deleteTask,
+                    deleteGoal = deleteGoal,
+                    onClickSaveActiveTime = onClickSaveActiveTime,
+                    onNavigateToGoalEdit = onNavigateToGoalEdit,
                     onNavigateToTaskEdit = onNavigateToTaskEdit,
                     onNavigateToTaskInfo = onNavigateToTaskInfo,
-                    onClickSaveActiveTime = onClickSaveActiveTime,
+                    onSwitchGoals = onSwitchGoals,
                     saveTask = saveTask,
+                    selectGoal = selectGoal,
                     selectTask = selectTask,
                     setActiveTimeStart = setActiveTimeStart,
                     setActiveTimeEnd = setActiveTimeEnd,
                     setIsActiveTimeSetUp = setIsActiveTimeSetUp,
                     onSetSelectedDate = onSetSelectedDate,
                     setTaskStartTime = setTaskStartTime,
-                    setTaskEndTime = setTaskEndTime
+                    setTaskEndTime = setTaskEndTime,
+                    setTaskDate = setTaskDate
                 )
             }
 
@@ -234,22 +423,25 @@ fun MainScreen(
                     innerPadding = innerPadding,
                     context = context,
                     dayState = dayState,
-                    recordedActivityState = recordedActivityState,
-                    addVoiceNoteToActivity = addVoiceNoteToActivity,
+                    recordedActivityUiState = recordedActivityUiState,
+                    stopwatchService = stopwatchService,
                     clearRecordedActivity = clearRecordedActivity,
                     onNavigateToTaskActivityComparison = onNavigateToTaskActivityComparison,
                     removeVoiceNote = deleteVoiceNote,
-                    setActivityTitle = setActivityTitle,
-                    saveActivity = saveActivity,
+                    setActualActiveTimeEnd = setActualActiveTimeEnd,
+                    setActualActiveTimeStart = setActualActiveTimeStart,
+                    setRecordedActivityTitle = setRecordedActivityTitle,
+                    saveDay = saveDay,
+                    saveRecordedActivity = saveRecordedActivity,
+                    saveVoiceNote = saveVoiceNote,
                     selectActivity = selectActivity,
                     selectTask = selectTask,
-                    setActivityEndTime = setActivityEndTime,
-                    setActivityId = setActivityId,
-                    setActivityStartTime = setActivityStartTime,
-                    setIsTimerRunning = setIsTimerRunning,
+                    setRecordedActivityEndTime = setRecordedActivityEndTime,
+                    setRecordedActivityId = setRecordedActivityId,
+                    setRecordedActivityNote = setRecordedActivityNote,
+                    setRecordedActivityStartTime = setRecordedActivityStartTime,
                     startRecording = startRecording,
-                    stopRecording = stopRecording,
-                    updateLastPlayedPosition = updateLastPlayedPosition
+                    stopRecording = stopRecording
                 )
             }
         }

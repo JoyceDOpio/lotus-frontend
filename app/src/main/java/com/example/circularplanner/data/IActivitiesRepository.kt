@@ -8,6 +8,8 @@ interface IActivitiesRepository {
 
     fun getActivityStream(id: UUID): Flow<Activity?>
 
+    fun getRecordedActivity(): Flow<Activity?>
+
     suspend fun insertActivity(activity: Activity, vararg voiceNotes: VoiceNote)
 
     suspend fun deleteActivity(activity: Activity)

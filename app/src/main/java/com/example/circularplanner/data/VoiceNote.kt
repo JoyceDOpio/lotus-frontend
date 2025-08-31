@@ -25,5 +25,5 @@ class VoiceNote (
     @ColumnInfo(name = "activity_id")
     val activityId: UUID,
     @PrimaryKey
-    val id: UUID = UUID.randomUUID()
+    val id: UUID
 )
