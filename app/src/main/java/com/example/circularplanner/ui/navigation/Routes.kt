@@ -3,6 +3,12 @@ package com.example.circularplanner.ui.navigation
 import kotlinx.serialization.Serializable
 
 @Serializable
+object ActivityNoteEditRoute
+
+@Serializable
+object DayNoteEditRoute
+
+@Serializable
 object GoalEditRoute
 
 @Serializable

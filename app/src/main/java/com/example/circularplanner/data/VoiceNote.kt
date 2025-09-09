@@ -14,7 +14,7 @@ import java.util.UUID
             parentColumns = ["id"],
             childColumns = ["activity_id"],
             onDelete = ForeignKey.CASCADE,
-            onUpdate = ForeignKey.CASCADE
+            onUpdate = ForeignKey.NO_ACTION
         )
     ]
 )

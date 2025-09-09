@@ -94,18 +94,18 @@ fun VoiceNoteListItem (
                     when (isPlaying) {
                         true -> {
                             Icon(
-                                imageVector = ImageVector.vectorResource(id = R.drawable.pause_svgrepo_com),
+                                imageVector = ImageVector.vectorResource(id = R.drawable.pause_circle_svgrepo_com),
                                 contentDescription = "Pause",
-                                modifier = Modifier.fillMaxSize(0.5f),
+                                modifier = Modifier.fillMaxSize(0.7f),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
                         false -> {
                             Icon(
-                                imageVector = ImageVector.vectorResource(id = R.drawable.play_svgrepo_com),
+                                imageVector = ImageVector.vectorResource(id = R.drawable.play_circle_svgrepo_com),
                                 contentDescription = "Play",
                                 modifier = Modifier
-                                    .fillMaxSize(0.6f),
+                                    .fillMaxSize(0.7f),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }

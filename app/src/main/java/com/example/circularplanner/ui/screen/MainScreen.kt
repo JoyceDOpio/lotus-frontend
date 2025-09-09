@@ -8,13 +8,18 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,10 +29,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.circularplanner.R
 import com.example.circularplanner.data.Goal
 import com.example.circularplanner.data.Task
@@ -36,6 +46,7 @@ import com.example.circularplanner.data.VoiceNote
 import com.example.circularplanner.service.StopwatchService
 import com.example.circularplanner.ui.component.ActivityGraph
 import com.example.circularplanner.ui.component.Calendar
+import com.example.circularplanner.ui.component.leftBorder
 import java.util.UUID
 import com.example.circularplanner.ui.viewmodel.ActivityUiState
 import com.example.circularplanner.ui.viewmodel.DayState
@@ -74,6 +85,8 @@ fun MainScreen(
     clearRecordedActivity: () -> Unit,
     deleteGoal: (Goal) -> Unit,
     deleteVoiceNote: (VoiceNoteUiState) ->Unit,
+    onNavigateToActivityNoteEdit: () -> Unit,
+    onNavigateToDayNoteEdit: () -> Unit,
     onNavigateToGoalEdit: () -> Unit,
     onNavigateToTaskActivityComparison: () -> Unit,
     onNavigateToTaskEdit: () -> Unit,
@@ -92,6 +105,7 @@ fun MainScreen(
     selectTask: (UUID?) -> Unit,
     setActiveTimeEnd: (Time) -> Unit,
     setActiveTimeStart: (Time) -> Unit,
+    setActivityNote: (String) -> Unit,
     setActualActiveTimeEnd: (Time) -> Unit,
     setActualActiveTimeStart: (Time) -> Unit,
     setRecordedActivityEndTime: (Time) -> Unit,
@@ -110,7 +124,7 @@ fun MainScreen(
     val selectedDate = userInput.selectedDate
     val showActivityScreen = dayUiState.isActivityDisplay
 
-    var state by remember { mutableStateOf(State.Task) }
+    var displayState by remember { mutableStateOf(State.Task) }
     var button1State by remember { mutableStateOf(State.Goal) }
     var button2State by remember { mutableStateOf(State.ToDo) }
 
@@ -118,7 +132,7 @@ fun MainScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(
-                    text = when (state) {
+                    text = when (displayState) {
                         State.Goal -> "Goals"// TODO: Read string from resource
                         State.ToDo -> "TO-DO List"// TODO: Read string from resource
                         else -> "${selectedDate.format(formatter)}"
@@ -150,7 +164,7 @@ fun MainScreen(
                             // Add button
                             IconButton(
                                 onClick = {
-                                    when (state) {
+                                    when (displayState) {
                                         State.Goal -> {
                                             selectGoal(null)
                                             onNavigateToGoalEdit()
@@ -170,7 +184,7 @@ fun MainScreen(
                             ) {
                                 Icon(
                                     imageVector = ImageVector.vectorResource(id = R.drawable.add_square_svgrepo_com),
-                                    contentDescription = "Add task",
+                                    contentDescription = "Add",
                                     modifier = Modifier.fillMaxSize(0.8F),
                                     tint = Color(BOTTOM_BAR_TEXT_COLOR)
                                 )
@@ -182,15 +196,15 @@ fun MainScreen(
                                     when (button1State) {
                                         State.Goal -> {
                                             button1State = if (button2State == State.ToDo) State.Task else State.ToDo
-                                            state = State.Goal
+                                            displayState = State.Goal
                                         }
                                         State.Task -> {
                                             button1State = if (button2State == State.ToDo) State.Goal else State.ToDo
-                                            state = State.Task
+                                            displayState = State.Task
                                         }
                                         State.ToDo -> {
                                             button1State = if (button2State == State.Task) State.Goal else State.Task
-                                            state = State.ToDo
+                                            displayState = State.ToDo
                                         }
                                     }
                                 }
@@ -209,13 +223,13 @@ fun MainScreen(
                                         },
                                     contentDescription = when (button1State) {
                                         State.Goal -> {
-                                            "Goals"
+                                            "Goals"// TODO: Read string from resource
                                         }
                                         State.Task -> {
-                                            "Tasks"
+                                            "Tasks"// TODO: Read string from resource
                                         }
                                         State.ToDo -> {
-                                            "ToDo"
+                                            "ToDo"// TODO: Read string from resource
                                         }
                                     },
                                     modifier = Modifier.fillMaxSize(0.8F),
@@ -229,15 +243,15 @@ fun MainScreen(
                                     when (button2State) {
                                         State.Goal -> {
                                             button2State = if (button1State == State.ToDo) State.Task else State.ToDo
-                                            state = State.Goal
+                                            displayState = State.Goal
                                         }
                                         State.Task -> {
                                             button2State = if (button1State == State.ToDo) State.Goal else State.ToDo
-                                            state = State.Task
+                                            displayState = State.Task
                                         }
                                         State.ToDo -> {
                                             button2State = if (button1State == State.Task) State.Goal else State.Task
-                                            state = State.ToDo
+                                            displayState = State.ToDo
                                         }
                                     }
                                 }
@@ -248,7 +262,7 @@ fun MainScreen(
                                             ImageVector.vectorResource(id = R.drawable.target_love_svgrepo_com)
                                         }
                                         State.Task -> {
-                                            ImageVector.vectorResource(id = R.drawable.clock_activity_svgrepo_com)
+                                            ImageVector.vectorResource(id = R.drawable.clock_svgrepo_com)
                                         }
                                         State.ToDo -> {
                                             ImageVector.vectorResource(id = R.drawable.list_svgrepo_com)
@@ -256,13 +270,13 @@ fun MainScreen(
                                     },
                                     contentDescription = when (button2State) {
                                         State.Goal -> {
-                                            "Goals"
+                                            "Goals"// TODO: Read string from resource
                                         }
                                         State.Task -> {
-                                            "Tasks"
+                                            "Tasks"// TODO: Read string from resource
                                         }
                                         State.ToDo -> {
-                                            "ToDo"
+                                            "ToDo"// TODO: Read string from resource
                                         }
                                     },
                                     modifier = Modifier.fillMaxSize(0.8F),
@@ -320,57 +334,56 @@ fun MainScreen(
                     selectTask = selectTask
                 )
 
-//                Row (
-//                    modifier = Modifier
-//                        .padding(
-//                            horizontal = 10.dp,
-//                            vertical = 5.dp
-//                        ),
-//                    horizontalArrangement = Arrangement.SpaceBetween,
-//                    verticalAlignment = Alignment.CenterVertically
-//                ) {
-//                    // Day note
+                Row (
+                    modifier = Modifier
+                        .padding(
+                            horizontal = 10.dp,
+                            vertical = 5.dp
+                        ),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Day notes
 //                    OutlinedTextField(
-//                        value = dayUiState.note,
+                    TextField(
+                        value = dayUiState.note,
 //                        onValueChange = onSetDayNote,
-//                        modifier = Modifier
+                        onValueChange = { value ->
+                            onSetDayNote(value)
+                            saveDay()
+                        },
+                        modifier = Modifier
 //                            .width(325.dp)
-//                            .height(190.dp)
-//                            .focusRequester(focusRequester),
-//                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-//                        textStyle = TextStyle(
-//                            fontSize = 16.sp,
+                            .fillMaxWidth()
+                            .height(190.dp)
+                            .leftBorder(
+                                color = MaterialTheme.colorScheme.primary,
+                                width = 5f,
+//                            startY = 10f,
+//                            endY = 10f
+                            )
+                            .focusRequester(focusRequester)
+                        ,
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                        textStyle = TextStyle(
+                            fontSize = 16.sp,
 //                            color = Color(HOUR_LABEL_COLOR)
-//                        ),
-//                        label = { Text("Day Notes") },
-//                        singleLine = false,
-//                        shape = RoundedCornerShape(15.dp)
-//                    )
-//
-//                    Spacer(Modifier.width(5.dp))
-//
-//                    Column (
-//                        horizontalAlignment = Alignment.End,
-//                        verticalArrangement = Arrangement.Center
-//                    ) {
-//                        // Save button
-//                        IconButton(
-//                            onClick = {
-//                                saveDay()
-//                                focusManager.clearFocus()
-//                            }
-//                        ) {
-//                            Icon(
-//                                imageVector = ImageVector.vectorResource(id = R.drawable.save_alt_svgrepo_com),
-//                                contentDescription = "Save day note",
-//                                modifier = Modifier
-//                                    .fillMaxSize(0.8f)
-//                                ,
-//                                tint = Color(BOTTOM_BAR_TEXT_COLOR)
-//                            )
-//                        }
-//                    }
-//                }
+//                            color = Color(BOTTOM_BAR_TEXT_COLOR)
+//                            color = Color(CLOCK_LABEL_COLOR)
+                        ),
+                        label = { Text("DAY NOTES") },//TODO: Read string from resource
+                        singleLine = false,
+                        shape = RoundedCornerShape(15.dp),
+                        colors = TextFieldDefaults.textFieldColors(
+                            containerColor = Color.Transparent,
+                            unfocusedPlaceholderColor = Color(0xFF928BA2),
+                            focusedPlaceholderColor = Color(0xFF928BA2),
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent
+
+                        )
+                    )
+                }
 
                 Calendar(
                     userInput = userInput,
@@ -392,7 +405,7 @@ fun MainScreen(
                     dayState = dayState,
                     dayUiState = dayUiState,
                     goals = goals,
-                    state = state,
+                    state = displayState,
                     taskUiState = taskUiState,
                     toDoTasks = toDoTasks,
                     userInput = userInput,
@@ -426,8 +439,11 @@ fun MainScreen(
                     recordedActivityUiState = recordedActivityUiState,
                     stopwatchService = stopwatchService,
                     clearRecordedActivity = clearRecordedActivity,
+                    onNavigateToActivityNoteEdit = onNavigateToActivityNoteEdit,
+                    onNavigateToDayNoteEdit = onNavigateToDayNoteEdit,
                     onNavigateToTaskActivityComparison = onNavigateToTaskActivityComparison,
                     removeVoiceNote = deleteVoiceNote,
+                    setActivityNote = setActivityNote,
                     setActualActiveTimeEnd = setActualActiveTimeEnd,
                     setActualActiveTimeStart = setActualActiveTimeStart,
                     setRecordedActivityTitle = setRecordedActivityTitle,

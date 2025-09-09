@@ -55,33 +55,24 @@ object ServiceHelper {
 //            flag
 //        )
 //    }
-
-    fun stopPendingIntent(context: Context): PendingIntent {
-        val stopIntent = Intent(context, StopwatchService::class.java).apply {
-            putExtra(STOPWATCH_STATE, StopwatchState.Stopped.name)
-        }
-
-        return PendingIntent.getService(
-            context,
-            STOP_REQUEST_CODE,
-            stopIntent,
-            flag
-        )
-    }
+//
+//    fun stopPendingIntent(context: Context): PendingIntent {
+//        val stopIntent = Intent(context, StopwatchService::class.java).apply {
+//            putExtra(STOPWATCH_STATE, StopwatchState.Stopped.name)
+//        }
+//
+//        return PendingIntent.getService(
+//            context,
+//            STOP_REQUEST_CODE,
+//            stopIntent,
+//            flag
+//        )
+//    }
 
     fun triggerForegroundService(context: Context, action: String) {
-//    fun triggerForegroundService(context: Context, action: String, activityId: UUID, activityTitle: String) {
         Intent(context, StopwatchService::class.java).apply {
             this.action = action
             context.startService(this)
         }
-//        val intent = Intent(context, StopwatchService::class.java)
-//        intent.putExtra("activity_id", activityId.toString())
-//        intent.putExtra("activity_title", activityTitle)
-//
-//        intent.apply {
-//            this.action = action
-//            context.startService(this)
-//        }
     }
 }

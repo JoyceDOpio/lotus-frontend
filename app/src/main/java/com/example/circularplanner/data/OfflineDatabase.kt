@@ -18,11 +18,12 @@ import androidx.room.TypeConverters
     ],
     // Whenever you change the schema of the database table, you have to increase the version number
     version = 10,
+//    version = 11,
     // Keep schema version history backups
-    exportSchema = false,
-//    exportSchema = true,
+//    exportSchema = false,
+    exportSchema = true,
 //    autoMigrations = [
-//        AutoMigration (from = 8, to = 9)
+//        AutoMigration (from = 10, to = 11)
 //    ]
 )
 @TypeConverters(Converters::class

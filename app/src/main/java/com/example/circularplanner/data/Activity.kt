@@ -2,11 +2,23 @@ package com.example.circularplanner.data
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 import java.time.LocalDate
 import java.util.UUID
 
-@Entity(tableName = "activities")
+@Entity(
+    tableName = "activities",
+//    foreignKeys = [
+//        ForeignKey(
+//            entity = Activity::class,
+//            parentColumns = ["id"],
+//            childColumns = ["main_activity_id"],
+//            onDelete = ForeignKey.CASCADE,// Delete the sub-activities, if the main activity is deleted
+//            onUpdate = ForeignKey.NO_ACTION
+//        )
+//    ]
+)
 class Activity (
     val date: LocalDate,
     var title: String,
@@ -16,5 +28,7 @@ class Activity (
     @ColumnInfo(name = "end_time")
     var endTime: Time?,
     @PrimaryKey
-    val id: UUID
+    val id: UUID,
+//    @ColumnInfo(name = "main_activity_id")
+//    val mainActivityId: UUID?
 )

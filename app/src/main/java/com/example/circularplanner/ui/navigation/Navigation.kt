@@ -13,6 +13,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.circularplanner.data.Task
 import com.example.circularplanner.service.StopwatchService
+import com.example.circularplanner.ui.screen.ActivityNoteEditScreen
+import com.example.circularplanner.ui.screen.DayNoteEditScreen
 import com.example.circularplanner.ui.screen.GoalEditScreen
 import com.example.circularplanner.ui.screen.MainScreen
 import com.example.circularplanner.ui.screen.TaskActivityComparisonScreen
@@ -54,7 +56,29 @@ fun Navigation(
         navController = navController,
         startDestination = WelcomeRoute
     ) {
-        composable<GoalEditRoute> {
+        composable<ActivityNoteEditRoute> { backStackEntry ->
+            ActivityNoteEditScreen(
+                activityUiState = recordedActivityUiState,
+                onBack = {
+                    navController.popBackStack()
+                },
+                saveActivity = dayViewModel::saveRecordedActivity,
+                setActivityNote = dayViewModel::setRecordedActivityNote
+            )
+        }
+
+        composable<DayNoteEditRoute> { backStackEntry ->
+            DayNoteEditScreen(
+                dayUiState = dayUiState,
+                onBack = {
+                    navController.popBackStack()
+                },
+                saveDay = dayViewModel::saveDay,
+                setDayNote = dayViewModel::setDayNote
+            )
+        }
+
+        composable<GoalEditRoute> { backStackEntry ->
             GoalEditScreen(
                 goalUiState = goalUiState,
                 lastPriority = lastGoalPriority ?: 0,
@@ -93,7 +117,7 @@ fun Navigation(
             )
         }
 
-        composable<TaskDisplayRoute> {
+        composable<TaskDisplayRoute> { backStackEntry ->
             MainScreen(
                 context = context,
                 dayUiState = dayUiState,
@@ -124,6 +148,8 @@ fun Navigation(
                     dayViewModel.saveDay()
                     dayViewModel.setIsActiveTimeSetUp(false)
                 },
+                onNavigateToActivityNoteEdit = { navController.navigate( route = ActivityNoteEditRoute )},
+                onNavigateToDayNoteEdit = { navController.navigate( route = DayNoteEditRoute )},
                 onNavigateToGoalEdit = { navController.navigate(route = GoalEditRoute) },
                 onNavigateToTaskActivityComparison = { navController.navigate(route = TaskActivityComparisonRoute) },
                 onNavigateToTaskEdit = { navController.navigate(route = TaskEditRoute) },
@@ -145,6 +171,7 @@ fun Navigation(
                 selectTask = dayViewModel::selectTask,
                 setActiveTimeStart = dayViewModel::setActiveTimeStart,
                 setActiveTimeEnd = dayViewModel::setActiveTimeEnd,
+                setActivityNote = dayViewModel::setRecordedActivityNote,
                 setActualActiveTimeEnd = dayViewModel::setActualActiveTimeEnd,
                 setActualActiveTimeStart = dayViewModel::setActualActiveTimeStart,
                 setRecordedActivityEndTime = dayViewModel::setRecordedActivityEndTime,
@@ -219,7 +246,7 @@ fun Navigation(
             )
         }
 
-        composable<WelcomeRoute>{
+        composable<WelcomeRoute>{  backStackEntry ->
             WelcomeScreen(
                 goals = goals,
                 onNext = { navController.navigate(route = TaskDisplayRoute) }

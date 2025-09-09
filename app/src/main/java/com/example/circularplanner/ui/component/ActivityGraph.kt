@@ -3,6 +3,7 @@ package com.example.circularplanner.ui.component
 import android.graphics.Paint
 import android.util.Log
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
@@ -198,6 +199,7 @@ fun ActivityGraph (
             .onSizeChanged {
                 graphBoxSize = it
             }
+            .background(Color(0xffffffff))
     ) {
         Box (
             modifier = Modifier
@@ -481,13 +483,10 @@ fun DrawScope.drawClockHand(
     )
     drawPath(
         path,
-//        color = Color(0xff000000),
         color = Color(CLOCK_LABEL_COLOR),
         alpha = 0.35f,
         style = Stroke(
-            width = 8f,
-//            cap = StrokeCap.Round,
-//            pathEffect = PathEffect.dashPathEffect(floatArrayOf(40f, 25f), 0f)
+            width = 8f
         )
     )
 }
@@ -733,8 +732,8 @@ fun DrawScope.drawTask(// FIXME: Area is drawn outside the axis, if activity is 
 
     // Draw task labels:
     val taskTitleTrimmed = taskTitle.trim()
-    val fullText = taskStartTime + " - " + taskEndTime + "    " + taskTitleTrimmed
-    val timeText = taskStartTime + " - " + taskEndTime
+    val fullText = taskStartTime + (if (taskEndTime != "null") " - $taskEndTime" else "") + "    " + taskTitleTrimmed
+    val timeText = taskStartTime + (if (taskEndTime != "null") " - $taskEndTime" else "")
 
     val fullTextMeasure = textMeasurer.measure(fullText)
     val timeTextMeasure = textMeasurer.measure(timeText)

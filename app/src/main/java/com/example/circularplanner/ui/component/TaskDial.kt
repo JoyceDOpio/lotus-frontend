@@ -35,7 +35,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -536,9 +535,6 @@ fun TaskDial(
                                     )
                                     tmpStartAngle = taskStartAngle
                                     tmpEndAngle = taskEndAngle
-
-                                    // Draw this task separately than other tasks
-                                    drawNewTaskTimeRange = true
                                 }
                             } else {
                                 // Cancel everything if touch is outside the dial
@@ -635,7 +631,6 @@ fun TaskDial(
                                     }
                                 }
                             }
-
                         },
                         onDragEnd = {
                             if (angleMode == AngleMode.START) {
@@ -713,38 +708,79 @@ fun TaskDial(
             )
 
             if (drawNewTaskTimeRange) {
-
-                drawNewTaskArea(
-                    startAngle = tmpStartAngle,
-                    size = size,
+                drawTask(
+                    taskStartAngle = tmpStartAngle,
                     outerRadius = outerRadius - taskPadding,
                     sweepAngle = TouchGestureUtils.sweepAngle(
                         tmpStartAngle,
                         tmpEndAngle
-                    )
+                    ),
+                    alpha = 0.3f
                 )
             }
 
             for (task in tasks) {
-                // We have to offset these angles because startMinute * taskDialState.minuteAngle returns a biased angle
-                val taskStartAngle = TouchGestureUtils.calculateTaskAngle (
-                    activeTimeStart,
-                    task.startTime!!,
-                    minuteAngle
-                )
-                val taskDuration = TouchGestureUtils.calculateTotalNumberOfMinutes(
-                    task.startTime!!,
-                    task.endTime!!
-                )
+                // If the task is being edited, draw it with lighter shade and use the angles on the dial
+                if (task.id == touchedTask?.id && taskDialMode == TaskDialMode.EDIT) {
+                    val startMinute = TouchGestureUtils.calculateMinutes(
+                        TouchGestureUtils.angleForTimeCalculation(
+                            tmpStartAngle
+                        ),
+                        minuteAngle
+                    )
+                    val clockTaskStartTime =
+                        TouchGestureUtils.calculateClockTimeBasedOnMinutesFromStartTime(
+                            start = activeTimeStart,
+                            minutes = startMinute
+                        )
 
-                // Don't draw the task whose time bounds are being edited
-                if (!(task.id == touchedTask?.id && taskDialMode == TaskDialMode.EDIT)) {
+                    val endMinute = TouchGestureUtils.calculateMinutes(
+                        TouchGestureUtils.angleForTimeCalculation(
+                            tmpEndAngle
+                        ),
+                        minuteAngle
+                    )
+                    val clockTaskEndTime =
+                        TouchGestureUtils.calculateClockTimeBasedOnMinutesFromStartTime(
+                            start = activeTimeStart,
+                            minutes = endMinute
+                        )
+
+                    drawTask(
+                        taskStartAngle = tmpStartAngle,
+                        minuteAngle = minuteAngle,
+                        innerRadius = centerRadius,
+                        outerRadius = outerRadius - taskPadding,
+                        taskDurationInMinutes = TouchGestureUtils.calculateTotalNumberOfMinutes(
+                            clockTaskStartTime,
+                            clockTaskEndTime
+                        ),
+                        taskTitle = task.title,
+                        textMeasurer = textMeasurer,
+                        canvasWidth = width,
+                        canvasHeight = height,
+                        alpha = 0.3f
+                    )
+                }
+                // Otherwise, draw the task normally
+                else {
+                    // We have to offset these angles because startMinute * taskDialState.minuteAngle returns a biased angle
+                    val taskStartAngle = TouchGestureUtils.calculateTaskAngle (
+                        activeTimeStart,
+                        task.startTime!!,
+                        minuteAngle
+                    )
+                    val taskDuration = TouchGestureUtils.calculateTotalNumberOfMinutes(
+                        task.startTime!!,
+                        task.endTime!!
+                    )
+
                     drawTask(
                         taskStartAngle = taskStartAngle,
                         minuteAngle = minuteAngle,
                         innerRadius = centerRadius,
                         outerRadius = outerRadius - taskPadding,
-                        taskDuration = taskDuration,
+                        taskDurationInMinutes = taskDuration,
                         taskTitle = task.title,
                         textMeasurer = textMeasurer,
                         canvasWidth = width,
@@ -968,46 +1004,18 @@ fun DrawScope.drawMinuteSteps(
     }
 }
 
-fun DrawScope.drawNewTaskArea(
-    startAngle: Float,
-    size: Size,
-    outerRadius: Float,
-    sweepAngle: Float
-) {
-    val rainbowColors = listOf(
-        Color(0xfff78f0a),
-        Color(0xffc4067c),
-        Color(0xff06aac4),
-        Color(0xff06aac4),
-        Color(0xfff78f0a),
-        Color(0xfff78f0a),
-    )
-
-    val gradient = Brush.sweepGradient(
-        colors = rainbowColors
-    )
-
-    drawArc(
-        brush = gradient,
-        startAngle = startAngle,
-        sweepAngle = sweepAngle,
-        useCenter = true,
-        Offset(size.width / 2 - outerRadius, size.height / 2 - outerRadius),
-        size = Size(outerRadius * 2, outerRadius * 2),
-        alpha = 0.3f
-    )
-}
-
 fun DrawScope.drawTask(
     taskStartAngle: Float,
-    minuteAngle: Float,
-    innerRadius: Float,
+    minuteAngle: Float? = null,
+    innerRadius: Float? = null,
     outerRadius: Float,
-    taskDuration: Int,
-    taskTitle: String,
-    textMeasurer: TextMeasurer,
-    canvasWidth: Int,
-    canvasHeight: Int
+    sweepAngle: Float? = null,
+    taskDurationInMinutes: Int? = null,
+    taskTitle: String? = null,
+    textMeasurer: TextMeasurer? = null,
+    canvasWidth: Int? = null,
+    canvasHeight: Int? = null,
+    alpha: Float = 0.68f
 ) {
     val rainbowColors = listOf(
         Color(0xfff78f0a),
@@ -1026,157 +1034,167 @@ fun DrawScope.drawTask(
     drawArc(
         brush = gradient,
         startAngle = taskStartAngle,
-        sweepAngle = (taskDuration * minuteAngle).toFloat(),
+        sweepAngle = if (taskDurationInMinutes != null && minuteAngle != null) (taskDurationInMinutes * minuteAngle).toFloat() else sweepAngle!!,
         useCenter = true,
         Offset(size.width / 2 - outerRadius, size.height / 2 - outerRadius),
         size = Size(outerRadius * 2, outerRadius * 2),
-        alpha = 0.68f
+        alpha = alpha
     )
 
     // Draw title
-    val path = Path()
-    // The angle in the middle of the task area
-    var middleAngle = taskStartAngle + (taskDuration * 0.5f * minuteAngle)
-    // Correct the middle angle if it exceeds the 360 degree value. Otherwise, values over 360 are not drawn properly
-    if (middleAngle > 360f) {
-        middleAngle -= 360f
-    }
-    val pathPadding: Float
-
-    // If the task duration is long enough, we want to draw text along a curve
-    // Define arc path
-    if ((taskDuration * minuteAngle).toFloat() > 45f) {
-        val titleAngle: Float
-        val sweepAngleDegrees: Float
-        pathPadding = 3f
-
-        if (middleAngle in 180f..360f) {
-            titleAngle = (taskStartAngle).toFloat() + pathPadding
-            sweepAngleDegrees = ((taskDuration - 5 * pathPadding) * minuteAngle).toFloat()
-        } else {
-            titleAngle = taskStartAngle + (taskDuration * minuteAngle).toFloat() - pathPadding
-            sweepAngleDegrees = -((taskDuration - 5 * pathPadding) * minuteAngle).toFloat()
+    if (
+        taskTitle != null
+        && taskDurationInMinutes != null
+        && textMeasurer != null
+        && canvasHeight != null
+        && canvasWidth != null
+        && minuteAngle != null
+        && innerRadius != null
+    ) {
+        val path = Path()
+        // The angle in the middle of the task area
+        var middleAngle = taskStartAngle + (taskDurationInMinutes * 0.5f * minuteAngle)
+        // Correct the middle angle if it exceeds the 360 degree value. Otherwise, values over 360 are not drawn properly
+        if (middleAngle > 360f) {
+            middleAngle -= 360f
         }
+        val pathPadding: Float
 
-        path.arcTo(
-            rect = Rect(
-                left = (canvasWidth / 2f) - (outerRadius * 0.8f),
-                top = (canvasHeight / 2f) - (outerRadius * 0.8f),
-                right = (canvasWidth / 2f) + (outerRadius * 0.8f),
-                bottom = (canvasHeight / 2f) + (outerRadius * 0.8f)
-            ),
-            startAngleDegrees = titleAngle,
-            sweepAngleDegrees = sweepAngleDegrees,
-            forceMoveTo = false
-        )
-    }
-    // Define radius path
-    else {
-        var startRadius: Float
-        var endRadius: Float
-        pathPadding = textMeasurer.measure("0").size.width.toFloat()
+        // If the task duration is long enough, we want to draw text along a curve
+        // Define arc path
+        if ((taskDurationInMinutes * minuteAngle).toFloat() > 45f) {
+            val titleAngle: Float
+            val sweepAngleDegrees: Float
+            pathPadding = 3f
 
-        // Draw the text from the center out...
-        if (middleAngle in 270f..360f || middleAngle in 0f..90f) {
-            // Add some padding to the beginning of the path
-            startRadius = innerRadius + pathPadding
-            // Subtract the width of hour labels so that the task title doesn't overlap with an hour label
-            endRadius = outerRadius - pathPadding
-        }
-        // ...or from the outside in
-        else {
-            startRadius = outerRadius - pathPadding
-            endRadius = innerRadius + pathPadding
-        }
-        val titleStartOffset = Offset(
-            x = center.x + (startRadius * cos(middleAngle * DEG_TO_RAD)).toFloat(),
-            y = center.y + (startRadius * sin(middleAngle * DEG_TO_RAD)).toFloat()
-        )
-        val titleEndOffset = Offset(
-            x = center.x + (endRadius * cos(middleAngle * DEG_TO_RAD)).toFloat(),
-            y = center.y + (endRadius * sin(middleAngle * DEG_TO_RAD)).toFloat()
-        )
-
-        path.moveTo(
-            x = titleStartOffset.x,
-            y = titleStartOffset.y
-        )
-        path.lineTo(
-            x = titleEndOffset.x,
-            y = titleEndOffset.y
-        )
-    }
-
-    val pathMeasure = PathMeasure()
-    pathMeasure.setPath(
-        path = path,
-        forceClosed = false
-    )
-    val titleMeasure = textMeasurer.measure(text = taskTitle)
-    val titleWidth: Float
-    if (taskTitle != "") {
-        titleWidth = titleMeasure.getBoundingBox(taskTitle.lastIndex).bottomRight.x
-    } else {
-        titleWidth = 0f
-    }
-
-    var dialText: String
-    var dialTextWidth = 0f
-    val ellipsis = "\u2026"
-    val ellipsisMeasure = textMeasurer.measure(text = ellipsis)
-
-    // Truncate text if its length exceeds the path's length
-    if (titleWidth >= pathMeasure.length) {
-        var dialTextChars = mutableListOf<Char>()
-
-        taskTitle.forEachIndexed { index, char ->
-            if ((dialTextWidth + ellipsisMeasure.size.width) < pathMeasure.length) {
-                dialTextChars.add(char)
-                val charBoundingBox = titleMeasure.getBoundingBox((index))
-                dialTextWidth = charBoundingBox.bottomRight.x
+            if (middleAngle in 180f..360f) {
+                titleAngle = (taskStartAngle).toFloat() + pathPadding
+                sweepAngleDegrees = ((taskDurationInMinutes - 5 * pathPadding) * minuteAngle).toFloat()
+            } else {
+                titleAngle = taskStartAngle + (taskDurationInMinutes * minuteAngle).toFloat() - pathPadding
+                sweepAngleDegrees = -((taskDurationInMinutes - 5 * pathPadding) * minuteAngle).toFloat()
             }
+
+            path.arcTo(
+                rect = Rect(
+                    left = (canvasWidth / 2f) - (outerRadius * 0.8f),
+                    top = (canvasHeight / 2f) - (outerRadius * 0.8f),
+                    right = (canvasWidth / 2f) + (outerRadius * 0.8f),
+                    bottom = (canvasHeight / 2f) + (outerRadius * 0.8f)
+                ),
+                startAngleDegrees = titleAngle,
+                sweepAngleDegrees = sweepAngleDegrees,
+                forceMoveTo = false
+            )
+        }
+        // Define radius path
+        else {
+            var startRadius: Float
+            var endRadius: Float
+            pathPadding = textMeasurer.measure("0").size.width.toFloat()
+
+            // Draw the text from the center out...
+            if (middleAngle in 270f..360f || middleAngle in 0f..90f) {
+                // Add some padding to the beginning of the path
+                startRadius = innerRadius + pathPadding
+                // Subtract the width of hour labels so that the task title doesn't overlap with an hour label
+                endRadius = outerRadius - pathPadding
+            }
+            // ...or from the outside in
+            else {
+                startRadius = outerRadius - pathPadding
+                endRadius = innerRadius + pathPadding
+            }
+            val titleStartOffset = Offset(
+                x = center.x + (startRadius * cos(middleAngle * DEG_TO_RAD)).toFloat(),
+                y = center.y + (startRadius * sin(middleAngle * DEG_TO_RAD)).toFloat()
+            )
+            val titleEndOffset = Offset(
+                x = center.x + (endRadius * cos(middleAngle * DEG_TO_RAD)).toFloat(),
+                y = center.y + (endRadius * sin(middleAngle * DEG_TO_RAD)).toFloat()
+            )
+
+            path.moveTo(
+                x = titleStartOffset.x,
+                y = titleStartOffset.y
+            )
+            path.lineTo(
+                x = titleEndOffset.x,
+                y = titleEndOffset.y
+            )
         }
 
-        dialText = buildAnnotatedString {
-            dialTextChars.forEachIndexed { index, char ->
-                if (index < dialTextChars.size - 1) {
-                    append(char)
+        val pathMeasure = PathMeasure()
+        pathMeasure.setPath(
+            path = path,
+            forceClosed = false
+        )
+        val titleMeasure = textMeasurer.measure(text = taskTitle)
+        val titleWidth: Float
+        if (taskTitle != "") {
+            titleWidth = titleMeasure.getBoundingBox(taskTitle.lastIndex).bottomRight.x
+        } else {
+            titleWidth = 0f
+        }
+
+        var dialText: String
+        var dialTextWidth = 0f
+        val ellipsis = "\u2026"
+        val ellipsisMeasure = textMeasurer.measure(text = ellipsis)
+
+        // Truncate text if its length exceeds the path's length
+        if (titleWidth >= pathMeasure.length) {
+            var dialTextChars = mutableListOf<Char>()
+
+            taskTitle.forEachIndexed { index, char ->
+                if ((dialTextWidth + ellipsisMeasure.size.width) < pathMeasure.length) {
+                    dialTextChars.add(char)
+                    val charBoundingBox = titleMeasure.getBoundingBox((index))
+                    dialTextWidth = charBoundingBox.bottomRight.x
                 }
             }
-        }.toString()
-        // Remove leading and trailing whitespaces
-        dialText = dialText.trim()
 
-        dialText = buildAnnotatedString{
-            append(dialText)
-            // Append ellipsis
-            append(ellipsis)
-        }.toString()
-    } else {
-        dialText = taskTitle
-    }
+            dialText = buildAnnotatedString {
+                dialTextChars.forEachIndexed { index, char ->
+                    if (index < dialTextChars.size - 1) {
+                        append(char)
+                    }
+                }
+            }.toString()
+            // Remove leading and trailing whitespaces
+            dialText = dialText.trim()
 
-    val measuredText = textMeasurer.measure(text = dialText)
+            dialText = buildAnnotatedString{
+                append(dialText)
+                // Append ellipsis
+                append(ellipsis)
+            }.toString()
+        } else {
+            dialText = taskTitle
+        }
 
-    if (dialText != "") {
-        dialTextWidth = measuredText.getBoundingBox(dialText.lastIndex).bottomRight.x
-    }
+        val measuredText = textMeasurer.measure(text = dialText)
 
-    // TODO: Narrow the text's height towards the center of the circle
-    // TODO: Add task duration (?)
+        if (dialText != "") {
+            dialTextWidth = measuredText.getBoundingBox(dialText.lastIndex).bottomRight.x
+        }
 
-    this.drawContext.canvas.nativeCanvas.apply {
-        drawTextOnPath(
-            dialText,
-            path.asAndroidPath(),
-            0f,
-            measuredText.size.height * 0.9f * 0.29f,// So that the path runs through the middle of the text's height
-            Paint().apply {
-                this.color = android.graphics.Color.WHITE
-                this.textSize = measuredText.size.height * 0.9f
-                this.textAlign = Paint.Align.CENTER
-            }
-        )
+        // TODO: Narrow the text's height towards the center of the circle
+        // TODO: Add task duration (?)
+
+        this.drawContext.canvas.nativeCanvas.apply {
+            drawTextOnPath(
+                dialText,
+                path.asAndroidPath(),
+                0f,
+                measuredText.size.height * 0.9f * 0.29f,// So that the path runs through the middle of the text's height
+                Paint().apply {
+                    this.color = android.graphics.Color.WHITE
+                    this.textSize = measuredText.size.height * 0.9f
+                    this.textAlign = Paint.Align.CENTER
+                }
+            )
+        }
     }
 }
 
