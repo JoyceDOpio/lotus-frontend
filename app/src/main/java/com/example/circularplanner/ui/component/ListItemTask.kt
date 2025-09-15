@@ -1,9 +1,11 @@
 package com.example.circularplanner.ui.component
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -12,25 +14,28 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.circularplanner.R
 import com.example.circularplanner.data.Goal
+import com.example.circularplanner.data.Task
 import java.util.UUID
 
 @Composable
-fun GoalListItem(
+fun ListItemTask(
     modifier: Modifier = Modifier,
-    goal: Goal,
-    onNavigateToGoalEdit: () -> Unit,
-    deleteGoal: (Goal) -> Unit,
-    selectGoal: (UUID?) -> Unit
+    task: Task,
+    onNavigateToTaskInfo: () -> Unit,
+    selectTask: (UUID?) -> Unit
 ){
     OutlinedCard(
         modifier = modifier
@@ -38,54 +43,54 @@ fun GoalListItem(
                 horizontal = 5.dp,
                 vertical = 3.dp
             )
+            .clickable {
+                selectTask(task.id)
+                onNavigateToTaskInfo()
+            }
             .sizeIn(maxHeight = 150.dp),
-        border = CardDefaults.outlinedCardBorder(),
+        border = CardDefaults.outlinedCardBorder()
     ) {
         Row (
             modifier = Modifier
                 .fillMaxWidth()
                 .height(IntrinsicSize.Min)
-                .padding(vertical = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+                .padding(
+                    vertical = 10.dp
+                )
+                .padding(
+                    start = 15.dp
+                )
+            ,
+            horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column (
                 modifier = Modifier
-                    .padding(horizontal = 10.dp)
-                    .fillMaxWidth(0.8f)
+//                    .padding(horizontal = 10.dp)
+//                    .fillMaxWidth(0.8f)
             ) {
                 Text(
-                    text = goal.title,
-                    overflow = TextOverflow.Ellipsis
+                    text = task.priority.toString(),
+//                    overflow = TextOverflow.Ellipsis
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
 
+            Spacer(Modifier.width(15.dp))
+
             Column (
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .width(40.dp)
-                    .aspectRatio(1f)
+                modifier = Modifier.weight(2f)
             ) {
-                val dropdownItems = listOf<DropDownItem>(
-                    DropDownItem(
-                        text = "Edit",
-                        iconId = R.drawable.edit_24dp_5f6368_fill0_wght400_grad0_opsz24,
-                        onClick = {
-                            selectGoal(goal.id)
-                            onNavigateToGoalEdit()
-                        }
-                    ),
-                    DropDownItem(
-                        text = "Delete",
-                        iconId = R.drawable.delete_24dp_5f6368_fill0_wght400_grad0_opsz24,
-                        onClick = {
-                            deleteGoal(goal)
-                        }
-                    ),
+                Text(
+                    text = task.title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold
                 )
 
-                TaskDropdownMenu(
-                    dropdownItems = dropdownItems
+                Text(
+                    text = task.description,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }

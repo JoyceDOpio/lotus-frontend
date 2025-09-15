@@ -35,6 +35,7 @@ import com.example.circularplanner.service.ServiceHelper
 import com.example.circularplanner.service.StopwatchService
 import com.example.circularplanner.ui.component.ActivityGraph
 import com.example.circularplanner.ui.component.ActivityRecorder
+import com.example.circularplanner.ui.navigation.RecordedActivity
 import com.example.circularplanner.ui.viewmodel.ActivityUiState
 import com.example.circularplanner.ui.viewmodel.DayState
 import com.example.circularplanner.ui.viewmodel.VoiceNoteUiState
@@ -51,29 +52,43 @@ fun ActivityScreen(
     innerPadding: PaddingValues,
     context: Context,
     dayState: DayState,
-    recordedActivityUiState: ActivityUiState,
+    mainRecordedActivityUiState: ActivityUiState,
+    subRecordedActivityUiState: ActivityUiState,
     stopwatchService: StopwatchService,
-    clearRecordedActivity: () -> Unit,
+    clearMainRecordedActivity: () -> Unit,
+    clearSubRecordedActivity: () -> Unit,
     onNavigateToActivityNoteEdit: () -> Unit,
     onNavigateToDayNoteEdit: () -> Unit,
     onNavigateToTaskActivityComparison: () -> Unit,
     saveDay: () -> Unit,
     saveVoiceNote: (VoiceNote) -> Unit,
-    saveRecordedActivity: () -> Unit,
+//    saveRecordedActivity: (UUID) -> Unit,
+    saveMainRecordedActivity: () -> Unit,
+    saveSubRecordedActivity: () -> Unit,
     selectActivity: (UUID?) -> Unit,
     selectTask: (UUID?) -> Unit,
-    setActivityNote: (String) -> Unit,
+//    setMainActivityNote: (String) -> Unit,
+//    setSubActivityNote: (String) -> Unit,
     setActualActiveTimeEnd: (Time) -> Unit,
     setActualActiveTimeStart: (Time) -> Unit,
-    setRecordedActivityId: (UUID) -> Unit,
-    setRecordedActivityNote: (String) -> Unit,
-    setRecordedActivityTitle: (String) -> Unit,
-    setRecordedActivityEndTime: (Time) -> Unit,
-    setRecordedActivityStartTime: (Time) -> Unit,
+    setMainRecordedActivityEndTime: (Time) -> Unit,
+    setSubRecordedActivityEndTime: (Time) -> Unit,
+    setMainRecordedActivityId: (UUID) -> Unit,
+    setSubRecordedActivityId: (UUID) -> Unit,
+//    setMainRecordedActivityNote: (String) -> Unit,
+//    setSubRecordedActivityNote: (String) -> Unit,
+    setMainRecordedActivityStartTime: (Time) -> Unit,
+    setSubRecordedActivityStartTime: (Time) -> Unit,
+    setMainRecordedActivityTitle: (String) -> Unit,
+    setSubRecordedActivityTitle: (String) -> Unit,
+    setRecordedActivityState: (RecordedActivity) -> Unit,
     startRecording: (String) -> Unit,
     stopRecording: () -> Unit,
-    removeVoiceNote: (VoiceNoteUiState) -> Unit,
+//    removeVoiceNote: (VoiceNoteUiState) -> Unit,
 ) {
+    val isMainActivityTimerRunning  = (mainRecordedActivityUiState.id != null)
+    val isSubActivityTimerRunning  = (subRecordedActivityUiState.id != null)
+
     Column(
         modifier = Modifier
 //            .background(Color(0xffFEE7FA))
@@ -154,15 +169,17 @@ fun ActivityScreen(
                         width = 1.dp,
                         color = Color.LightGray,
                         shape = RoundedCornerShape(15.dp)
-                    )
+                    ),
 //                .clip(RoundedCornerShape(15.dp))
-                ,
                 dayState = dayState,
-                recordedActivityUiState = recordedActivityUiState,
+                recordedActivityUiState = mainRecordedActivityUiState,
                 stopwatch = stopwatchService.mainActivityStopwatch,
 //            stopwatchService = stopwatchService,
-                clearRecordedActivity = clearRecordedActivity,
-                onNavigateToActivityNoteEdit = onNavigateToActivityNoteEdit,
+                clearRecordedActivity = clearMainRecordedActivity,
+                onNavigateToActivityNoteEdit = {
+                    setRecordedActivityState(RecordedActivity.Main)
+                    onNavigateToActivityNoteEdit
+               },
                 onPause = {
                     ServiceHelper.triggerForegroundService(
                         context = context,
@@ -187,61 +204,65 @@ fun ActivityScreen(
                         action = ACTION_SERVICE_CANCEL
                     )
                 },
-                saveRecordedActivity = saveRecordedActivity,
+                saveRecordedActivity = saveMainRecordedActivity,
                 saveDay = saveDay,
                 saveVoiceNote = saveVoiceNote,
-                setActivityNote = setActivityNote,
+//                setActivityNote = setMainActivityNote,
                 setActualActiveTimeEnd = setActualActiveTimeEnd,
                 setActualActiveTimeStart = setActualActiveTimeStart,
-                setRecordedActivityId = setRecordedActivityId,
-                setRecordedActivityNote = setRecordedActivityNote,
-                setRecordedActivityTitle = setRecordedActivityTitle,
-                setRecordedActivityStartTime = setRecordedActivityStartTime,
-                setRecordedActivityEndTime = setRecordedActivityEndTime,
+                setRecordedActivityId = setMainRecordedActivityId,
+//                setRecordedActivityNote = setMainRecordedActivityNote,
+                setRecordedActivityTitle = setMainRecordedActivityTitle,
+                setRecordedActivityStartTime = setMainRecordedActivityStartTime,
+                setRecordedActivityEndTime = setMainRecordedActivityEndTime,
                 startRecording = startRecording,
                 stopRecording = stopRecording,
-                removeVoiceNote = removeVoiceNote
+//                removeVoiceNote = removeVoiceNote
             )
 
-
-            // Sub-activity
-            ActivityRecorder(
-                context = context,
-                header = "SUB-ACTIVITY",// TODO: Read text from string resource
-                modifier = Modifier
-                    .padding(
-                        horizontal = 5.dp,
-                        vertical = 5.dp
-                    )
-                    .border(
-                        width = 1.dp,
-                        color = Color.LightGray,
-                        shape = RoundedCornerShape(15.dp)
-                    )
-                ,
-                title = "Break",// TODO: Read text from string resource
-                dayState = dayState,
-                recordedActivityUiState = recordedActivityUiState,
-                stopwatch = stopwatchService.subActivityStopwatch,
-                clearRecordedActivity = clearRecordedActivity,
-                onNavigateToActivityNoteEdit = onNavigateToActivityNoteEdit,
-                onStart = {},
-                onStop = {},
-                saveRecordedActivity = saveRecordedActivity,
-                saveDay = saveDay,
-                saveVoiceNote = saveVoiceNote,
-                setActivityNote = setActivityNote,
-                setActualActiveTimeEnd = setActualActiveTimeEnd,
-                setActualActiveTimeStart = setActualActiveTimeStart,
-                setRecordedActivityId = setRecordedActivityId,
-                setRecordedActivityNote = setRecordedActivityNote,
-                setRecordedActivityTitle = setRecordedActivityTitle,
-                setRecordedActivityStartTime = setRecordedActivityStartTime,
-                setRecordedActivityEndTime = setRecordedActivityEndTime,
-                startRecording = startRecording,
-                stopRecording = stopRecording,
-                removeVoiceNote = removeVoiceNote
-            )
+            if (isSubActivityTimerRunning) {
+                // Sub-activity
+                ActivityRecorder(
+                    context = context,
+                    header = "SUB-ACTIVITY",// TODO: Read text from string resource
+                    modifier = Modifier
+                        .padding(
+                            horizontal = 5.dp,
+                            vertical = 5.dp
+                        )
+                        .border(
+                            width = 1.dp,
+                            color = Color.LightGray,
+                            shape = RoundedCornerShape(15.dp)
+                        )
+                    ,
+                    title = "Break",// TODO: Read text from string resource
+                    dayState = dayState,
+                    recordedActivityUiState = subRecordedActivityUiState,
+                    stopwatch = stopwatchService.subActivityStopwatch,
+                    clearRecordedActivity = clearSubRecordedActivity,
+                    onNavigateToActivityNoteEdit = {
+                        setRecordedActivityState(RecordedActivity.Sub)
+                        onNavigateToActivityNoteEdit
+                    },
+                    onStart = {},
+                    onStop = {},
+                    saveRecordedActivity = saveSubRecordedActivity,
+                    saveDay = saveDay,
+                    saveVoiceNote = saveVoiceNote,
+//                    setActivityNote = setSubActivityNote,
+                    setActualActiveTimeEnd = setActualActiveTimeEnd,
+                    setActualActiveTimeStart = setActualActiveTimeStart,
+                    setRecordedActivityId = setSubRecordedActivityId,
+//                    setRecordedActivityNote = setSubRecordedActivityNote,
+                    setRecordedActivityTitle = setSubRecordedActivityTitle,
+                    setRecordedActivityStartTime = setSubRecordedActivityStartTime,
+                    setRecordedActivityEndTime = setSubRecordedActivityEndTime,
+                    startRecording = startRecording,
+                    stopRecording = stopRecording,
+//                    removeVoiceNote = removeVoiceNote
+                )
+            }
         }
     }
 }

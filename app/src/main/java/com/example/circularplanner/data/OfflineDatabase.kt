@@ -17,8 +17,8 @@ import androidx.room.TypeConverters
         Goal::class
     ],
     // Whenever you change the schema of the database table, you have to increase the version number
-    version = 10,
-//    version = 11,
+//    version = 10,
+    version = 11,
     // Keep schema version history backups
 //    exportSchema = false,
     exportSchema = true,

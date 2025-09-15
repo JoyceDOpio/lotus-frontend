@@ -17,9 +17,9 @@ import com.example.circularplanner.data.Time
 import com.example.circularplanner.ui.component.ActiveTimeHeader
 import com.example.circularplanner.ui.component.ActiveTimeSetUp
 import com.example.circularplanner.ui.component.Calendar
-import com.example.circularplanner.ui.component.DragItemList
+import com.example.circularplanner.ui.component.DragItemListGoal
 import com.example.circularplanner.ui.component.TaskDial
-import com.example.circularplanner.ui.component.TaskList
+import com.example.circularplanner.ui.component.DragItemListTask
 import com.example.circularplanner.ui.viewmodel.DayState
 import com.example.circularplanner.ui.viewmodel.DayUiState
 import com.example.circularplanner.ui.viewmodel.TaskUiState
@@ -43,7 +43,9 @@ fun PlannerScreen(
     onNavigateToTaskInfo: () -> Unit,
     onClickSaveActiveTime: () -> Unit,
     onSwitchGoals: (UUID, UUID) -> Unit,
-    saveTask: () -> Unit,
+    saveGoal: (Goal) -> Unit,
+    saveTask: (Task) -> Unit,
+    saveTaskFromState: () -> Unit,
     selectGoal: (UUID?) -> Unit,
     selectTask: (UUID?) -> Unit,
     setActiveTimeStart: (Time) -> Unit,
@@ -94,7 +96,7 @@ fun PlannerScreen(
                         onPressActiveTime = { setIsActiveTimeSetUp(true) },
                         setTaskEndTime = setTaskEndTime,
                         setTaskStartTime = setTaskStartTime,
-                        saveTask = saveTask,
+                        saveTask = saveTaskFromState,
                         selectTask = selectTask,
                         setTaskDate = setTaskDate
                     )
@@ -112,9 +114,10 @@ fun PlannerScreen(
                 enter = fadeIn(),
                 exit = fadeOut(),
             ) {
-                TaskList (//TODO: Modify the list to allow dragging of items and setting priority
-                    tasks = toDoTasks,
+                DragItemListTask (
+                    items = toDoTasks,
                     onNavigateToTaskInfo = onNavigateToTaskInfo,
+                    saveTask = saveTask,
                     selectTask = selectTask
                 )
             }
@@ -126,11 +129,12 @@ fun PlannerScreen(
                 exit = fadeOut(),
             ) {
                 // TODO: List of goals that allows dragging of items and setting priority
-                DragItemList(
+                DragItemListGoal(
                     items = goals,
                     onNavigateToGoalEdit = onNavigateToGoalEdit,
                     onSwitch = onSwitchGoals,
                     deleteGoal = deleteGoal,
+                    saveGoal = saveGoal,
                     selectGoal = selectGoal
 //                    listItem = GoalListItem
                 )

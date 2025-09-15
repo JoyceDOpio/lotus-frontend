@@ -50,7 +50,6 @@ object NotificationModule {
 //            .addAction(0, "Stop", ServiceHelper.stopPendingIntent(context))
 //            .addAction(0, "Cancel", ServiceHelper.cancelPendingIntent(context))
             .setContentIntent(ServiceHelper.clickPendingIntent(context))
-            .setContentText("00:00:00")
     }
 
     @ServiceScoped

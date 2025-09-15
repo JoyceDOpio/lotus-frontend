@@ -33,8 +33,9 @@ import java.util.UUID
 import kotlin.String
 
 const val ACTIVITY_SAVED_STATE_KEY = "activity"
-const val RECORDED_ACTIVITY_SAVED_STATE_KEY = "recorded_activity"
-const val RECORDED_ACTIVITY_VOICE_NOTES_SAVED_STATE_KEY = "recorded_activity_voice_notes"
+const val MAIN_RECORDED_ACTIVITY_SAVED_STATE_KEY = "recorded_activity_main"
+const val SUB_RECORDED_ACTIVITY_SAVED_STATE_KEY = "recorded_activity_sub"
+//const val RECORDED_ACTIVITY_VOICE_NOTES_SAVED_STATE_KEY = "recorded_activity_voice_notes"
 const val TASK_SAVED_STATE_KEY = "task"
 const val USER_INPUT_SAVED_STATE_KEY = "user_input"
 const val VOICE_NOTES_SAVED_STATE_KEY = "voice_notes"
@@ -92,7 +93,8 @@ data class ActivityUiState (
     var note: String = "",
     var startTime: Time = Time(0, 0),// Default value: start of the day//TODO: Maybe I should change the default value to null
     var endTime: Time? = null,
-    var voiceNotesUiState: VoiceNotesUiState = emptyList()
+    var voiceNotesUiState: VoiceNotesUiState = emptyList(),
+    val mainActivityId: UUID? = null
 )
 
 @Parcelize
@@ -101,7 +103,8 @@ data class ActivitySavedState (
     val title: String = "",
     val note: String = "",
     val startTime: String = "",
-    val endTime: String = ""
+    val endTime: String = "",
+    val mainActivityId: UUID? = null
 ) : Parcelable
 
 data class VoiceNoteUiState (
@@ -159,12 +162,22 @@ class DayViewModel(
 
     init {
         viewModelScope.launch {
-            activitiesRepository.getRecordedActivity().first()?.also { recordedActivity ->
-                recordedActivityUiState.value = ActivityUiState(
+            activitiesRepository.getMainRecordedActivity().first()?.also { recordedActivity ->
+                mainRecordedActivityUiState.value = ActivityUiState(
                     id = recordedActivity.id,
                     title = recordedActivity.title,
                     note = recordedActivity.note,
                     startTime = recordedActivity.startTime
+                )
+            }
+
+            activitiesRepository.getSubRecordedActivity().first()?.also { recordedActivity ->
+                subRecordedActivityUiState.value = ActivityUiState(
+                    id = recordedActivity.id,
+                    title = recordedActivity.title,
+                    note = recordedActivity.note,
+                    startTime = recordedActivity.startTime,
+                    mainActivityId = recordedActivity.mainActivityId
                 )
             }
         }
@@ -196,7 +209,8 @@ class DayViewModel(
         }
     })
 
-    val recordedActivityUiState = MutableStateFlow(ActivityUiState())
+    val mainRecordedActivityUiState = MutableStateFlow(ActivityUiState())
+    val subRecordedActivityUiState = MutableStateFlow(ActivityUiState())
 
     // Day UI state
     val dayUiState = MutableStateFlow(DayUiState())
@@ -265,12 +279,32 @@ class DayViewModel(
         initialValue = DayState()
     )
 
-    fun clearRecordedActivity() {
-        recordedActivityUiState.update {
+//    fun clearRecordedActivity() {
+//        mainRecordedActivityUiState.update {
+//            ActivityUiState()
+//        }
+//        savedStateHandle.set(
+//            key = MAIN_RECORDED_ACTIVITY_SAVED_STATE_KEY,
+//            value = null
+//        )
+//    }
+
+    fun clearMainRecordedActivity() {
+        mainRecordedActivityUiState.update {
             ActivityUiState()
         }
         savedStateHandle.set(
-            key = RECORDED_ACTIVITY_SAVED_STATE_KEY,
+            key = MAIN_RECORDED_ACTIVITY_SAVED_STATE_KEY,
+            value = null
+        )
+    }
+
+    fun clearSubRecordedActivity() {
+        subRecordedActivityUiState.update {
+            ActivityUiState()
+        }
+        savedStateHandle.set(
+            key = SUB_RECORDED_ACTIVITY_SAVED_STATE_KEY,
             value = null
         )
     }
@@ -301,19 +335,53 @@ class DayViewModel(
         }
     }
 
-    fun saveRecordedActivity() {
+//    fun saveRecordedActivity() {
+//        viewModelScope.launch {
+//            // If activity exists, update it
+//            val activityId = mainRecordedActivityUiState.value.id
+//
+//            var activity = dayState.value.activities.find { activity -> activity.id == activityId }
+//
+//            if (activity == null) {
+//                activitiesRepository.insertActivity(
+//                    mainRecordedActivityUiState.value.toActivity()
+//                )
+//            } else {
+//                activitiesRepository.updateActivity(mainRecordedActivityUiState.value.toActivity())
+//            }
+//        }
+//    }
+
+    fun saveMainRecordedActivity() {
         viewModelScope.launch {
             // If activity exists, update it
-            val activityId = recordedActivityUiState.value.id
+            val activityId = mainRecordedActivityUiState.value.id
 
             var activity = dayState.value.activities.find { activity -> activity.id == activityId }
 
             if (activity == null) {
                 activitiesRepository.insertActivity(
-                    recordedActivityUiState.value.toActivity()
+                    mainRecordedActivityUiState.value.toActivity()
                 )
             } else {
-                activitiesRepository.updateActivity(recordedActivityUiState.value.toActivity())
+                activitiesRepository.updateActivity(mainRecordedActivityUiState.value.toActivity())
+            }
+        }
+    }
+
+    fun saveSubRecordedActivity() {
+        viewModelScope.launch {
+            // If activity exists, update it
+            val activityId = subRecordedActivityUiState.value.id
+
+            var activity = dayState.value.activities.find { activity -> activity.id == activityId }
+
+            if (activity == null) {
+                activitiesRepository.insertActivity(
+                    subRecordedActivityUiState.value.toActivity()
+                )
+            } else {
+                activitiesRepository.updateActivity(subRecordedActivityUiState.value.toActivity())
             }
         }
     }
@@ -350,6 +418,19 @@ class DayViewModel(
                 }
 
                 tasksRepository.insertTask(taskUiState.value.toTask())
+            }
+        }
+    }
+
+    fun saveTask(task: Task) {
+        viewModelScope.launch {
+            val found = toDoTasks.value.find { task -> task.id == task.id }
+
+            if (found != null) {
+                tasksRepository.updateTask(task)
+            }
+            else {
+                tasksRepository.insertTask(task)
             }
         }
     }
@@ -477,48 +558,109 @@ class DayViewModel(
         }
     }
 
-    fun setRecordedActivityEndTime(time: Time) {
-        recordedActivityUiState.update {
+//    fun setRecordedActivityEndTime(time: Time) {
+//        mainRecordedActivityUiState.update {
+//            it.copy(
+//                endTime = time
+//            )
+//        }
+//    }
+
+    fun setMainRecordedActivityEndTime(time: Time) {
+        mainRecordedActivityUiState.update {
             it.copy(
                 endTime = time
             )
         }
     }
 
-    fun setRecordedActivityId(id: UUID) {
-        recordedActivityUiState.update {
+    fun setSubRecordedActivityEndTime(time: Time) {
+        subRecordedActivityUiState.update {
+            it.copy(
+                endTime = time
+            )
+        }
+    }
+
+//    fun setRecordedActivityId(id: UUID) {
+//        mainRecordedActivityUiState.update {
+//            it.copy(
+//                id = id
+//            )
+//        }
+//    }
+
+    fun setMainRecordedActivityId(id: UUID) {
+        mainRecordedActivityUiState.update {
+            it.copy(
+                id = id
+            )
+        }
+    }
+    fun setSubRecordedActivityId(id: UUID) {
+        subRecordedActivityUiState.update {
             it.copy(
                 id = id
             )
         }
     }
 
-    fun setRecordedActivityNote(note: String) {
-        recordedActivityUiState.update {
+    fun setMainRecordedActivityNote(note: String) {
+        mainRecordedActivityUiState.update {
             it.copy(
                 note = note
             )
         }
     }
 
-    fun setRecordedActivityStartTime(time: Time) {
-        recordedActivityUiState.update {
+    fun setSubRecordedActivityNote(note: String) {
+        subRecordedActivityUiState.update {
+            it.copy(
+                note = note
+            )
+        }
+    }
+
+    fun setMainRecordedActivityStartTime(time: Time) {
+        mainRecordedActivityUiState.update {
             it.copy(
                 startTime = time
             )
         }
     }
 
-    fun setRecordedActivityTitle(title: String) {
-        recordedActivityUiState.update {
+    fun setSubRecordedActivityStartTime(time: Time) {
+        subRecordedActivityUiState.update {
+            it.copy(
+                startTime = time
+            )
+        }
+    }
+
+    fun setMainRecordedActivityTitle(title: String) {
+        mainRecordedActivityUiState.update {
             it.copy(
                 title = title
             )
         }
-        if (recordedActivityUiState.value.id != null) {
+        if (mainRecordedActivityUiState.value.id != null) {
             savedStateHandle.set(
-                key = RECORDED_ACTIVITY_SAVED_STATE_KEY,
-                value = recordedActivityUiState.value.toSavedState()
+                key = MAIN_RECORDED_ACTIVITY_SAVED_STATE_KEY,
+                value = mainRecordedActivityUiState.value.toSavedState()
+            )
+        }
+    }
+
+    fun setSubRecordedActivityTitle(title: String) {
+        subRecordedActivityUiState.update {
+            it.copy(
+                title = title
+            )
+        }
+        if (subRecordedActivityUiState.value.id != null) {
+            savedStateHandle.set(
+                key = MAIN_RECORDED_ACTIVITY_SAVED_STATE_KEY,
+                value = subRecordedActivityUiState.value.toSavedState()
             )
         }
     }
@@ -632,7 +774,8 @@ fun ActivityUiState.toActivity(): Activity = Activity(
     note = this.note,
     startTime = this.startTime,
     endTime = this.endTime,
-    id = this.id!!
+    id = this.id!!,
+    mainActivityId = this.mainActivityId
 )
 
 fun ActivityUiState.toSavedState(): ActivitySavedState = ActivitySavedState(

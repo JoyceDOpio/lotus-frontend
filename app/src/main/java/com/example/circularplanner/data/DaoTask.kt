@@ -30,6 +30,6 @@ interface DaoTask {
     @Query("SELECT MAX(priority) FROM tasks")
     fun getLastPriority(): Flow<Int>
 
-    @Query("SELECT * FROM tasks WHERE date IS NULL")
+    @Query("SELECT * FROM tasks WHERE date IS NULL ORDER BY priority ASC")
     fun getTasksWithoutDate(): Flow<List<Task>>
 }

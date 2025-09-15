@@ -57,6 +57,7 @@ class GoalViewModel(
             started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5000L),
             initialValue = emptyList()
         )
+
     val lastPriority = goalsRepository
         .getLastPriority()
         .stateIn(
@@ -89,6 +90,21 @@ class GoalViewModel(
             // Else, save the new goal
             else {
                 goalsRepository.insertGoal(goalUiState.value.toGoal())
+            }
+        }
+    }
+
+    fun saveGoal(goal: Goal) {//FIXME: Optimise this method
+        viewModelScope.launch {
+            // If goal exists, update it
+            val found = goals.value.find { goal -> goal.id == goal.id }
+
+            if (found != null) {
+                goalsRepository.updateGoal(goal)
+            }
+            // Else, save the new goal
+            else {
+                goalsRepository.insertGoal(goal)
             }
         }
     }

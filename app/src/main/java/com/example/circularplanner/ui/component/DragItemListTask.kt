@@ -1,9 +1,9 @@
 package com.example.circularplanner.ui.component
 
+import android.util.Log
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -18,26 +18,28 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.zIndex
 import com.example.circularplanner.data.Goal
+import com.example.circularplanner.data.Task
 import kotlinx.coroutines.channels.Channel
 import java.util.UUID
 
 @Composable
-fun DragItemList(
-//fun <T> DragItemList(
-//    items: List<Draggable>,
-//    items: List<T>,
-    items: List<Goal>,
-    onNavigateToGoalEdit: () -> Unit,
-    onSwitch: (UUID, UUID) -> Unit,
-    deleteGoal: (Goal) -> Unit,
-    selectGoal: (UUID?) -> Unit
-//    listItem: @Composable LazyItemScope.(Modifier, Draggable) -> Unit
+fun DragItemListTask(//TODO: Merge with DragItemListGoal
+    items: List<Task>,
+    onNavigateToTaskInfo: () -> Unit,
+    saveTask: (Task) -> Unit,
+    selectTask: (UUID?) -> Unit
 ) {
-    var draggedItem: LazyListItemInfo? = null
-    var draggedItemIndex: Int? = null
+    var draggedItem: LazyListItemInfo? by remember { mutableStateOf(null) }
+    var draggedItemIndex: Int? by remember { mutableStateOf(null) }
     var delta by remember { mutableStateOf(0f) }
     val listState = rememberLazyListState()
     val scrollChannel = Channel<Float>()
+
+    val itemsCopy = items.toMutableList()
+
+    fun onSwap(fromIndex: Int, toIndex: Int) {
+        itemsCopy.apply { add(toIndex, removeAt(fromIndex)) }
+    }
 
     LaunchedEffect(listState) {
         while (true) {
@@ -53,16 +55,16 @@ fun DragItemList(
                     onDragStart = { offset ->
                         listState.layoutInfo.visibleItemsInfo.firstOrNull() { item -> offset.y.toInt() in item.offset..(item.offset + item.size) }
                             ?.also { (it.contentType as? Draggable)?.let { draggableItem ->
-                                draggedItemIndex = draggableItem.index
                                 draggedItem = it
+                                draggedItemIndex = draggableItem.index
                             } }
                     },
                     onDrag = { change, dragAmount ->
                         change.consume()
                         delta += dragAmount.y
 
-                        val currentlyDraggedItem = draggedItem ?: return@detectDragGesturesAfterLongPress
                         val currentlyDraggedItemIndex = draggedItemIndex ?: return@detectDragGesturesAfterLongPress
+                        val currentlyDraggedItem = draggedItem ?: return@detectDragGesturesAfterLongPress
 
                         // Swap places if the middle of the dragged item reaches the border of the another item
                         val startOffset = currentlyDraggedItem.offset + delta
@@ -71,12 +73,10 @@ fun DragItemList(
                         val targetItem = listState.layoutInfo.visibleItemsInfo.find { item -> middleOffset.toInt() in item.offset..item.offset + item.size && currentlyDraggedItemIndex != item.index && item.contentType is Draggable }
 
                         if (targetItem != null) {
-                            val draggedItemId = (currentlyDraggedItem.contentType as Draggable).id
-                            val targetItemId = (targetItem.contentType as Draggable).id
-
-                            onSwitch(draggedItemId, targetItemId)
-
                             val targetIndex = (targetItem.contentType as Draggable).index
+
+                            onSwap(currentlyDraggedItemIndex, targetIndex)
+
                             draggedItem = targetItem
                             draggedItemIndex = targetIndex
                             delta += currentlyDraggedItem.offset - targetItem.offset
@@ -89,7 +89,7 @@ fun DragItemList(
                                     endOffsetToBottom > 0 -> endOffsetToBottom.coerceAtLeast(0f)
                                     else -> 0f
                                 }
-                            val canScrollDown = currentlyDraggedItemIndex != items.size - 1 && endOffsetToBottom > 0
+                            val canScrollDown = currentlyDraggedItemIndex != itemsCopy.size - 1 && endOffsetToBottom > 0
                             val canScrollUp = currentlyDraggedItemIndex != 0 && startOffsetToTop < 0
                             if (scroll != 0f && (canScrollUp || canScrollDown)) {
                                 scrollChannel.trySend(scroll)
@@ -97,6 +97,10 @@ fun DragItemList(
                         }
                     },
                     onDragEnd = {
+                        itemsCopy.forEachIndexed { index, item ->
+                            saveTask(item.copy(priority = index + 1))
+                        }
+
                         draggedItemIndex = null
                         draggedItem = null
                         delta = 0f
@@ -111,10 +115,12 @@ fun DragItemList(
         state = listState
     ) {
         itemsIndexed(
-            items = items,
+            items = itemsCopy,
 //            contentType = { index, item -> Draggable(index = index, id = item.id) }
             contentType = { index, item -> Draggable(index = index, id = item.id) }
         ) { index, item ->
+            Log.i("draggedItemIndex", draggedItemIndex.toString())
+            Log.i("index", index.toString())
             val modifier = if (draggedItemIndex == index) {
                 Modifier
                     .zIndex(1f)
@@ -126,15 +132,39 @@ fun DragItemList(
             }
 
 //            listItem(modifier, item)
-            GoalListItem(
+            ListItemTask(
                 modifier,
                 item,
-                onNavigateToGoalEdit = onNavigateToGoalEdit,
-                deleteGoal = deleteGoal,
-                selectGoal = selectGoal
+                onNavigateToTaskInfo = onNavigateToTaskInfo,
+                selectTask = selectTask
             )
         }
     }
 }
 
-open class Draggable(val index: Int, val id: UUID)
+//@Composable
+//fun TaskList(
+//    tasks: List<Task>,
+//    onNavigateToTaskInfo: () -> Unit,
+//    selectTask: (UUID?) -> Unit
+//) {
+//    LazyColumn(
+//        modifier = Modifier
+//            .padding(
+//                vertical = 5.dp,
+//                horizontal = 5.dp
+//            )
+//            .fillMaxSize()
+//    ) {
+//        items(
+//            items = tasks,
+//            key = { it.id }
+//        ) { task ->
+//            ListItemTask(
+//                task = task,
+//                onNavigateToTaskInfo = onNavigateToTaskInfo,
+//                selectTask = selectTask
+//            )
+//        }
+//    }
+//}

@@ -109,21 +109,22 @@ fun ActivityRecorder(
     saveDay: () -> Unit,
     saveRecordedActivity: () -> Unit,
     saveVoiceNote: (VoiceNote) -> Unit,
-    setActivityNote: (String) -> Unit,
+//    setActivityNote: (String) -> Unit,
     setActualActiveTimeEnd: (Time) -> Unit,
     setActualActiveTimeStart: (Time) -> Unit,
     setRecordedActivityEndTime: (Time) -> Unit,
     setRecordedActivityId: (UUID) -> Unit,
-    setRecordedActivityNote: (String) -> Unit,
+//    setRecordedActivityNote: (String) -> Unit,
     setRecordedActivityStartTime: (Time) -> Unit,
     setRecordedActivityTitle: (String) -> Unit,
     startRecording: (String) -> Unit,
     stopRecording: () -> Unit,
-    removeVoiceNote: (VoiceNoteUiState) -> Unit,
+//    removeVoiceNote: (VoiceNoteUiState) -> Unit,
 ) {
     val recordedActivityDetails = recordedActivityUiState
 //    var isActivityTimerRunning  = (stopwatchService.currentState.value == StopwatchState.Started)
-    var isActivityTimerRunning  = (recordedActivityUiState.id != null)
+    val isActivityTimerRunning  = (recordedActivityUiState.id != null)
+
     var isRecordingVoiceNote by remember { mutableStateOf(false) }
     var timerStartVoiceNote by remember { mutableStateOf(0L) }
     var elapsedTimeVoiceNote by remember { mutableStateOf(0L) }
@@ -554,7 +555,7 @@ fun ActivityRecorder(
                             .focusRequester(focusRequester)
                         ,
                         placeholder = { Text("Title") },//TODO: Read string from resource
-                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                         singleLine = true,
                         shape = RoundedCornerShape(6.dp),
                         colors = TextFieldDefaults.textFieldColors(

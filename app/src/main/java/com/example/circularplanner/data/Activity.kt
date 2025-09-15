@@ -29,6 +29,6 @@ class Activity (
     var endTime: Time?,
     @PrimaryKey
     val id: UUID,
-//    @ColumnInfo(name = "main_activity_id")
-//    val mainActivityId: UUID?
+    @ColumnInfo(name = "main_activity_id")
+    val mainActivityId: UUID?
 )

@@ -23,7 +23,8 @@ object TouchGestureUtils {
     const val DEG_TO_RAD = Math.PI / 180f
     const val DEG_OFFSET = -90
     const val MINUTES_IN_HOUR = 60
-    const val TOUCH_STROKE = 50f
+//    const val TOUCH_STROKE = 50f
+    const val TOUCH_STROKE = 25f
 
     // Calculate the exact angle on the circle
     fun angle(center: Offset, offset: Offset): Float {

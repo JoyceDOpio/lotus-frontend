@@ -14,7 +14,7 @@ import com.example.circularplanner.service.Constants.ACTION_SERVICE_START
 import com.example.circularplanner.service.Constants.ACTION_SERVICE_STOP
 import com.example.circularplanner.service.Constants.NOTIFICATION_CHANNEL_ID
 import com.example.circularplanner.service.Constants.NOTIFICATION_CHANNEL_NAME
-import com.example.circularplanner.service.Constants.NOTIFICATION_ID
+import com.example.circularplanner.service.Constants.NOTIFICATION_ID_MAIN
 import com.example.circularplanner.service.Constants.STOPWATCH_STATE
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -107,14 +107,16 @@ class StopwatchService: Service() {
             when (intent?.getStringExtra(STOPWATCH_STATE)) {
                 StopwatchState.Started.name -> {
 //                    setStopButton()
-                    startForegroundService()
+//                    startForegroundService()
+                    startForegroundService(NOTIFICATION_ID_MAIN)
 //                    startStopwatch { hours, minutes, seconds ->
 //                        updateNotification(hours = hours, minutes = minutes, seconds = seconds)
 //                    }
                     startStopwatch(
                         mainActivityStopwatch,
                         { hours, minutes, seconds ->
-                            updateNotification(hours = hours, minutes = minutes, seconds = seconds)
+//                            updateNotification(hours = hours, minutes = minutes, seconds = seconds)
+                            updateNotification(NOTIFICATION_ID_MAIN, hours = hours, minutes = minutes, seconds = seconds)
                         }
                     )
                 }
@@ -135,7 +137,8 @@ class StopwatchService: Service() {
                     stopStopwatch(mainActivityStopwatch)
 //                    cancelStopwatch()
                     cancelStopwatch(mainActivityStopwatch)
-                    stopForegroundService()
+//                    stopForegroundService()
+                    stopForegroundService(NOTIFICATION_ID_MAIN)
                 }
             }
 
@@ -143,14 +146,16 @@ class StopwatchService: Service() {
                 when (it) {
                     ACTION_SERVICE_START -> {
 //                        setStopButton()
-                        startForegroundService()
+//                        startForegroundService()
+                        startForegroundService(NOTIFICATION_ID_MAIN)
 //                        startStopwatch { hours, minutes, seconds ->
 //                            updateNotification(hours = hours, minutes = minutes, seconds = seconds)
 //                        }
                         startStopwatch(
                             mainActivityStopwatch,
                             { hours, minutes, seconds ->
-                                updateNotification(hours = hours, minutes = minutes, seconds = seconds)
+//                                updateNotification(hours = hours, minutes = minutes, seconds = seconds)
+                                updateNotification(NOTIFICATION_ID_MAIN, hours = hours, minutes = minutes, seconds = seconds)
                             }
                         )
                     }
@@ -172,7 +177,8 @@ class StopwatchService: Service() {
 //                        cancelStopwatch()
                         stopStopwatch(mainActivityStopwatch)
                         cancelStopwatch(mainActivityStopwatch)
-                        stopForegroundService()
+//                        stopForegroundService()
+                        stopForegroundService(NOTIFICATION_ID_MAIN)
                     }
                 }
             }
@@ -194,9 +200,11 @@ class StopwatchService: Service() {
 //    }
 
     @SuppressLint("ForegroundServiceType")
-    private fun startForegroundService() {
+//    private fun startForegroundService() {
+    private fun startForegroundService(notificationId: Int) {
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, notificationBuilder.build())
+//        startForeground(NOTIFICATION_ID, notificationBuilder.build())
+        startForeground(notificationId, notificationBuilder.build())
     }
 
 //    private fun startStopwatch(onTick: (hr: String, min: String, sec: String) -> Unit) {
@@ -215,8 +223,10 @@ class StopwatchService: Service() {
         stopwatch.startStopwatch(onTick)
     }
 
-    private fun stopForegroundService() {
-        notificationManager.cancel(NOTIFICATION_ID)
+//    private fun stopForegroundService() {
+    private fun stopForegroundService(notificationId: Int) {
+//        notificationManager.cancel(NOTIFICATION_ID)
+        notificationManager.cancel(notificationId)
         stopForeground(STOP_FOREGROUND_REMOVE)
         // Cancel coroutines
         job.cancel()
@@ -230,9 +240,11 @@ class StopwatchService: Service() {
         stopwatch.stopStopwatch()
     }
 
-    private fun updateNotification(hours: String, minutes: String, seconds: String) {
+//    private fun updateNotification(hours: String, minutes: String, seconds: String) {
+    private fun updateNotification(notificationId: Int, hours: String, minutes: String, seconds: String) {
             notificationManager.notify(
-                NOTIFICATION_ID, notificationBuilder.setContentText(
+//                NOTIFICATION_ID, notificationBuilder.setContentText(
+                notificationId, notificationBuilder.setContentText(
                     formatTime(
                         hours = hours,
                         minutes = minutes,

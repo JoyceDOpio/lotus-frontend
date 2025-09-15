@@ -12,8 +12,12 @@ class RepositoryActivities(private val activityDao: DaoActivity): IActivitiesRep
         return activityDao.getActivity(id)
     }
 
-    override fun getRecordedActivity(): Flow<Activity?> {
-        return activityDao.getRecordedActivity()
+    override fun getMainRecordedActivity(): Flow<Activity?> {
+        return activityDao.getMainRecordedActivity()
+    }
+
+    override fun getSubRecordedActivity(): Flow<Activity?> {
+        return activityDao.getSubRecordedActivity()
     }
 
     override suspend fun insertActivity(activity: Activity, vararg voiceNotes: VoiceNote) {

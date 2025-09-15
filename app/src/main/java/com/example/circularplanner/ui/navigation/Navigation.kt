@@ -27,6 +27,11 @@ import com.example.circularplanner.ui.viewmodel.toVoiceNote
 import com.example.circularplanner.utils.AudioRecorder
 import java.io.File
 
+enum class RecordedActivity {
+    Main,
+    Sub
+}
+
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 @Composable
 fun Navigation(
@@ -37,7 +42,9 @@ fun Navigation(
 
     val activityUiState by dayViewModel.activityUiState.collectAsState()
     val dayState by dayViewModel.dayState.collectAsState()
-    val recordedActivityUiState by dayViewModel.recordedActivityUiState.collectAsState()
+//    val recordedActivityUiState by dayViewModel.mainRecordedActivityUiState.collectAsState()
+    val mainRecordedActivityUiState by dayViewModel.mainRecordedActivityUiState.collectAsState()
+    val subRecordedActivityUiState by dayViewModel.subRecordedActivityUiState.collectAsState()
     val dayUiState by dayViewModel.dayUiState.collectAsState()
     val lastTaskPriority by dayViewModel.lastTaskPriority.collectAsState(initial = 0)
     val taskUiState by dayViewModel.taskUiState.collectAsState()
@@ -52,18 +59,24 @@ fun Navigation(
     val goalUiState by goalViewModel.goalUiState.collectAsState()
     val lastGoalPriority by goalViewModel.lastPriority.collectAsState()
 
+    var recordedActivity = RecordedActivity.Main
+
+    fun setRecordedActivityState(state: RecordedActivity) {
+        recordedActivity = state
+    }
+
     NavHost(
         navController = navController,
         startDestination = WelcomeRoute
     ) {
         composable<ActivityNoteEditRoute> { backStackEntry ->
             ActivityNoteEditScreen(
-                activityUiState = recordedActivityUiState,
+                activityUiState = if (recordedActivity == RecordedActivity.Main) mainRecordedActivityUiState else subRecordedActivityUiState,
                 onBack = {
                     navController.popBackStack()
                 },
-                saveActivity = dayViewModel::saveRecordedActivity,
-                setActivityNote = dayViewModel::setRecordedActivityNote
+                saveActivity = if (recordedActivity == RecordedActivity.Main) dayViewModel::saveMainRecordedActivity else dayViewModel::saveSubRecordedActivity,
+                setActivityNote = if (recordedActivity == RecordedActivity.Main) dayViewModel::setMainRecordedActivityNote else dayViewModel::setSubRecordedActivityNote
             )
         }
 
@@ -123,27 +136,29 @@ fun Navigation(
                 dayUiState = dayUiState,
                 dayState = dayState,
                 goals = goals,
-                recordedActivityUiState = recordedActivityUiState,
+                mainRecordedActivityUiState = mainRecordedActivityUiState,
+                subRecordedActivityUiState = subRecordedActivityUiState,
                 stopwatchService = stopwatchService,
                 taskUiState = taskUiState,
                 toDoTasks = toDoTasks,
                 userInput = userInput,
-                clearRecordedActivity = dayViewModel::clearRecordedActivity,
+                clearMainRecordedActivity = dayViewModel::clearMainRecordedActivity,
+                clearSubRecordedActivity = dayViewModel::clearSubRecordedActivity,
                 deleteGoal = goalViewModel::deleteGoal,
-                deleteVoiceNote = { voiceNoteUiState ->
-                    try {
-                        val file = File(voiceNoteUiState.uri)
-                        if (file.exists()) {
-                            // Delete the voice note audio file from the local storage
-                            file.delete()
-                        }
-                        // The voice note from the database
-                        dayViewModel.deleteVoiceNote(voiceNoteUiState.toVoiceNote())
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        Toast.makeText(context,"Error deleting the file", Toast.LENGTH_SHORT).show()
-                    }
-                },
+//                deleteVoiceNote = { voiceNoteUiState ->
+//                    try {
+//                        val file = File(voiceNoteUiState.uri)
+//                        if (file.exists()) {
+//                            // Delete the voice note audio file from the local storage
+//                            file.delete()
+//                        }
+//                        // The voice note from the database
+//                        dayViewModel.deleteVoiceNote(voiceNoteUiState.toVoiceNote())
+//                    } catch (e: Exception) {
+//                        e.printStackTrace()
+//                        Toast.makeText(context,"Error deleting the file", Toast.LENGTH_SHORT).show()
+//                    }
+//                },
                 onClickSaveActiveTime = {
                     dayViewModel.saveDay()
                     dayViewModel.setIsActiveTimeSetUp(false)
@@ -162,24 +177,32 @@ fun Navigation(
                     goalViewModel.switchPriorities(firstId, secondId)
                 },
                 onSwitchScreen = dayViewModel::setIsActivityDisplay,
-                saveRecordedActivity = dayViewModel::saveRecordedActivity,
+                saveMainRecordedActivity = dayViewModel::saveMainRecordedActivity,
+                saveSubRecordedActivity = dayViewModel::saveSubRecordedActivity,
                 saveDay = dayViewModel::saveDay,
+                saveGoal = goalViewModel::saveGoal,
                 saveTask = dayViewModel::saveTask,
+                saveTaskFromState = dayViewModel::saveTask,
                 saveVoiceNote = dayViewModel::saveVoiceNote,
                 selectActivity = dayViewModel::selectActivity,
                 selectGoal = goalViewModel::selectGoal,
                 selectTask = dayViewModel::selectTask,
                 setActiveTimeStart = dayViewModel::setActiveTimeStart,
                 setActiveTimeEnd = dayViewModel::setActiveTimeEnd,
-                setActivityNote = dayViewModel::setRecordedActivityNote,
                 setActualActiveTimeEnd = dayViewModel::setActualActiveTimeEnd,
                 setActualActiveTimeStart = dayViewModel::setActualActiveTimeStart,
-                setRecordedActivityEndTime = dayViewModel::setRecordedActivityEndTime,
-                setRecordedActivityId = dayViewModel::setRecordedActivityId,
-                setRecordedActivityNote = dayViewModel::setRecordedActivityNote,
-                setRecordedActivityStartTime = dayViewModel::setRecordedActivityStartTime,
-                setRecordedActivityTitle = dayViewModel::setRecordedActivityTitle,
+                setMainRecordedActivityEndTime = dayViewModel::setMainRecordedActivityEndTime,
+                setSubRecordedActivityEndTime = dayViewModel::setSubRecordedActivityEndTime,
+                setMainRecordedActivityId = dayViewModel::setMainRecordedActivityId,
+                setSubRecordedActivityId = dayViewModel::setSubRecordedActivityId,
+                setMainRecordedActivityNote = dayViewModel::setMainRecordedActivityNote,
+                setSubRecordedActivityNote = dayViewModel::setSubRecordedActivityNote,
+                setMainRecordedActivityStartTime = dayViewModel::setMainRecordedActivityStartTime,
+                setSubRecordedActivityStartTime = dayViewModel::setSubRecordedActivityStartTime,
+                setMainRecordedActivityTitle = dayViewModel::setMainRecordedActivityTitle,
+                setSubRecordedActivityTitle = dayViewModel::setSubRecordedActivityTitle,
                 setIsActiveTimeSetUp = dayViewModel::setIsActiveTimeSetUp,
+                setRecordedActivityState = { state -> setRecordedActivityState(state) },
                 setTaskDate = dayViewModel::setTaskDate,
                 setTaskStartTime = dayViewModel::setTaskStartTime,
                 setTaskEndTime = dayViewModel::setTaskEndTime,
@@ -246,7 +269,7 @@ fun Navigation(
             )
         }
 
-        composable<WelcomeRoute>{  backStackEntry ->
+        composable<WelcomeRoute>{ backStackEntry ->
             WelcomeScreen(
                 goals = goals,
                 onNext = { navController.navigate(route = TaskDisplayRoute) }
