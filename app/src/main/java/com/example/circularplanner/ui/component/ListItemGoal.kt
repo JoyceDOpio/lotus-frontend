@@ -49,8 +49,7 @@ fun ListItemGoal(
                 .fillMaxWidth()
                 .height(IntrinsicSize.Min)
                 .padding(
-                    vertical = 10.dp,
-//                    horizontal = 10.dp
+                    vertical = 10.dp
                 ),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
@@ -64,14 +63,9 @@ fun ListItemGoal(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column (
-                    modifier = Modifier
-//                    .padding(horizontal = 10.dp)
-//                    .fillMaxWidth(0.8f)
-                ) {
+                Column () {
                     Text(
                         text = goal.priority.toString(),
-//                    overflow = TextOverflow.Ellipsis
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -81,7 +75,6 @@ fun ListItemGoal(
 
                 Column (
                     modifier = Modifier
-//                    .padding(horizontal = 10.dp)
                         .fillMaxWidth(0.8f)
                 ) {
                     Text(
@@ -90,8 +83,6 @@ fun ListItemGoal(
                     )
                 }
             }
-
-//            Spacer(Modifier.width(5.dp))
 
             Column (
                 modifier = Modifier

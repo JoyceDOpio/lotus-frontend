@@ -18,20 +18,28 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.zIndex
 import com.example.circularplanner.data.Goal
+import com.example.circularplanner.ui.screen.GoalEditScreen
+import com.example.circularplanner.ui.screen.State
+import com.example.circularplanner.ui.screen.TaskEditScreen
+import com.example.circularplanner.ui.viewmodel.GoalUiState
 import kotlinx.coroutines.channels.Channel
 import java.util.UUID
 
 @Composable
 fun DragItemListGoal(//TODO: Merge with DragItemListTask
 //fun <T> DragItemList(
+    goalUiState: GoalUiState,
 //    items: List<Draggable>,
 //    items: List<T>,
     items: List<Goal>,
-    onNavigateToGoalEdit: () -> Unit,
-    onSwitch: (UUID, UUID) -> Unit,
+    lastGoalPriority: Int?,
+//    onSwitch: (UUID, UUID) -> Unit,
     deleteGoal: (Goal) -> Unit,
     saveGoal: (Goal) -> Unit,
-    selectGoal: (UUID?) -> Unit
+    saveGoalFromState: () -> Unit,
+    selectGoal: (UUID?) -> Unit,
+    setGoalPriority: (Int) -> Unit,
+    setGoalTitle: (String) -> Unit
 //    listItem: @Composable LazyItemScope.(Modifier, Draggable) -> Unit
 ) {
     var draggedItem: LazyListItemInfo? by remember { mutableStateOf(null) }
@@ -44,6 +52,8 @@ fun DragItemListGoal(//TODO: Merge with DragItemListTask
 //    val itemsCopy = emptyList<Goal>()
 //    items.forEach { itemsCopy.toMutableList().add(it)}
     val itemsCopy = items.toMutableList()
+
+    var showPopupWindow by remember { mutableStateOf(false) }
 
     fun onSwap(fromIndex: Int, toIndex: Int) {
 //        Log.i("fromIndex", fromIndex.toString())
@@ -164,9 +174,29 @@ fun DragItemListGoal(//TODO: Merge with DragItemListTask
             ListItemGoal(
                 modifier,
                 item,
-                onNavigateToGoalEdit = onNavigateToGoalEdit,
+//                onNavigateToGoalEdit = onNavigateToGoalEdit,
+                onNavigateToGoalEdit = { showPopupWindow = true },
                 deleteGoal = deleteGoal,
                 selectGoal = selectGoal
+            )
+        }
+    }
+
+    if (showPopupWindow) {
+        PopupDialog(
+            onDismissRequest = {
+                showPopupWindow = false
+            }
+        ) {
+            GoalEditScreen(
+                goalUiState = goalUiState,
+                lastPriority = lastGoalPriority ?: 0,
+                onBack = {
+                    showPopupWindow = false
+                },
+                saveGoal = saveGoalFromState,
+                setGoalPriority = setGoalPriority,
+                setGoalTitle = setGoalTitle
             )
         }
     }

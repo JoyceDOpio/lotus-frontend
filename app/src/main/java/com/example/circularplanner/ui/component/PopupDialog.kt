@@ -19,11 +19,10 @@ fun PopupDialog (
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
+                .height(400.dp)
+                .padding(10.dp),
+            shape = RoundedCornerShape(15.dp),
         ) {
-
             content()
         }
     }

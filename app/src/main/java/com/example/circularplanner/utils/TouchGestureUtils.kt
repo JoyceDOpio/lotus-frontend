@@ -1,22 +1,27 @@
 package com.example.circularplanner.utils
 
+import android.util.Log
 import androidx.compose.ui.geometry.Offset
 import com.example.circularplanner.data.Time
+import com.example.circularplanner.ui.component.DragDirection
 import kotlin.math.atan2
 import kotlin.math.sqrt
 
-// Are we creating a new task or editing an existing task
-enum class TaskDialMode {
-    CREATE,
-    EDIT,
-    VIEW
-}
-
 // Are we setting the start angle (start time) or end angle (end time) of a given task
 enum class AngleMode {
-    NONE,
-    START,
-    END
+    None,
+    Start,
+    End
+}
+
+enum class NoteModePopup {
+    Activity,
+    Day
+}
+
+enum class TaskModePopup {
+    Edit,
+    Info
 }
 
 object TouchGestureUtils {
@@ -27,14 +32,30 @@ object TouchGestureUtils {
     const val TOUCH_STROKE = 25f
 
     // Calculate the exact angle on the circle
+//    fun angle(center: Offset, offset: Offset): Float {
+//        val rad = atan2(offset.y - center.y, offset.x - center.x)
+//        var deg = Math.toDegrees(rad.toDouble())
+//        return if (deg >= 0) deg.toFloat() else (deg + 360).toFloat()
+//    }
     fun angle(center: Offset, offset: Offset): Float {
         val rad = atan2(offset.y - center.y, offset.x - center.x)
-        var deg = Math.toDegrees(rad.toDouble())
-        return if (deg >= 0) deg.toFloat() else (deg + 360).toFloat()
+        val deg = Math.toDegrees(rad.toDouble())
+
+        if (deg >= 0) {
+            if (deg < 360) {
+                return deg.toFloat()
+            }
+            else {
+                return (deg - 360).toFloat()
+            }
+        }
+        else {
+            return (deg + 360).toFloat()
+        }
     }
 
-    // We use this to calculate the clock time
-    fun angleForTimeCalculation(angle: Float): Float {
+    // Returns an angle adjusted in such a way that 270 degree corresponds to the 0/360 degree mark
+    fun translateAngle270To0(angle: Float): Float {
         if (angle in 270f..360f) {
             return angle - 270f
         } else {
@@ -109,11 +130,11 @@ object TouchGestureUtils {
     }
 
     // Calculate the angle the given time corresponds to on the dial
-    fun calculateTaskAngle (activeTimeStart: Time, taskTime: Time, minuteAngle: Float): Float {
+    fun calculateAngleFromTime (activeTimeStart: Time, time: Time, minuteAngle: Float): Float {
         // Number of minutes the task time corresponds to counting from the active time start
         val minute = calculateTotalNumberOfMinutes(
             activeTimeStart,
-            taskTime
+            time
         )
         // We have to offset these angles because startMinute * taskDialState.minuteAngle returns a biased angle
         val taskAngle = offsetAngle(minute * minuteAngle)
@@ -144,6 +165,31 @@ object TouchGestureUtils {
         }
 
         return minutes
+    }
+
+    fun checkIfCanDrag(startAngle: Float, angle: Float, touchStroke: Float): Boolean {
+        val currentAngleTranslated = translateAngle270To0(angle)
+        val startAngleTranslated = translateAngle270To0(startAngle)
+
+        val dragDirection = if (currentAngleTranslated < startAngleTranslated) {
+            DragDirection.Backward
+        } else if (currentAngleTranslated > startAngleTranslated) {
+            DragDirection.Forward
+        } else {
+            DragDirection.None
+        }
+
+        Log.i("TouchGestureUtils", "182 dragDirection $dragDirection")
+
+        val passedTheStartEndMark = if (dragDirection == DragDirection.Backward && currentAngleTranslated in 360f - touchStroke/2f..360f) {
+            true
+        } else if (dragDirection == DragDirection.Forward && currentAngleTranslated in 0f..touchStroke/2f) {
+            true
+        } else {
+            false
+        }
+
+        return passedTheStartEndMark
     }
 
     fun checkIfTimeInRange(time: Time, rangeStart: Time, rangeEnd: Time): Boolean {
@@ -212,7 +258,7 @@ object TouchGestureUtils {
     }
 
     // We want the 0 degree angle to correspond to 270 degree (the north of the circle, and not east). We use this for example to draw the clock upright. The purpose of this offset is to TURN the circle LEFT (ANTI-CLOCKWISE) by 90 degrees
-    fun offsetAngle(angle: Float): Float {
+    fun offsetAngle(angle: Float): Float {// TODO: Check where used and maybe delete it (i.e. use translateAngle270To0() instead)
         var correctedAngle: Float = angle + DEG_OFFSET
 
         if (correctedAngle < 0) {
@@ -223,7 +269,7 @@ object TouchGestureUtils {
     }
 
     // We want the 0 degree angle to correspond to 270 degree (the north of the circle, and not east). We map an angle to its corresponding value if the circle actually started with 0 degrees at the north of the circle
-    fun mapAngle270To0Degree(angle: Float): Float {
+    fun mapAngle270To0Degree(angle: Float): Float {// TODO: Check where used and maybe delete it (i.e. use translateAngle270To0() instead)
         var correctedAngle: Float = angle - 270f
 
         if (correctedAngle < 0) {

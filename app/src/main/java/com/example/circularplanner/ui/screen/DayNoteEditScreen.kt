@@ -97,7 +97,7 @@ fun DayNoteEditScreen(// TODO: Merge with DayNoteEditScreen
     ) { innerPadding ->
         Column(
             modifier = modifier
-                .padding(horizontal = 30.dp)
+                .padding(horizontal = 15.dp)
                 .padding(innerPadding)
                 .fillMaxWidth()
                 .fillMaxHeight()

@@ -17,17 +17,32 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.zIndex
-import com.example.circularplanner.data.Goal
 import com.example.circularplanner.data.Task
+import com.example.circularplanner.data.Time
+import com.example.circularplanner.ui.screen.TaskEditScreen
+import com.example.circularplanner.ui.screen.TaskInfoScreen
+import com.example.circularplanner.ui.viewmodel.DayState
+import com.example.circularplanner.ui.viewmodel.TaskUiState
+import com.example.circularplanner.utils.TaskModePopup
 import kotlinx.coroutines.channels.Channel
 import java.util.UUID
 
 @Composable
 fun DragItemListTask(//TODO: Merge with DragItemListGoal
+    dayState: DayState,
     items: List<Task>,
-    onNavigateToTaskInfo: () -> Unit,
+    lastTaskPriority: Int?,
+    taskUiState: TaskUiState,
+    deleteTask: () -> Unit,
+    onMoveToToDoList: () -> Unit,
     saveTask: (Task) -> Unit,
-    selectTask: (UUID?) -> Unit
+    saveTaskFromState: () -> Unit,
+    selectTask: (UUID?) -> Unit,
+    setTaskDescription: (String) -> Unit,
+    setTaskEndTime: (Time) -> Unit,
+    setTaskPriority: (Int) -> Unit,
+    setTaskStartTime: (Time) -> Unit,
+    setTaskTitle: (String) -> Unit
 ) {
     var draggedItem: LazyListItemInfo? by remember { mutableStateOf(null) }
     var draggedItemIndex: Int? by remember { mutableStateOf(null) }
@@ -40,6 +55,9 @@ fun DragItemListTask(//TODO: Merge with DragItemListGoal
     fun onSwap(fromIndex: Int, toIndex: Int) {
         itemsCopy.apply { add(toIndex, removeAt(fromIndex)) }
     }
+
+    var showPopupWindow by remember { mutableStateOf(false) }
+    var taskState by remember { mutableStateOf(TaskModePopup.Info) }
 
     LaunchedEffect(listState) {
         while (true) {
@@ -135,36 +153,53 @@ fun DragItemListTask(//TODO: Merge with DragItemListGoal
             ListItemTask(
                 modifier,
                 item,
-                onNavigateToTaskInfo = onNavigateToTaskInfo,
+//                onNavigateToTaskInfo = onNavigateToTaskInfo,
+                onNavigateToTaskInfo = { showPopupWindow = true },
                 selectTask = selectTask
             )
         }
     }
-}
 
-//@Composable
-//fun TaskList(
-//    tasks: List<Task>,
-//    onNavigateToTaskInfo: () -> Unit,
-//    selectTask: (UUID?) -> Unit
-//) {
-//    LazyColumn(
-//        modifier = Modifier
-//            .padding(
-//                vertical = 5.dp,
-//                horizontal = 5.dp
-//            )
-//            .fillMaxSize()
-//    ) {
-//        items(
-//            items = tasks,
-//            key = { it.id }
-//        ) { task ->
-//            ListItemTask(
-//                task = task,
-//                onNavigateToTaskInfo = onNavigateToTaskInfo,
-//                selectTask = selectTask
-//            )
-//        }
-//    }
-//}
+    if (showPopupWindow) {
+        PopupDialog(
+            onDismissRequest = {
+                showPopupWindow = false
+            }
+        ) {
+            when (taskState) {
+                TaskModePopup.Edit -> {
+                    TaskEditScreen(
+                        dayState = dayState,
+                        lastTaskPriority = lastTaskPriority ?: 0,
+                        taskUiState = taskUiState,
+                        onBack = {
+                            taskState = TaskModePopup.Info
+                        },
+                        saveTask = saveTaskFromState,
+                        setTaskEndTime = setTaskEndTime,
+                        setTaskDescription = setTaskDescription,
+                        setTaskPriority = setTaskPriority,
+                        setTaskStartTime = setTaskStartTime,
+                        setTaskTitle = setTaskTitle
+                    )
+                }
+                TaskModePopup.Info -> {
+                    TaskInfoScreen(
+                        taskUiState = taskUiState,
+                        deleteTask = deleteTask,
+                        onBack = {
+                            showPopupWindow = false
+                        },
+                        onNavigateToMoveToCalendar = {
+//                    val task = toDoTasks.find { task -> task.id == taskUiState.id }
+                        },
+                        onMoveToToDoList = onMoveToToDoList,
+                        onNavigateToTaskEdit = {
+                            taskState = TaskModePopup.Edit
+                        },
+                    )
+                }
+            }
+        }
+    }
+}

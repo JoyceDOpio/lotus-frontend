@@ -9,6 +9,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.example.circularplanner.data.Goal
@@ -20,8 +24,10 @@ import com.example.circularplanner.ui.component.Calendar
 import com.example.circularplanner.ui.component.DragItemListGoal
 import com.example.circularplanner.ui.component.TaskDial
 import com.example.circularplanner.ui.component.DragItemListTask
+import com.example.circularplanner.ui.component.PopupDialog
 import com.example.circularplanner.ui.viewmodel.DayState
 import com.example.circularplanner.ui.viewmodel.DayUiState
+import com.example.circularplanner.ui.viewmodel.GoalUiState
 import com.example.circularplanner.ui.viewmodel.TaskUiState
 import com.example.circularplanner.ui.viewmodel.UserInput
 import java.time.LocalDate
@@ -33,30 +39,39 @@ fun PlannerScreen(
     dayState: DayState,
     dayUiState: DayUiState,
     goals: List<Goal>,
+    goalUiState: GoalUiState,
+    lastGoalPriority: Int?,
+    lastTaskPriority: Int?,
     state: State,
     taskUiState: TaskUiState,
     toDoTasks: List<Task>,
     userInput: UserInput,
     deleteGoal: (Goal) -> Unit,
-    onNavigateToGoalEdit: () -> Unit,
-    onNavigateToTaskEdit: () -> Unit,
-    onNavigateToTaskInfo: () -> Unit,
+    deleteTask: () -> Unit,
+    onMoveToToDoList: () -> Unit,
     onClickSaveActiveTime: () -> Unit,
     onSwitchGoals: (UUID, UUID) -> Unit,
     saveGoal: (Goal) -> Unit,
+    saveGoalFromState: () -> Unit,
     saveTask: (Task) -> Unit,
     saveTaskFromState: () -> Unit,
     selectGoal: (UUID?) -> Unit,
     selectTask: (UUID?) -> Unit,
     setActiveTimeStart: (Time) -> Unit,
     setActiveTimeEnd: (Time) -> Unit,
+    setGoalPriority: (Int) -> Unit,
+    setGoalTitle: (String) -> Unit,
     setIsActiveTimeSetUp: (Boolean) -> Unit,
     onSetSelectedDate: (LocalDate) -> Unit,
-    setTaskStartTime: (Time) -> Unit,
+    setTaskDate: (LocalDate?) -> Unit,
+    setTaskDescription: (String) -> Unit,
     setTaskEndTime: (Time) -> Unit,
-    setTaskDate: (LocalDate?) -> Unit
+    setTaskStartTime: (Time) -> Unit,
+    setTaskPriority: (Int) -> Unit,
+    setTaskTitle: (String) -> Unit
 ) {
-    val showActiveTimeSetUp = dayUiState.isActiveTimeSetUp
+//    val showActiveTimeSetUp = dayUiState.isActiveTimeSetUp
+    var showActiveTimeSetUp by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -65,10 +80,10 @@ fun PlannerScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // Show planner
-        AnimatedVisibility(
-            visible = !showActiveTimeSetUp
-        ) {
+//        // Show planner
+//        AnimatedVisibility(
+//            visible = !showActiveTimeSetUp
+//        ) {
             // Show the day planner
             AnimatedVisibility(
                 visible = state == State.Task,
@@ -89,16 +104,22 @@ fun PlannerScreen(
                     TaskDial(
                         dayState = dayState,
                         drawClockHand = userInput.selectedDate.isEqual(LocalDate.now()),
+                        lastTaskPriority = lastTaskPriority,
                         taskUiState = taskUiState,
                         userInput = userInput,
-                        onNavigateToTaskEdit = onNavigateToTaskEdit,
-                        onNavigateToTaskInfo = onNavigateToTaskInfo,
-                        onPressActiveTime = { setIsActiveTimeSetUp(true) },
+                        deleteTask = deleteTask,
+                        onMoveToToDoList = onMoveToToDoList,
+//                        onPressActiveTime = { setIsActiveTimeSetUp(true) },
+                        onPressActiveTime = { showActiveTimeSetUp = true },
                         setTaskEndTime = setTaskEndTime,
                         setTaskStartTime = setTaskStartTime,
                         saveTask = saveTaskFromState,
+                        saveTaskFromState = saveTaskFromState,
                         selectTask = selectTask,
-                        setTaskDate = setTaskDate
+                        setTaskDate = setTaskDate,
+                        setTaskDescription = setTaskDescription,
+                        setTaskPriority = setTaskPriority,
+                        setTaskTitle = setTaskTitle
                     )
 
                     Calendar(
@@ -115,10 +136,20 @@ fun PlannerScreen(
                 exit = fadeOut(),
             ) {
                 DragItemListTask (
+                    dayState = dayState,
                     items = toDoTasks,
-                    onNavigateToTaskInfo = onNavigateToTaskInfo,
+                    lastTaskPriority = lastTaskPriority,
+                    taskUiState = taskUiState,
+                    deleteTask = deleteTask,
+                    onMoveToToDoList = onMoveToToDoList,
                     saveTask = saveTask,
-                    selectTask = selectTask
+                    saveTaskFromState = saveTaskFromState,
+                    selectTask = selectTask,
+                    setTaskDescription = setTaskDescription,
+                    setTaskEndTime = setTaskEndTime,
+                    setTaskStartTime = setTaskStartTime,
+                    setTaskPriority = setTaskPriority,
+                    setTaskTitle = setTaskTitle
                 )
             }
 
@@ -128,27 +159,49 @@ fun PlannerScreen(
                 enter = fadeIn(),
                 exit = fadeOut(),
             ) {
-                // TODO: List of goals that allows dragging of items and setting priority
                 DragItemListGoal(
                     items = goals,
-                    onNavigateToGoalEdit = onNavigateToGoalEdit,
-                    onSwitch = onSwitchGoals,
+                    goalUiState = goalUiState,
+                    lastGoalPriority = lastGoalPriority,
+//                    onSwitch = onSwitchGoals,
                     deleteGoal = deleteGoal,
                     saveGoal = saveGoal,
-                    selectGoal = selectGoal
-//                    listItem = GoalListItem
+                    saveGoalFromState = saveGoalFromState,
+                    selectGoal = selectGoal,
+                    setGoalPriority = setGoalPriority,
+                    setGoalTitle = setGoalTitle
                 )
             }
-        }
+//        }
 
-        // Show active time setup
-        AnimatedVisibility(
-            visible = showActiveTimeSetUp
+//        // Show active time setup
+//        AnimatedVisibility(
+//            visible = showActiveTimeSetUp
+//        ) {
+//            ActiveTimeSetUp(
+//                dayUiState = dayUiState,
+//                onBack = { setIsActiveTimeSetUp(false) },
+//                onClickSaveActiveTime = onClickSaveActiveTime,
+//                setActiveTimeStart = setActiveTimeStart,
+//                setActiveTimeEnd = setActiveTimeEnd
+//            )
+//        }
+    }
+
+    if (showActiveTimeSetUp) {
+        PopupDialog(
+            onDismissRequest = {
+                showActiveTimeSetUp = false
+            }
         ) {
+            // Show active time setup
             ActiveTimeSetUp(
                 dayUiState = dayUiState,
-                onBack = { setIsActiveTimeSetUp(false) },
-                onClickSaveActiveTime = onClickSaveActiveTime,
+                onBack = { showActiveTimeSetUp = false },
+                onClickSaveActiveTime = {
+                    onClickSaveActiveTime()
+                    showActiveTimeSetUp = false
+                },
                 setActiveTimeStart = setActiveTimeStart,
                 setActiveTimeEnd = setActiveTimeEnd
             )

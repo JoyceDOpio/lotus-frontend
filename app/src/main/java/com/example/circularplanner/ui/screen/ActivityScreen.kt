@@ -19,6 +19,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -35,31 +39,30 @@ import com.example.circularplanner.service.ServiceHelper
 import com.example.circularplanner.service.StopwatchService
 import com.example.circularplanner.ui.component.ActivityGraph
 import com.example.circularplanner.ui.component.ActivityRecorder
+import com.example.circularplanner.ui.component.PopupDialog
 import com.example.circularplanner.ui.navigation.RecordedActivity
 import com.example.circularplanner.ui.viewmodel.ActivityUiState
 import com.example.circularplanner.ui.viewmodel.DayState
+import com.example.circularplanner.ui.viewmodel.DayUiState
 import com.example.circularplanner.ui.viewmodel.VoiceNoteUiState
+import com.example.circularplanner.utils.NoteModePopup
 import java.util.UUID
-
-enum class Type {
-    ACTIVITY,
-    TASK
-}
 
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 @Composable
 fun ActivityScreen(
     innerPadding: PaddingValues,
     context: Context,
+    activityUiState: ActivityUiState,
     dayState: DayState,
+    dayUiState: DayUiState,
     mainRecordedActivityUiState: ActivityUiState,
     subRecordedActivityUiState: ActivityUiState,
     stopwatchService: StopwatchService,
     clearMainRecordedActivity: () -> Unit,
     clearSubRecordedActivity: () -> Unit,
-    onNavigateToActivityNoteEdit: () -> Unit,
-    onNavigateToDayNoteEdit: () -> Unit,
     onNavigateToTaskActivityComparison: () -> Unit,
+    saveActivity: () -> Unit,
     saveDay: () -> Unit,
     saveVoiceNote: (VoiceNote) -> Unit,
 //    saveRecordedActivity: (UUID) -> Unit,
@@ -69,8 +72,10 @@ fun ActivityScreen(
     selectTask: (UUID?) -> Unit,
 //    setMainActivityNote: (String) -> Unit,
 //    setSubActivityNote: (String) -> Unit,
+    setActivityNote: (String) -> Unit,
     setActualActiveTimeEnd: (Time) -> Unit,
     setActualActiveTimeStart: (Time) -> Unit,
+    setDayNote: (String) -> Unit,
     setMainRecordedActivityEndTime: (Time) -> Unit,
     setSubRecordedActivityEndTime: (Time) -> Unit,
     setMainRecordedActivityId: (UUID) -> Unit,
@@ -88,6 +93,9 @@ fun ActivityScreen(
 ) {
     val isMainActivityTimerRunning  = (mainRecordedActivityUiState.id != null)
     val isSubActivityTimerRunning  = (subRecordedActivityUiState.id != null)
+
+    var showPopupWindow by remember { mutableStateOf(false) }
+    var popupState by remember { mutableStateOf(NoteModePopup.Day) }
 
     Column(
         modifier = Modifier
@@ -108,8 +116,8 @@ fun ActivityScreen(
 
         Column(
             modifier = Modifier
+//                .verticalScroll(rememberScrollState())
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
         ) {
 
             // Day notes
@@ -144,7 +152,8 @@ fun ActivityScreen(
 
                 IconButton(
                     onClick = {
-                        onNavigateToDayNoteEdit()
+                        popupState = NoteModePopup.Day
+                        showPopupWindow = true
                     }
                 ) {
                     Icon(
@@ -178,7 +187,8 @@ fun ActivityScreen(
                 clearRecordedActivity = clearMainRecordedActivity,
                 onNavigateToActivityNoteEdit = {
                     setRecordedActivityState(RecordedActivity.Main)
-                    onNavigateToActivityNoteEdit
+                    popupState = NoteModePopup.Activity
+                    showPopupWindow = true
                },
                 onPause = {
                     ServiceHelper.triggerForegroundService(
@@ -243,7 +253,8 @@ fun ActivityScreen(
                     clearRecordedActivity = clearSubRecordedActivity,
                     onNavigateToActivityNoteEdit = {
                         setRecordedActivityState(RecordedActivity.Sub)
-                        onNavigateToActivityNoteEdit
+                        popupState = NoteModePopup.Activity
+                        showPopupWindow = true
                     },
                     onStart = {},
                     onStop = {},
@@ -262,6 +273,37 @@ fun ActivityScreen(
                     stopRecording = stopRecording,
 //                    removeVoiceNote = removeVoiceNote
                 )
+            }
+        }
+    }
+
+    if (showPopupWindow) {
+        PopupDialog(
+            onDismissRequest = {
+                showPopupWindow = false
+            }
+        ) {
+            when (popupState) {
+                NoteModePopup.Activity -> {
+                    ActivityNoteEditScreen(
+                        activityUiState = activityUiState,
+                        onBack = {
+                            showPopupWindow = false
+                        },
+                        saveActivity = saveActivity,
+                        setActivityNote = setActivityNote
+                    )
+                }
+                NoteModePopup.Day -> {
+                    DayNoteEditScreen(
+                        dayUiState = dayUiState,
+                        onBack = {
+                            showPopupWindow = false
+                        },
+                        saveDay = saveDay,
+                        setDayNote = setDayNote
+                    )
+                }
             }
         }
     }

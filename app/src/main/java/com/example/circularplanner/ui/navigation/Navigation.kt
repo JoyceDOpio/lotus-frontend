@@ -1,6 +1,7 @@
 package com.example.circularplanner.ui.navigation
 
 import android.os.Build
+import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
@@ -67,43 +68,9 @@ fun Navigation(
 
     NavHost(
         navController = navController,
-        startDestination = WelcomeRoute
+//        startDestination = WelcomeRoute// TODO: Move welcoming (goals display) to the splash screen
+        startDestination = TaskDisplayRoute
     ) {
-        composable<ActivityNoteEditRoute> { backStackEntry ->
-            ActivityNoteEditScreen(
-                activityUiState = if (recordedActivity == RecordedActivity.Main) mainRecordedActivityUiState else subRecordedActivityUiState,
-                onBack = {
-                    navController.popBackStack()
-                },
-                saveActivity = if (recordedActivity == RecordedActivity.Main) dayViewModel::saveMainRecordedActivity else dayViewModel::saveSubRecordedActivity,
-                setActivityNote = if (recordedActivity == RecordedActivity.Main) dayViewModel::setMainRecordedActivityNote else dayViewModel::setSubRecordedActivityNote
-            )
-        }
-
-        composable<DayNoteEditRoute> { backStackEntry ->
-            DayNoteEditScreen(
-                dayUiState = dayUiState,
-                onBack = {
-                    navController.popBackStack()
-                },
-                saveDay = dayViewModel::saveDay,
-                setDayNote = dayViewModel::setDayNote
-            )
-        }
-
-        composable<GoalEditRoute> { backStackEntry ->
-            GoalEditScreen(
-                goalUiState = goalUiState,
-                lastPriority = lastGoalPriority ?: 0,
-                onBack = {
-                    navController.popBackStack()
-                },
-                saveGoal = goalViewModel::saveGoal,
-                setGoalPriority = goalViewModel::setPriority,
-                setGoalTitle = goalViewModel::setTitle
-            )
-        }
-
         composable<TaskActivityComparisonRoute> { backStackEntry ->
             TaskActivityComparisonScreen(
                 activityUiState = activityUiState,
@@ -133,9 +100,13 @@ fun Navigation(
         composable<TaskDisplayRoute> { backStackEntry ->
             MainScreen(
                 context = context,
+                activityUiState = if (recordedActivity == RecordedActivity.Main) mainRecordedActivityUiState else subRecordedActivityUiState,
                 dayUiState = dayUiState,
                 dayState = dayState,
                 goals = goals,
+                goalUiState = goalUiState,
+                lastGoalPriority = lastGoalPriority,
+                lastTaskPriority = lastTaskPriority,
                 mainRecordedActivityUiState = mainRecordedActivityUiState,
                 subRecordedActivityUiState = subRecordedActivityUiState,
                 stopwatchService = stopwatchService,
@@ -159,16 +130,33 @@ fun Navigation(
 //                        Toast.makeText(context,"Error deleting the file", Toast.LENGTH_SHORT).show()
 //                    }
 //                },
+                deleteTask = {
+                    val tasks = dayViewModel.dayState.value.tasks + dayViewModel.toDoTasks.value
+                    val task = tasks.find { task -> task.id == dayViewModel.taskUiState.value.id }
+
+                    if (task != null) {
+                        dayViewModel.deleteTask(task)
+                    }
+                },
                 onClickSaveActiveTime = {
                     dayViewModel.saveDay()
-                    dayViewModel.setIsActiveTimeSetUp(false)
+//                    dayViewModel.setIsActiveTimeSetUp(false)
                 },
-                onNavigateToActivityNoteEdit = { navController.navigate( route = ActivityNoteEditRoute )},
-                onNavigateToDayNoteEdit = { navController.navigate( route = DayNoteEditRoute )},
-                onNavigateToGoalEdit = { navController.navigate(route = GoalEditRoute) },
+                onMoveToToDoList = {
+                    val task = dayState.tasks.find { task -> task.id == taskUiState.id }
+
+                    if (task != null) {
+                        dayViewModel.updateTask(
+                            task.copy(
+                                date = null,
+                                startTime = null,
+                                endTime = null,
+                                priority = lastTaskPriority
+                            )
+                        )
+                    }
+                },
                 onNavigateToTaskActivityComparison = { navController.navigate(route = TaskActivityComparisonRoute) },
-                onNavigateToTaskEdit = { navController.navigate(route = TaskEditRoute) },
-                onNavigateToTaskInfo = { navController.navigate(route = TaskInfoRoute) },
                 onSetDayNote = dayViewModel::setDayNote,
                 onSetSelectedDate = { date ->
                     dayViewModel.setSelectedDate(date)
@@ -181,16 +169,26 @@ fun Navigation(
                 saveSubRecordedActivity = dayViewModel::saveSubRecordedActivity,
                 saveDay = dayViewModel::saveDay,
                 saveGoal = goalViewModel::saveGoal,
+                saveGoalFromState = goalViewModel::saveGoal,
                 saveTask = dayViewModel::saveTask,
-                saveTaskFromState = dayViewModel::saveTask,
+//                saveTaskFromState = dayViewModel::saveTask,
+                saveTaskFromState = {
+                    Log.i("taskUiState", taskUiState.toString())
+                    dayViewModel.saveTask()
+                },
                 saveVoiceNote = dayViewModel::saveVoiceNote,
                 selectActivity = dayViewModel::selectActivity,
                 selectGoal = goalViewModel::selectGoal,
                 selectTask = dayViewModel::selectTask,
                 setActiveTimeStart = dayViewModel::setActiveTimeStart,
                 setActiveTimeEnd = dayViewModel::setActiveTimeEnd,
+                saveActivity = if (recordedActivity == RecordedActivity.Main) dayViewModel::saveMainRecordedActivity else dayViewModel::saveSubRecordedActivity,
+                setActivityNote = if (recordedActivity == RecordedActivity.Main) dayViewModel::setMainRecordedActivityNote else dayViewModel::setSubRecordedActivityNote,
                 setActualActiveTimeEnd = dayViewModel::setActualActiveTimeEnd,
                 setActualActiveTimeStart = dayViewModel::setActualActiveTimeStart,
+                setDayNote = dayViewModel::setDayNote,
+                setGoalPriority = goalViewModel::setPriority,
+                setGoalTitle = goalViewModel::setTitle,
                 setMainRecordedActivityEndTime = dayViewModel::setMainRecordedActivityEndTime,
                 setSubRecordedActivityEndTime = dayViewModel::setSubRecordedActivityEndTime,
                 setMainRecordedActivityId = dayViewModel::setMainRecordedActivityId,
@@ -204,68 +202,13 @@ fun Navigation(
                 setIsActiveTimeSetUp = dayViewModel::setIsActiveTimeSetUp,
                 setRecordedActivityState = { state -> setRecordedActivityState(state) },
                 setTaskDate = dayViewModel::setTaskDate,
-                setTaskStartTime = dayViewModel::setTaskStartTime,
-                setTaskEndTime = dayViewModel::setTaskEndTime,
-                startRecording = audioRecorder::startRecording,
-                stopRecording = audioRecorder::stopRecording,
-            )
-        }
-
-        composable<TaskEditRoute> { backStackEntry ->
-            TaskEditScreen(
-                dayState = dayState,
-                lastTaskPriority = lastTaskPriority ?: 0,
-                taskUiState = taskUiState,
-                onBack = {
-                    navController.popBackStack()
-                },
-                saveTask = { dayViewModel.saveTask() },
-                setTaskStartTime = dayViewModel::setTaskStartTime,
-                setTaskEndTime = dayViewModel::setTaskEndTime,
                 setTaskDescription = dayViewModel::setTaskDescription,
+                setTaskEndTime = dayViewModel::setTaskEndTime,
                 setTaskPriority = dayViewModel::setTaskPriority,
+                setTaskStartTime = dayViewModel::setTaskStartTime,
                 setTaskTitle = dayViewModel::setTaskTitle,
-            )
-        }
-
-        composable<TaskInfoRoute> { backStackEntry ->
-            TaskInfoScreen(
-                taskUiState = taskUiState,
-                deleteTask = {
-                    var task: Task?
-
-                    // TODO: Find a more optimal way to find the task
-                    task = dayViewModel.toDoTasks.value.find { task -> task.id == dayViewModel.taskUiState.value.id }
-                    if (task == null) {
-                        task = dayViewModel.dayState.value.tasks.find { task -> task.id == dayViewModel.taskUiState.value.id }
-                    }
-
-                    if (task != null) {
-                        dayViewModel.deleteTask(task)
-                    }
-                },
-                onBack = {
-                    navController.popBackStack()
-                },
-                onNavigateToMoveToCalendar = {
-//                    val task = toDoTasks.find { task -> task.id == taskUiState.id }
-                },
-                onMoveToToDoList = {
-                    val task = dayState.tasks.find { task -> task.id == taskUiState.id }
-
-                    if (task != null) {
-                        dayViewModel.updateTask(
-                            task.copy(
-                                date = null,
-                                startTime = null,
-                                endTime = null
-                            )
-                        )
-                    }
-                },
-                onNavigateToTaskEdit = {
-                    navController.navigate(route = TaskEditRoute)
-                },
+                startRecording = audioRecorder::startRecording,
+                stopRecording = audioRecorder::stopRecording
             )
         }
 

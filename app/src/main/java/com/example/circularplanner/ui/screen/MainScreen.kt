@@ -46,12 +46,14 @@ import com.example.circularplanner.data.VoiceNote
 import com.example.circularplanner.service.StopwatchService
 import com.example.circularplanner.ui.component.ActivityGraph
 import com.example.circularplanner.ui.component.Calendar
+import com.example.circularplanner.ui.component.PopupDialog
 import com.example.circularplanner.ui.component.leftBorder
 import com.example.circularplanner.ui.navigation.RecordedActivity
 import java.util.UUID
 import com.example.circularplanner.ui.viewmodel.ActivityUiState
 import com.example.circularplanner.ui.viewmodel.DayState
 import com.example.circularplanner.ui.viewmodel.DayUiState
+import com.example.circularplanner.ui.viewmodel.GoalUiState
 import com.example.circularplanner.ui.viewmodel.TaskUiState
 import com.example.circularplanner.ui.viewmodel.UserInput
 import com.example.circularplanner.ui.viewmodel.VoiceNoteUiState
@@ -75,9 +77,13 @@ enum class State {
 @Composable
 fun MainScreen(
     context: Context,
+    activityUiState: ActivityUiState,
     dayUiState: DayUiState,
     dayState: DayState,
     goals: List<Goal>,
+    goalUiState: GoalUiState,
+    lastGoalPriority: Int?,
+    lastTaskPriority: Int?,
 //    recordedActivityUiState: ActivityUiState,
     mainRecordedActivityUiState: ActivityUiState,
     subRecordedActivityUiState: ActivityUiState,
@@ -89,20 +95,19 @@ fun MainScreen(
     clearMainRecordedActivity: () -> Unit,
     clearSubRecordedActivity: () -> Unit,
     deleteGoal: (Goal) -> Unit,
+    deleteTask: () -> Unit,
 //    deleteVoiceNote: (VoiceNoteUiState) ->Unit,
-    onNavigateToActivityNoteEdit: () -> Unit,
-    onNavigateToDayNoteEdit: () -> Unit,
-    onNavigateToGoalEdit: () -> Unit,
+    onMoveToToDoList: () -> Unit,
     onNavigateToTaskActivityComparison: () -> Unit,
-    onNavigateToTaskEdit: () -> Unit,
-    onNavigateToTaskInfo: () -> Unit,
     onClickSaveActiveTime: () -> Unit,
     onSetDayNote: (String) -> Unit,
     onSetSelectedDate: (LocalDate) -> Unit,
     onSwitchGoals: (UUID, UUID) -> Unit,
     onSwitchScreen: (Boolean) -> Unit,
+    saveActivity: () -> Unit,
     saveDay: () -> Unit,
     saveGoal: (Goal) -> Unit,
+    saveGoalFromState: () -> Unit,
 //    saveRecordedActivity: () -> Unit,
     saveMainRecordedActivity: () -> Unit,
     saveSubRecordedActivity: () -> Unit,
@@ -114,11 +119,14 @@ fun MainScreen(
     selectTask: (UUID?) -> Unit,
     setActiveTimeEnd: (Time) -> Unit,
     setActiveTimeStart: (Time) -> Unit,
-//    setActivityNote: (String) -> Unit,
+    setActivityNote: (String) -> Unit,
 //    setMainActivityNote: (String) -> Unit,
 //    setSubActivityNote: (String) -> Unit,
     setActualActiveTimeEnd: (Time) -> Unit,
     setActualActiveTimeStart: (Time) -> Unit,
+    setDayNote: (String) -> Unit,
+    setGoalPriority: (Int) -> Unit,
+    setGoalTitle: (String) -> Unit,
 //    setRecordedActivityEndTime: (Time) -> Unit,
     setMainRecordedActivityEndTime: (Time) -> Unit,
     setSubRecordedActivityEndTime: (Time) -> Unit,
@@ -137,8 +145,11 @@ fun MainScreen(
     setIsActiveTimeSetUp: (Boolean) -> Unit,
     setRecordedActivityState: (RecordedActivity) -> Unit,
     setTaskDate: (LocalDate?) -> Unit,
+    setTaskDescription: (String) -> Unit,
     setTaskEndTime: (Time) -> Unit,
+    setTaskPriority: (Int) -> Unit,
     setTaskStartTime: (Time) -> Unit,
+    setTaskTitle: (String) -> Unit,
     startRecording: (String) -> Unit,
     stopRecording: () -> Unit,
 ) {
@@ -149,6 +160,8 @@ fun MainScreen(
     var displayState by remember { mutableStateOf(State.Task) }
     var button1State by remember { mutableStateOf(State.Goal) }
     var button2State by remember { mutableStateOf(State.ToDo) }
+
+    var showPopupWindow by remember { mutableStateOf(false) }
 
     Scaffold (
         topBar = {
@@ -189,19 +202,18 @@ fun MainScreen(
                                     when (displayState) {
                                         State.Goal -> {
                                             selectGoal(null)
-                                            onNavigateToGoalEdit()
                                         }
                                         State.Task -> {
                                             selectTask(null)
                                             setTaskDate(userInput.selectedDate)
-                                            onNavigateToTaskEdit()
                                         }
                                         State.ToDo -> {
                                             selectTask(null)
                                             setTaskDate(null)
-                                            onNavigateToTaskEdit()
                                         }
                                     }
+
+                                    showPopupWindow = true
                                 }
                             ) {
                                 Icon(
@@ -375,23 +387,17 @@ fun MainScreen(
                             saveDay()
                         },
                         modifier = Modifier
-//                            .width(325.dp)
                             .fillMaxWidth()
                             .height(190.dp)
                             .leftBorder(
                                 color = MaterialTheme.colorScheme.primary,
-                                width = 5f,
-//                            startY = 10f,
-//                            endY = 10f
+                                width = 5f
                             )
                             .focusRequester(focusRequester)
                         ,
                         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                         textStyle = TextStyle(
-                            fontSize = 16.sp,
-//                            color = Color(HOUR_LABEL_COLOR)
-//                            color = Color(BOTTOM_BAR_TEXT_COLOR)
-//                            color = Color(CLOCK_LABEL_COLOR)
+                            fontSize = 16.sp
                         ),
                         label = { Text("DAY NOTES") },//TODO: Read string from resource
                         singleLine = false,
@@ -426,29 +432,37 @@ fun MainScreen(
                     innerPadding = innerPadding,
                     dayState = dayState,
                     dayUiState = dayUiState,
+                    goalUiState = goalUiState,
                     goals = goals,
+                    lastGoalPriority = lastGoalPriority,
+                    lastTaskPriority = lastTaskPriority,
                     state = displayState,
                     taskUiState = taskUiState,
                     toDoTasks = toDoTasks,
                     userInput = userInput,
                     deleteGoal = deleteGoal,
+                    deleteTask = deleteTask,
                     onClickSaveActiveTime = onClickSaveActiveTime,
-                    onNavigateToGoalEdit = onNavigateToGoalEdit,
-                    onNavigateToTaskEdit = onNavigateToTaskEdit,
-                    onNavigateToTaskInfo = onNavigateToTaskInfo,
+                    onMoveToToDoList = onMoveToToDoList,
+                    onSetSelectedDate = onSetSelectedDate,
                     onSwitchGoals = onSwitchGoals,
                     saveGoal = saveGoal,
+                    saveGoalFromState = saveGoalFromState,
                     saveTask = saveTask,
                     saveTaskFromState = saveTaskFromState,
                     selectGoal = selectGoal,
                     selectTask = selectTask,
                     setActiveTimeStart = setActiveTimeStart,
                     setActiveTimeEnd = setActiveTimeEnd,
+                    setGoalPriority = setGoalPriority,
+                    setGoalTitle = setGoalTitle,
                     setIsActiveTimeSetUp = setIsActiveTimeSetUp,
-                    onSetSelectedDate = onSetSelectedDate,
-                    setTaskStartTime = setTaskStartTime,
+                    setTaskDate = setTaskDate,
+                    setTaskDescription = setTaskDescription,
                     setTaskEndTime = setTaskEndTime,
-                    setTaskDate = setTaskDate
+                    setTaskPriority = setTaskPriority,
+                    setTaskStartTime = setTaskStartTime,
+                    setTaskTitle = setTaskTitle
                 )
             }
 
@@ -459,14 +473,14 @@ fun MainScreen(
                 ActivityScreen(
                     innerPadding = innerPadding,
                     context = context,
+                    activityUiState = activityUiState,
                     dayState = dayState,
+                    dayUiState = dayUiState,
                     mainRecordedActivityUiState = mainRecordedActivityUiState,
                     subRecordedActivityUiState = subRecordedActivityUiState,
                     stopwatchService = stopwatchService,
                     clearMainRecordedActivity = clearMainRecordedActivity,
                     clearSubRecordedActivity = clearSubRecordedActivity,
-                    onNavigateToActivityNoteEdit = onNavigateToActivityNoteEdit,
-                    onNavigateToDayNoteEdit = onNavigateToDayNoteEdit,
                     onNavigateToTaskActivityComparison = onNavigateToTaskActivityComparison,
 //                    removeVoiceNote = deleteVoiceNote,
 //                    setMainActivityNote = setMainActivityNote,
@@ -475,12 +489,15 @@ fun MainScreen(
                     setActualActiveTimeStart = setActualActiveTimeStart,
                     setMainRecordedActivityTitle = setMainRecordedActivityTitle,
                     setSubRecordedActivityTitle = setSubRecordedActivityTitle,
+                    saveActivity = saveActivity,
                     saveDay = saveDay,
                     saveMainRecordedActivity = saveMainRecordedActivity,
                     saveSubRecordedActivity = saveSubRecordedActivity,
                     saveVoiceNote = saveVoiceNote,
                     selectActivity = selectActivity,
                     selectTask = selectTask,
+                    setActivityNote = setActivityNote,
+                    setDayNote = setDayNote,
                     setMainRecordedActivityEndTime = setMainRecordedActivityEndTime,
                     setSubRecordedActivityEndTime = setSubRecordedActivityEndTime,
                     setMainRecordedActivityId = setMainRecordedActivityId,
@@ -493,6 +510,45 @@ fun MainScreen(
                     startRecording = startRecording,
                     stopRecording = stopRecording
                 )
+            }
+        }
+    }
+
+    if (showPopupWindow) {
+        PopupDialog(
+            onDismissRequest = {
+                showPopupWindow = false
+            }
+        ) {
+            when (displayState) {
+                State.Goal -> {
+                    GoalEditScreen(
+                        goalUiState = goalUiState,
+                        lastPriority = lastGoalPriority ?: 0,
+                        onBack = {
+                            showPopupWindow = false
+                        },
+                        saveGoal = saveGoalFromState,
+                        setGoalPriority = setGoalPriority,
+                        setGoalTitle = setGoalTitle
+                    )
+                }
+                State.Task, State.ToDo -> {
+                    TaskEditScreen(
+                        dayState = dayState,
+                        lastTaskPriority = lastTaskPriority ?: 0,
+                        taskUiState = taskUiState,
+                        onBack = {
+                            showPopupWindow = false
+                        },
+                        saveTask = saveTaskFromState,
+                        setTaskStartTime = setTaskStartTime,
+                        setTaskEndTime = setTaskEndTime,
+                        setTaskDescription = setTaskDescription,
+                        setTaskPriority = setTaskPriority,
+                        setTaskTitle = setTaskTitle
+                    )
+                }
             }
         }
     }

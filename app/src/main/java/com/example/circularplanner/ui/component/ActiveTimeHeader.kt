@@ -56,15 +56,22 @@ fun ActiveTimeHeader (
             minutes = minutesTotal - hours * MINUTES_IN_HOUR
         }
 
+        var minuteText = ""
+        var hourText = ""
+
+        if (hours == 1) {
+            hourText = "$hours hour"
+        }
+
         if (hours > 1) {
-            return "$hours hours $minutes min"
+            hourText = "$hours hours"
         }
 
-        if (hours == 0) {
-            return "$minutes min"
+        if (minutes > 0) {
+            minuteText = "$minutes min"
         }
 
-        return "$hours hour $minutes min"
+        return (hourText + " " + minuteText).trim()
     }
 
     var minutesLeft = calculateTimeIntervalInMinutes(

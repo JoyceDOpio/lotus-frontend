@@ -1,6 +1,7 @@
 package com.example.circularplanner.ui.viewmodel
 
 import android.os.Parcelable
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.forEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -311,6 +313,21 @@ class DayViewModel(
 
     fun deleteTask(task: Task) {
         viewModelScope.launch {
+            if (task.priority != null) {
+                val taskPriority = task.priority
+
+                toDoTasks.collect { list ->
+                    list.forEach { toDoTask ->
+                        toDoTask.priority?.let {
+                            if (it > taskPriority!!) {
+                                tasksRepository.updateTask(toDoTask.copy(
+                                    priority = toDoTask.priority!! - 1
+                                ))
+                            }
+                        }
+                    }
+                }
+            }
             tasksRepository.deleteTask(task)
         }
     }
@@ -386,36 +403,35 @@ class DayViewModel(
         }
     }
 
-    fun saveTask() {//FIXME: Optimise this method
+    fun saveTask() {
         viewModelScope.launch {
             // If task exists, update it
             val taskId = taskUiState.value.id
+            Log.i("DayViewModel", "taskUiState " + taskUiState.value.toString())
 
             if (taskId != null) {
-                var task = dayState.value.tasks.find { task -> task.id == taskId }
+                val tasks = dayState.value.tasks + toDoTasks.value
+                val task = tasks.find { task -> task.id == taskId }
 
                 if (task != null) {
                     val updatedTask = taskUiState.value.toTask().copy(
                         id = taskId
                     )
                     tasksRepository.updateTask(updatedTask)
-                } else {
-                    task = toDoTasks.value.find { task -> task.id == taskId }
-
-                    if (task != null) {
-                        val updatedTask = taskUiState.value.toTask().copy(
-                            id = taskId
-                        )
-                        tasksRepository.updateTask(updatedTask)
-                    }
+                }
+                // Else, save the new task
+                else {
+                    tasksRepository.insertTask(taskUiState.value.toTask())
                 }
             }
             // Else, save the new task
             else {
-                // There are no tasks for the given day, save the day.
-                if (dayState.value.tasks.size == 0) {
-                    daysRepository.insertDay(dayState.value.toDay())
-                }
+//                // There are no tasks for the given day, save the day.
+//                if (dayState.value.tasks.isEmpty()) {//FIXME: If I save the day before I save the task the taskUiState is emptied. The task can still be successfully saved to the database without the corresponding day being persisted in the database.
+//                    daysRepository.insertDay(dayState.value.toDay())
+//                }
+
+                Log.i("DayViewModel", "taskFromState " + taskUiState.value.toTask().toString())
 
                 tasksRepository.insertTask(taskUiState.value.toTask())
             }
@@ -424,7 +440,8 @@ class DayViewModel(
 
     fun saveTask(task: Task) {
         viewModelScope.launch {
-            val found = toDoTasks.value.find { task -> task.id == task.id }
+            val tasks = dayState.value.tasks + toDoTasks.value
+            val found = tasks.find { task -> task.id == task.id }
 
             if (found != null) {
                 tasksRepository.updateTask(task)
@@ -502,7 +519,8 @@ class DayViewModel(
                     description = task.description,
                     date = task.date,
                     startTime = task.startTime,// Tasks from day state should have a date, start and end time
-                    endTime = task.endTime
+                    endTime = task.endTime,
+                    priority = task.priority
                 )
             }
         } else {

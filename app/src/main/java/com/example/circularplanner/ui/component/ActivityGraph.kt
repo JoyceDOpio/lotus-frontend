@@ -48,7 +48,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.example.circularplanner.data.Time
-import com.example.circularplanner.ui.screen.Type
 import com.example.circularplanner.ui.viewmodel.DayState
 import com.example.circularplanner.utils.TouchGestureUtils
 import com.example.circularplanner.utils.TouchGestureUtils.TOUCH_STROKE
@@ -60,6 +59,11 @@ import kotlin.math.ceil
 import kotlin.math.sqrt
 
 const val ACTIVITY_MINUTE_STEP_COLOR = 0xffb4acbd
+
+enum class Type {
+    Activity,
+    Task
+}
 
 @Composable
 fun ActivityGraph (
@@ -276,7 +280,7 @@ fun ActivityGraph (
                         canvasHeight = canvasHeight,
                         xOffsetInMinutes = xOffsetInMinutesTask,
                         yOffset = 0.25f,
-                        type = Type.TASK
+                        type = Type.Task
                     )
                 }
 
@@ -303,7 +307,7 @@ fun ActivityGraph (
                         textMeasurer = textMeasurer,
                         canvasHeight = canvasHeight,
                         yOffset = 0.6f,
-                        type = Type.ACTIVITY
+                        type = Type.Activity
                     )
                 }
 
@@ -855,7 +859,7 @@ fun DrawScope.drawTask(// FIXME: Area is drawn outside the axis, if activity is 
         val timesTextWithinTaskWidth = taskWidth / textWidth
 
         // If it's a task, we're drawing the label upwards
-        if (type == Type.TASK) {
+        if (type == Type.Task) {
             textStartOffset = Offset(
                 x = taskOffset.x + taskWidth * 0.5f - textHeight * 0.25f,
                 y = taskOffset.y - pathPadding
@@ -965,7 +969,7 @@ fun DrawScope.drawTask(// FIXME: Area is drawn outside the axis, if activity is 
             for (i in 0..lineTexts.size - 1) {
                 // Redefine the path for each text line
                 // Draw the task labels upwards and to the right
-                if (type == Type.TASK) {
+                if (type == Type.Task) {
                     textStartOffset = Offset(
                         // Subtracting half of the total textLinesWidth sets the offset to the first of the text lines, while (textHeight * i) moves the offset one textHeight at a time along the task area
                         x = taskOffset.x + ((taskWidth - textLinesWidth) * 0.5f) + (textHeight * i),

@@ -1,5 +1,6 @@
 package com.example.circularplanner.ui.screen
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -77,7 +78,7 @@ fun TaskEditScreen(
     var showTimePicker by remember { mutableStateOf(false) }
     var showStartTimePicker by remember { mutableStateOf(false) }
     val taskDetails = taskUiState
-
+Log.i("taskUiState", taskUiState.toString())
     var startTimePickerState: TimePickerState? = null
     var endTimePickerState: TimePickerState? = null
 
@@ -166,7 +167,7 @@ fun TaskEditScreen(
     ) { innerPadding ->
         Column(
             modifier = modifier
-                .padding(horizontal = 30.dp)
+                .padding(horizontal = 15.dp)
                 .padding(innerPadding)
                 .fillMaxWidth()
                 .fillMaxHeight()
