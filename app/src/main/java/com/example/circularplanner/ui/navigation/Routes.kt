@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 object TaskActivityComparisonRoute
 
 @Serializable
-object TaskDisplayRoute
+object PlannerRoute
 
 @Serializable
 object WelcomeRoute

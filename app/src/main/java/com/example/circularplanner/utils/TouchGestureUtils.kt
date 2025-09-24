@@ -20,6 +20,7 @@ enum class NoteModePopup {
 }
 
 enum class TaskModePopup {
+    Delete,
     Edit,
     Info
 }
@@ -129,7 +130,7 @@ object TouchGestureUtils {
         return minutesBetweenHoursAccumulated
     }
 
-    // Calculate the angle the given time corresponds to on the dial
+    // Calculate the angle the given time corresponds to on the dial (not translated)
     fun calculateAngleFromTime (activeTimeStart: Time, time: Time, minuteAngle: Float): Float {
         // Number of minutes the task time corresponds to counting from the active time start
         val minute = calculateTotalNumberOfMinutes(

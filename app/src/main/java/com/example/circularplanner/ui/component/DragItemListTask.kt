@@ -185,6 +185,7 @@ fun DragItemListTask(//TODO: Merge with DragItemListGoal
                 }
                 TaskModePopup.Info -> {
                     TaskInfoScreen(
+                        displayType = TaskCardDisplayType.Popup,
                         taskUiState = taskUiState,
                         deleteTask = deleteTask,
                         onBack = {
@@ -199,6 +200,8 @@ fun DragItemListTask(//TODO: Merge with DragItemListGoal
                         },
                     )
                 }
+
+                TaskModePopup.Delete -> TODO()
             }
         }
     }

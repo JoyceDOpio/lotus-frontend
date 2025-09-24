@@ -57,8 +57,8 @@ fun ActiveTimeSetUp (
 ){
     var showTimePicker by remember { mutableStateOf(false) }
     var showStartActiveTimePicker by remember { mutableStateOf(false) }
-    var activeTimeStart = dayUiState.activeTimeStart
-    var activeTimeEnd = dayUiState.activeTimeEnd
+    val activeTimeStart = dayUiState.activeTimeStart
+    val activeTimeEnd = dayUiState.activeTimeEnd
     var isActiveTimeValid by remember { mutableStateOf(false) }
     val startActiveTimePickerState = rememberTimePickerState(
         activeTimeStart.hour,
@@ -68,8 +68,6 @@ fun ActiveTimeSetUp (
         activeTimeEnd.hour,
         activeTimeEnd.minute
     )
-//    val cancelButtonText = "Cancel"
-//    val okButtonText = "Save"
 
     fun validateActiveTime(): Boolean {
         val start = activeTimeStart
@@ -234,43 +232,6 @@ fun ActiveTimeSetUp (
                     )
                 }
             }
-
-//            Row(
-//                modifier = modifier
-//                    .fillMaxWidth(),
-////                .background(Color(0xff97dde8)),// TODO: Add the color to a theme
-//                horizontalArrangement = Arrangement.SpaceBetween,
-//                verticalAlignment = Alignment.CenterVertically
-//
-//            ) {
-//                Button(
-//                    onClick = onBack,
-//                    shape = RoundedCornerShape(8.dp),
-//                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-//                ) {
-//                    Text(
-//                        text = cancelButtonText,
-//                        color = MaterialTheme.colorScheme.primary
-//                    )
-//                }
-//
-//                Button(
-//                    //TODO: Display notification about invalid input
-//                    onClick = {
-//                        onClickSaveActiveTime()
-//                        onBack()
-//                    },
-//                    modifier = Modifier
-//                        .fillMaxWidth(0.9f),
-//                    enabled = isActiveTimeValid,
-//                    shape = RoundedCornerShape(8.dp)
-//                ) {
-//                    Text(
-//                        text = okButtonText,
-//                        textAlign = TextAlign.Center
-//                    )
-//                }
-//            }
         }
     }
 

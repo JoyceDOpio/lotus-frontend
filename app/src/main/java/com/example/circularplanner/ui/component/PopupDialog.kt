@@ -3,6 +3,7 @@ package com.example.circularplanner.ui.component
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.runtime.Composable
@@ -18,9 +19,12 @@ fun PopupDialog (
     Dialog(onDismissRequest = { onDismissRequest() }) {
         Card(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(400.dp)
-                .padding(10.dp),
+                .size(
+                    380.dp,
+                    400.dp
+                )
+                .padding(10.dp)
+            ,
             shape = RoundedCornerShape(15.dp),
         ) {
             content()

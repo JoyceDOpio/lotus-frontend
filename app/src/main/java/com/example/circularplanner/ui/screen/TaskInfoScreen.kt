@@ -24,15 +24,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.circularplanner.R
+import com.example.circularplanner.ui.component.TaskCardDisplayType
 import com.example.circularplanner.ui.component.DropDownItem
 import com.example.circularplanner.ui.component.TaskCard
 import com.example.circularplanner.ui.component.TaskDropdownMenu
 import com.example.circularplanner.ui.viewmodel.TaskUiState
-import com.example.circularplanner.ui.viewmodel.UserInput
 
 @Composable
 fun TaskInfoScreen(
     modifier: Modifier = Modifier,
+    displayType: TaskCardDisplayType,
     taskUiState: TaskUiState,
     deleteTask: () -> Unit,
     onBack: () -> Unit,
@@ -113,6 +114,7 @@ fun TaskInfoScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
                 date = taskDetails.date,
+                displayType = displayType,
                 endTime = taskDetails.endTime,
                 startTime = taskDetails.startTime,
                 title = taskDetails.title

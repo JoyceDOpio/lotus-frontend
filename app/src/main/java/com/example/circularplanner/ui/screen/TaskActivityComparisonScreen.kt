@@ -2,6 +2,7 @@ package com.example.circularplanner.ui.screen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,6 +18,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,22 +32,45 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.circularplanner.R
+import com.example.circularplanner.data.Time
+import com.example.circularplanner.ui.component.DropDownItem
+import com.example.circularplanner.ui.component.PopupDialog
 import com.example.circularplanner.ui.component.TaskCard
+import com.example.circularplanner.ui.component.TaskCardDisplayType
+import com.example.circularplanner.ui.component.TaskDropdownMenu
 import com.example.circularplanner.ui.component.VoiceNoteList
 import com.example.circularplanner.ui.viewmodel.ActivityUiState
 import com.example.circularplanner.ui.viewmodel.AudioViewModel
+import com.example.circularplanner.ui.viewmodel.DayState
 import com.example.circularplanner.ui.viewmodel.TaskUiState
 import com.example.circularplanner.ui.viewmodel.UserInput
 import com.example.circularplanner.ui.viewmodel.VoiceNoteUiState
+import com.example.circularplanner.utils.TaskModePopup
+
+enum class TaskActivityComparisonModePopup {
+    Activity,
+    Task
+}
 
 @Composable
 fun TaskActivityComparisonScreen (
     modifier: Modifier = Modifier,
     activityUiState: ActivityUiState,
+    dayState: DayState,
     taskUiState: TaskUiState,
     userInput: UserInput,
+    deleteActivity: () -> Unit,
+    deleteTask: () -> Unit,
     deleteVoiceNote: (VoiceNoteUiState) -> Unit,
     onCancel: () -> Unit,
+    saveActivity: () -> Unit,
+    saveTaskFromState: () -> Unit,
+    setActivityNote: (String) -> Unit,
+    setTaskDescription: (String) -> Unit,
+    setTaskEndTime: (Time) -> Unit,
+    setTaskPriority: (Int) -> Unit,
+    setTaskStartTime: (Time) -> Unit,
+    setTaskTitle: (String) -> Unit,
     updateLastPlayedPosition: (Long, Int) -> Unit
 ) {
     val taskDetails = taskUiState
@@ -52,6 +80,9 @@ fun TaskActivityComparisonScreen (
 
     val activityLabel = "ACTIVITY"//TODO: Read from string resource
     val taskLabel = "TASK"//TODO: Read from string resource
+
+    var showPopupWindow by remember { mutableStateOf(false) }
+    var popupState by remember { mutableStateOf(TaskActivityComparisonModePopup.Task) }
 
     Scaffold (
         bottomBar = {
@@ -103,12 +134,46 @@ fun TaskActivityComparisonScreen (
             ) {
                 // Show task details if there is a task to be shown
                 if (taskDetails.id != null) {
-                    Text(
-                        modifier = Modifier
-                            .padding(vertical = 15.dp),
-                        text = taskLabel,// TODO: Read text from string resource
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Row (
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Spacer(Modifier.weight(1f))
+
+                        Text(
+                            modifier = Modifier
+                                .padding(vertical = 15.dp)
+                                .weight(1f)
+                            ,
+                            text = taskLabel,// TODO: Read text from string resource
+                            color = MaterialTheme.colorScheme.primary
+                        )
+
+                        val dropdownItems = listOf<DropDownItem>(
+                            DropDownItem(
+                                text = "Edit",
+                                iconId = R.drawable.edit_24dp_5f6368_fill0_wght400_grad0_opsz24,
+                                onClick = {
+                                    popupState = TaskActivityComparisonModePopup.Task
+                                    showPopupWindow = true
+                                }
+                            ),
+                            DropDownItem(
+                                text = "Delete",
+                                iconId = R.drawable.delete_24dp_5f6368_fill0_wght400_grad0_opsz24,
+                                onClick = {
+                                    deleteTask()
+                                    showPopupWindow = true
+                                }
+                            )
+                        )
+                        TaskDropdownMenu(
+                            dropdownItems = dropdownItems,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxSize(0.7F)
+                        )
+                    }
 
                     TaskCard (
                         date = userInput.selectedDate,
@@ -161,12 +226,40 @@ fun TaskActivityComparisonScreen (
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 if (activityDetails.id != null) {
-                    Text(
-                        modifier = Modifier
-                            .padding(vertical = 15.dp),
-                        text = activityLabel,// TODO: Read text from string resource
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Row (
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            modifier = Modifier
+                                .padding(vertical = 15.dp),
+                            text = activityLabel,// TODO: Read text from string resource
+                            color = MaterialTheme.colorScheme.primary
+                        )
+
+                        val dropdownItems = listOf<DropDownItem>(
+                            DropDownItem(
+                                text = "Edit",
+                                iconId = R.drawable.edit_24dp_5f6368_fill0_wght400_grad0_opsz24,
+                                onClick = {
+                                    popupState = TaskActivityComparisonModePopup.Activity
+                                    showPopupWindow = true
+                                }
+                            ),
+                            DropDownItem(
+                                text = "Delete",
+                                iconId = R.drawable.delete_24dp_5f6368_fill0_wght400_grad0_opsz24,
+                                onClick = {
+                                    deleteActivity()
+                                    showPopupWindow = true
+                                }
+                            )
+                        )
+                        TaskDropdownMenu(
+                            dropdownItems = dropdownItems,
+                            modifier = Modifier.fillMaxSize(0.7F)
+                        )
+                    }
 
                     TaskCard (
                         date = userInput.selectedDate,
@@ -195,6 +288,43 @@ fun TaskActivityComparisonScreen (
                             color = Color.LightGray
                         )
                     }
+                }
+            }
+        }
+    }
+
+    if (showPopupWindow) {
+        PopupDialog(
+            onDismissRequest = {
+                showPopupWindow = false
+            }
+        ) {
+            when (popupState) {
+                TaskActivityComparisonModePopup.Activity -> {
+                    ActivityNoteEditScreen(
+                        activityUiState = activityUiState,
+                        onBack = {
+                            showPopupWindow = false
+                        },
+                        saveActivity = saveActivity,
+                        setActivityNote = setActivityNote
+                    )
+                }
+                TaskActivityComparisonModePopup.Task -> {
+                    TaskEditScreen(
+                        dayState = dayState,
+                        lastTaskPriority = 0,
+                        taskUiState = taskUiState,
+                        onBack = {
+                            showPopupWindow = false
+                        },
+                        saveTask = saveTaskFromState,
+                        setTaskEndTime = setTaskEndTime,
+                        setTaskDescription = setTaskDescription,
+                        setTaskPriority = setTaskPriority,
+                        setTaskStartTime = setTaskStartTime,
+                        setTaskTitle = setTaskTitle
+                    )
                 }
             }
         }

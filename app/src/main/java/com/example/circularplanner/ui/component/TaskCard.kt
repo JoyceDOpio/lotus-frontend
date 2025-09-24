@@ -3,8 +3,10 @@ package com.example.circularplanner.ui.component
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,6 +21,11 @@ import com.example.circularplanner.utils.TouchGestureUtils
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
+enum class TaskCardDisplayType {
+    Popup,
+    Full
+}
+
 @Composable
 fun TaskCard (
     modifier: Modifier = Modifier,
@@ -28,50 +35,45 @@ fun TaskCard (
     endTime: Time?,
     startTime: Time?,
     title: String,
+    displayType: TaskCardDisplayType = TaskCardDisplayType.Full,
     content: @Composable () -> Unit
 ) {
     val weekDayFormatter = DateTimeFormatter.ofPattern("EEEE")
     val dateFormatter = DateTimeFormatter.ofPattern("d. MMMM")
 
-    val configuration = LocalConfiguration.current
-    val isPopupWidth = configuration.screenWidthDp < 250
-
     Column (
         modifier = modifier
-            .padding(horizontal = if (isPopupWidth) 10.dp else 30.dp)
+            .padding(horizontal = if (displayType == TaskCardDisplayType.Popup) 20.dp else 30.dp)
             .fillMaxWidth()
             .fillMaxHeight(),
         verticalArrangement = verticalArrangement,
         horizontalAlignment = horizontalAlignment
     ) {
         // If the display width is that of a popup window, narrow down the layout
-        if (isPopupWidth) {// TODO: Adjust layout for popup window width
-            // Title
-            Row (
-                modifier = modifier
-                    .padding(bottom = 5.dp)
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = title,
-                    modifier = modifier.weight(2f),
-                    fontSize = 28.sp,
-                    lineHeight = 32.sp
-                )
-            }
+        if (displayType == TaskCardDisplayType.Popup) {
+            Column () {
+                // Title
+                Row (
+                    modifier = modifier
+                        .padding(bottom = 5.dp)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = title,
+                        modifier = modifier.weight(2f),
+                        fontSize = 28.sp,
+                        lineHeight = 32.sp
+                    )
+                }
 
-            Column (
-                modifier = modifier
-                    .padding(vertical = 10.dp)
-                    .fillMaxWidth()
-            ) {
+                Spacer(Modifier.height(10.dp))
+
                 if (date != null) {
                     Column (
                         modifier = modifier
-                            .weight(1f)
-                            .fillMaxWidth(),
+                            .fillMaxWidth()
                     ) {
                         // Date
                         Text(
@@ -91,10 +93,7 @@ fun TaskCard (
                 if (startTime != null && endTime != null) {
                     Column (
                         modifier = modifier
-                            .weight(1f)
-                            .fillMaxWidth(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.End
+                            .fillMaxWidth()
                     ) {
                         // Time range
                         val timeRangeText = "%d:%02d - %d:%02d".format(startTime.hour, startTime.minute, endTime.hour, endTime.minute)
