@@ -143,6 +143,7 @@ fun Navigation(
                 saveDay = dayViewModel::saveDay,
                 saveGoal = goalViewModel::saveGoal,
                 saveGoalFromState = goalViewModel::saveGoal,
+                saveNextTask = dayViewModel::saveNextTask,
                 saveTask = dayViewModel::saveTask,
                 saveTaskFromState = dayViewModel::saveTask,
 //                saveTaskFromState = {
@@ -176,6 +177,8 @@ fun Navigation(
                 setSubRecordedActivityTitle = dayViewModel::setSubRecordedActivityTitle,
                 setIsActiveTimeSetUp = dayViewModel::setIsActiveTimeSetUp,
                 setRecordedActivityState = { state -> setRecordedActivityState(state) },
+                setNextTaskEndTime = dayViewModel::setNextTaskEndTime,
+                setNextTaskStartTime = dayViewModel::setNextTaskStartTime,
                 setTaskDate = dayViewModel::setTaskDate,
                 setTaskDescription = dayViewModel::setTaskDescription,
                 setTaskEndTime = dayViewModel::setTaskEndTime,

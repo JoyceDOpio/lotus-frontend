@@ -47,7 +47,7 @@ enum class ListDirection {
     END
 }
 
-const val TODAY_COLOR = 0xff9f017e
+//const val TODAY_COLOR = 0xff9f017e
 
 @Composable
 fun Calendar(
@@ -255,7 +255,8 @@ fun Calendar(
                         val selectedDayModifier = Modifier
                             .border(
                                 width = 1.dp,
-                                color = Color.LightGray,
+                                color = Color(0xffA296C5),
+//                                color = Color(MINUTE_STEP_COLOR),
                                 shape = CircleShape
                             )
 

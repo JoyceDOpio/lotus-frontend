@@ -55,13 +55,17 @@ object TouchGestureUtils {
         }
     }
 
-    // Returns an angle adjusted in such a way that 270 degree corresponds to the 0/360 degree mark
-    fun translateAngle270To0(angle: Float): Float {
-        if (angle in 270f..360f) {
-            return angle - 270f
-        } else {
-            return angle + 90f
-        }
+    // Calculate the angle the given time corresponds to on the dial (not translated)
+    fun calculateAngleFromTime (activeTimeStart: Time, time: Time, minuteAngle: Float): Float {
+        // Number of minutes the task time corresponds to counting from the active time start
+        val minute = calculateTotalNumberOfMinutes(
+            activeTimeStart,
+            time
+        )
+        // We have to offset these angles because startMinute * taskDialState.minuteAngle returns a biased angle
+        val taskAngle = offsetAngle(minute * minuteAngle)
+
+        return taskAngle
     }
 
     // Calculate the number of hour points between the start- and end time, e.g. between 6:20 AM and 11:12 AM there are 5 hour points: 7:00, 8:00, 9:00, 10:00 and 11:00.
@@ -130,17 +134,19 @@ object TouchGestureUtils {
         return minutesBetweenHoursAccumulated
     }
 
-    // Calculate the angle the given time corresponds to on the dial (not translated)
-    fun calculateAngleFromTime (activeTimeStart: Time, time: Time, minuteAngle: Float): Float {
-        // Number of minutes the task time corresponds to counting from the active time start
-        val minute = calculateTotalNumberOfMinutes(
-            activeTimeStart,
-            time
+    fun calculateTimeFromAngle (angle: Float, minuteAngle: Float, clockStart: Time): Time {
+        // The minute the angle corresponds to
+        val minute = calculateMinutes(
+            translateAngle270To0(angle),
+            minuteAngle
         )
-        // We have to offset these angles because startMinute * taskDialState.minuteAngle returns a biased angle
-        val taskAngle = offsetAngle(minute * minuteAngle)
+        val time =
+            calculateClockTimeBasedOnMinutesFromStartTime(
+                start = clockStart,
+                minutes = minute
+            )
 
-        return taskAngle
+        return time
     }
 
     fun calculateTotalNumberOfMinutes (start: Time, end: Time): Int {
@@ -285,6 +291,15 @@ object TouchGestureUtils {
             (end - start).toFloat()
         } else {
             (360 - start + end).toFloat()
+        }
+    }
+
+    // Returns an angle adjusted in such a way that 270 degree corresponds to the 0/360 degree mark
+    fun translateAngle270To0(angle: Float): Float {
+        if (angle in 270f..360f) {
+            return angle - 270f
+        } else {
+            return angle + 90f
         }
     }
 }
