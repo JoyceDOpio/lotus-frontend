@@ -46,6 +46,7 @@ import com.example.circularplanner.ui.viewmodel.TaskUiState
 import com.example.circularplanner.ui.viewmodel.UserInput
 import com.example.circularplanner.ui.viewmodel.VoiceNoteUiState
 import com.example.circularplanner.utils.TaskModePopup
+import java.util.UUID
 
 enum class TaskActivityComparisonModePopup {
     Activity,
@@ -65,6 +66,8 @@ fun TaskActivityComparisonScreen (
     onCancel: () -> Unit,
     saveActivity: () -> Unit,
     saveTaskFromState: () -> Unit,
+    selectActivity: (UUID?) -> Unit,
+    selectTask: (UUID?) -> Unit,
     setActivityNote: (String) -> Unit,
     setTaskDescription: (String) -> Unit,
     setTaskEndTime: (Time) -> Unit,
@@ -163,7 +166,8 @@ fun TaskActivityComparisonScreen (
                                 iconId = R.drawable.delete_24dp_5f6368_fill0_wght400_grad0_opsz24,
                                 onClick = {
                                     deleteTask()
-                                    showPopupWindow = true
+                                    selectTask(null)
+//                                    showPopupWindow = true
                                 }
                             )
                         )
@@ -251,7 +255,8 @@ fun TaskActivityComparisonScreen (
                                 iconId = R.drawable.delete_24dp_5f6368_fill0_wght400_grad0_opsz24,
                                 onClick = {
                                     deleteActivity()
-                                    showPopupWindow = true
+                                    selectActivity(null)
+//                                    showPopupWindow = true
                                 }
                             )
                         )

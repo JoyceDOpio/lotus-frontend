@@ -104,7 +104,8 @@ fun ActivityScreen(
             .fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
 //        verticalArrangement = Arrangement.SpaceBetween
-        verticalArrangement = Arrangement.Top
+//        verticalArrangement = Arrangement.Top
+        verticalArrangement = Arrangement.Center
     ) {
         ActivityGraph(
             dayState = dayState,
@@ -117,7 +118,8 @@ fun ActivityScreen(
         Column(
             modifier = Modifier
 //                .verticalScroll(rememberScrollState())
-                .fillMaxSize()
+//                .fillMaxSize()
+                .fillMaxWidth()
         ) {
 
             // Day notes

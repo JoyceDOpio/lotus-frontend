@@ -247,15 +247,21 @@ fun Calendar(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     repeat(numberOfDaysPerWeek) { iteration ->
-                        val todayModifier = Modifier
+                        val todaySelectedModifier = Modifier
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.primary)
+//                            .background(Color(TODAY_COLOR))
+
+                        val todayNotSelectedModifier = Modifier
+                            .clip(CircleShape)
+                            .background(Color(0xffA296C5))
 //                            .background(Color(TODAY_COLOR))
 
                         val selectedDayModifier = Modifier
                             .border(
                                 width = 1.dp,
                                 color = Color(0xffA296C5),
+//                                color = MaterialTheme.colorScheme.primary,
 //                                color = Color(MINUTE_STEP_COLOR),
                                 shape = CircleShape
                             )
@@ -265,7 +271,8 @@ fun Calendar(
                                 .weight(1f)
                                 .aspectRatio(1f)
                                 .padding(5.dp)
-                                .conditional(week[iteration] == today, todayModifier)
+                                .conditional(week[iteration] == today, todaySelectedModifier)
+                                .conditional(iteration != circledDateIndex && week[iteration] == today, todayNotSelectedModifier)
                                 .conditional(iteration == circledDateIndex && week[iteration] != today, selectedDayModifier)
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
@@ -282,7 +289,7 @@ fun Calendar(
                                 text = week[iteration].format(formatter),
                                 modifier = Modifier
                                     .align(Alignment.Center),
-                                color = if (week[iteration] == today) Color(0xffffffff) else Color(0xff000000)
+                                color = if (week[iteration] == today) Color(0xffffffff) else if (iteration == circledDateIndex) Color(0xff000000) else Color(0xff000000)
                             )
                         }
                     }

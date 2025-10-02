@@ -217,6 +217,8 @@ fun Navigation(
                 },
                 saveActivity = dayViewModel::saveActivity,
                 saveTaskFromState = dayViewModel::saveTask,
+                selectActivity = dayViewModel::selectActivity,
+                selectTask = dayViewModel::selectTask,
                 setActivityNote = dayViewModel::setActivityNote,
                 setTaskDescription = dayViewModel::setTaskDescription,
                 setTaskEndTime = dayViewModel::setTaskEndTime,

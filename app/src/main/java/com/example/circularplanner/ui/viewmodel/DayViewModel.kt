@@ -575,20 +575,16 @@ class DayViewModel(
         )
     }
 
-    fun selectNextTask(id: UUID?) {
+    fun selectNextTask(selectedTask: Task) {
         val tasks = dayState.value.tasks
         var nextTask: Task? = null
-        var foundCurrentTask = false
 
         for (task in tasks) {
-            if (foundCurrentTask) {
+            // Find the first task which starts after the selected task
+            if (task.compareTo(selectedTask) == 1) {
                 nextTask = task
                 break
             }
-            if (task.id == id) {
-                foundCurrentTask = true
-            }
-
         }
 
         if (nextTask != null) {
@@ -610,17 +606,18 @@ class DayViewModel(
         }
     }
 
-    fun selectPreviousTask(id: UUID?) {
+    fun selectPreviousTask(selectedTask: Task) {
         val tasks = dayState.value.tasks
         var previousTask: Task? = null
         Log.i("DayViewModel", "tasks $tasks")
 
+        // If task's start is before the selected task's start time, it can be counted as a previous task
         for (task in tasks) {
             Log.i("DayViewModel", "task $task")
-            if (task.id == id) {
-                break
-            } else {
+            if (task.compareTo(selectedTask) == -1) {
                 previousTask = task
+            } else {
+                break
             }
         }
 

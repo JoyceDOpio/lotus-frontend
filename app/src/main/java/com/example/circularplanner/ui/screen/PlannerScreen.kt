@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
@@ -56,6 +57,7 @@ import com.example.circularplanner.ui.viewmodel.DayUiState
 import com.example.circularplanner.ui.viewmodel.GoalUiState
 import com.example.circularplanner.ui.viewmodel.TaskUiState
 import com.example.circularplanner.ui.viewmodel.UserInput
+import com.example.circularplanner.utils.NoteModePopup
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -118,8 +120,8 @@ fun PlannerScreen(
     saveVoiceNote: (VoiceNote) -> Unit,
     selectActivity: (UUID?) -> Unit,
     selectGoal: (UUID?) -> Unit,
-    selectNextTask: (UUID?) -> Unit,
-    selectPreviousTask: (UUID?) -> Unit,
+    selectNextTask: (Task) -> Unit,
+    selectPreviousTask: (Task) -> Unit,
     selectTask: (UUID?) -> Unit,
     setActiveTimeEnd: (Time) -> Unit,
     setActiveTimeStart: (Time) -> Unit,
@@ -363,66 +365,124 @@ fun PlannerScreen(
                     .fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.SpaceBetween
+//                verticalArrangement = Arrangement.Center
             ) {
                 val focusRequester = remember { FocusRequester() }
                 val focusManager = LocalFocusManager.current
 
-                ActivityGraph(
-                    dayState = dayState,
-                    onNavigateToTaskActivityComparison = onNavigateToTaskActivityComparison,
-                    selectActivity = selectActivity,
-                    selectTask = selectTask
-                )
-
                 Row (
                     modifier = Modifier
-                        .padding(
-                            horizontal = 10.dp,
-                            vertical = 5.dp
-                        ),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                        .weight(4f),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Day notes
-//                    OutlinedTextField(
-                    TextField(
-                        value = dayUiState.note,
-//                        onValueChange = onSetDayNote,
-                        onValueChange = { value ->
-                            onSetDayNote(value)
-                            saveDay()
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(190.dp)
-                            .leftBorder(
-                                color = MaterialTheme.colorScheme.primary,
-                                width = 5f
-                            )
-                            .focusRequester(focusRequester)
-                        ,
-                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                        textStyle = TextStyle(
-                            fontSize = 16.sp
-                        ),
-                        label = { Text("DAY NOTES") },//TODO: Read string from resource
-                        singleLine = false,
-                        shape = RoundedCornerShape(15.dp),
-                        colors = TextFieldDefaults.textFieldColors(
-                            containerColor = Color.Transparent,
-                            unfocusedPlaceholderColor = Color(0xFF928BA2),
-                            focusedPlaceholderColor = Color(0xFF928BA2),
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
-
-                        )
+                    ActivityGraph(
+                        dayState = dayState,
+                        onNavigateToTaskActivityComparison = onNavigateToTaskActivityComparison,
+                        selectActivity = selectActivity,
+                        selectTask = selectTask
                     )
                 }
 
-                Calendar(
-                    userInput = userInput,
-                    onSetDate = onSetSelectedDate
-                )
+//                Row (
+//                    modifier = Modifier
+//                        .padding(
+//                            horizontal = 10.dp,
+//                            vertical = 5.dp
+//                        ),
+//                    horizontalArrangement = Arrangement.SpaceBetween,
+//                    verticalAlignment = Alignment.CenterVertically
+//                ) {
+//                    // Day notes
+////                    OutlinedTextField(
+//                    TextField(
+//                        value = dayUiState.note,
+////                        onValueChange = onSetDayNote,
+//                        onValueChange = { value ->
+//                            onSetDayNote(value)
+//                            saveDay()
+//                        },
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .height(190.dp)
+//                            .leftBorder(
+//                                color = MaterialTheme.colorScheme.primary,
+//                                width = 5f
+//                            )
+//                            .focusRequester(focusRequester)
+//                        ,
+//                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+//                        textStyle = TextStyle(
+//                            fontSize = 16.sp
+//                        ),
+//                        label = { Text("DAY NOTES") },//TODO: Read string from resource
+//                        singleLine = false,
+//                        shape = RoundedCornerShape(15.dp),
+//                        colors = TextFieldDefaults.textFieldColors(
+//                            containerColor = Color.Transparent,
+//                            unfocusedPlaceholderColor = Color(0xFF928BA2),
+//                            focusedPlaceholderColor = Color(0xFF928BA2),
+//                            focusedIndicatorColor = Color.Transparent,
+//                            unfocusedIndicatorColor = Color.Transparent
+//
+//                        )
+//                    )
+//                }
+
+//                // Day notes
+//                Row(
+//                    modifier = Modifier
+//                        .padding(
+//                            horizontal = 5.dp
+//                        )
+//                        .padding(
+//                            top = 10.dp,
+//                            bottom = 5.dp
+//                        )
+//                        .fillMaxWidth()
+//                        .border(
+//                            width = 1.dp,
+//                            color = Color.LightGray,
+//                            shape = RoundedCornerShape(15.dp)
+//                        )
+//                    ,
+//                    horizontalArrangement = Arrangement.SpaceBetween,
+//                    verticalAlignment = Alignment.CenterVertically
+//                ) {
+//                    Text(
+//                        text = "DAY NOTES",// TODO: Read text from string resource
+//                        modifier = Modifier
+//                            .padding(
+//                                horizontal = 10.dp
+//                            )
+//                        ,
+//                        color = MaterialTheme.colorScheme.primary
+//                    )
+//
+//                    IconButton(
+//                        onClick = {
+//                            popupState = NoteModePopup.Day
+//                            showPopupWindow = true
+//                        }
+//                    ) {
+//                        Icon(
+//                            imageVector = ImageVector.vectorResource(id = R.drawable.add_square_svgrepo_com),
+//                            contentDescription = "Add",
+//                            modifier = Modifier.fillMaxSize(0.8F),
+////                    tint = Color(BOTTOM_BAR_TEXT_COLOR)
+//                            tint = MaterialTheme.colorScheme.primary
+//                        )
+//                    }
+//                }
+
+                Row (
+                    modifier = Modifier
+                        .weight(1f)
+                ) {
+                    Calendar(
+                        userInput = userInput,
+                        onSetDate = onSetSelectedDate
+                    )
+                }
             }
         }
 
@@ -534,6 +594,16 @@ fun PlannerScreen(
             }
         ) {
             when (displayState) {
+//                State.Day -> {
+//                    DayNoteEditScreen(
+//                        dayUiState = dayUiState,
+//                        onBack = {
+//                            showPopupWindow = false
+//                        },
+//                        saveDay = saveDay,
+//                        setDayNote = setDayNote
+//                    )
+//                }
                 State.Goal -> {
                     GoalEditScreen(
                         goalUiState = goalUiState,
