@@ -44,6 +44,7 @@ fun TaskCard (
     Column (
         modifier = modifier
             .padding(horizontal = if (displayType == TaskCardDisplayType.Popup) 20.dp else 30.dp)
+            .padding(top = if (displayType == TaskCardDisplayType.Popup) 15.dp else 0.dp)
             .fillMaxWidth()
             .fillMaxHeight(),
         verticalArrangement = verticalArrangement,

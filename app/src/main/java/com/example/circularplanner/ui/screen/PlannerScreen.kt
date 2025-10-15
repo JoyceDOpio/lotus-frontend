@@ -47,6 +47,7 @@ import com.example.circularplanner.data.VoiceNote
 import com.example.circularplanner.service.StopwatchService
 import com.example.circularplanner.ui.component.ActivityGraph
 import com.example.circularplanner.ui.component.Calendar
+import com.example.circularplanner.ui.component.ComparisonDial
 import com.example.circularplanner.ui.component.PopupDialog
 import com.example.circularplanner.ui.component.leftBorder
 import com.example.circularplanner.ui.navigation.RecordedActivity
@@ -372,10 +373,23 @@ fun PlannerScreen(
 
                 Row (
                     modifier = Modifier
-                        .weight(4f),
+                        .weight(1.45f),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     ActivityGraph(
+                        dayState = dayState,
+                        onNavigateToTaskActivityComparison = onNavigateToTaskActivityComparison,
+                        selectActivity = selectActivity,
+                        selectTask = selectTask
+                    )
+                }
+
+                Row (
+                    modifier = Modifier
+                        .weight(3.5f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ComparisonDial(
                         dayState = dayState,
                         onNavigateToTaskActivityComparison = onNavigateToTaskActivityComparison,
                         selectActivity = selectActivity,
@@ -476,7 +490,8 @@ fun PlannerScreen(
 
                 Row (
                     modifier = Modifier
-                        .weight(1f)
+                        .weight(1.05f),
+                    verticalAlignment = Alignment.Bottom
                 ) {
                     Calendar(
                         userInput = userInput,

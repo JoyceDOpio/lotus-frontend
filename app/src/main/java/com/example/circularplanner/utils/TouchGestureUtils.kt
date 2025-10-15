@@ -1,9 +1,7 @@
 package com.example.circularplanner.utils
 
-import android.util.Log
 import androidx.compose.ui.geometry.Offset
 import com.example.circularplanner.data.Time
-import com.example.circularplanner.ui.component.DragDirection
 import kotlin.math.atan2
 import kotlin.math.sqrt
 
@@ -32,6 +30,14 @@ object TouchGestureUtils {
 //    const val TOUCH_STROKE = 50f
     const val TOUCH_STROKE = 25f
 
+    fun addMinutesToTime(minutes: Int, time: Time): Time {
+        val totalMinutes = time.hour * 60 + time.minute + minutes
+        val hour = totalMinutes / 60
+        val minute = totalMinutes - hour * 60
+
+        return Time(hour, minute)
+    }
+
     // Calculate the exact angle on the circle
 //    fun angle(center: Offset, offset: Offset): Float {
 //        val rad = atan2(offset.y - center.y, offset.x - center.x)
@@ -42,16 +48,14 @@ object TouchGestureUtils {
         val rad = atan2(offset.y - center.y, offset.x - center.x)
         val deg = Math.toDegrees(rad.toDouble())
 
-        if (deg >= 0) {
+        return if (deg >= 0) {
             if (deg < 360) {
-                return deg.toFloat()
+                deg.toFloat()
+            } else {
+                (deg - 360).toFloat()
             }
-            else {
-                return (deg - 360).toFloat()
-            }
-        }
-        else {
-            return (deg + 360).toFloat()
+        } else {
+            (deg + 360).toFloat()
         }
     }
 
@@ -63,7 +67,7 @@ object TouchGestureUtils {
             time
         )
         // We have to offset these angles because startMinute * taskDialState.minuteAngle returns a biased angle
-        val taskAngle = offsetAngle(minute * minuteAngle)
+        val taskAngle = offsetAngle(minute * minuteAngle)// It seems that during this conversion around 0.33 is subtracted
 
         return taskAngle
     }
@@ -76,7 +80,7 @@ object TouchGestureUtils {
     fun calculateClockTimeBasedOnMinutesFromStartTime (start: Time, minutes: Int): Time {
         var hour: Int = start.hour
         var minute: Float
-        var totalMinutes = start.minute + minutes
+        val totalMinutes = start.minute + minutes
 
         hour += (totalMinutes / 60)
         minute = totalMinutes % 60f
@@ -108,9 +112,6 @@ object TouchGestureUtils {
             repeat(numberOfClockHoursBetween - 1) {
                 minutes += 60
             }
-//            for (i in 1..(numberOfClockHoursBetween - 1)) {
-//                minutes += 60
-//            }
         }
         if (end.minute != 0) {
             minutes += end.minute
@@ -125,7 +126,7 @@ object TouchGestureUtils {
         val minutesBetweenHours: Array<Int> = calculateMinutesBetweenHours(start, end)
         var minutesTotal = 0
 
-        minutesBetweenHoursAccumulated += minutesTotal
+        minutesBetweenHoursAccumulated += 0
         for (minutes in minutesBetweenHours) {
             minutesTotal += minutes
             minutesBetweenHoursAccumulated += minutesTotal
@@ -159,9 +160,6 @@ object TouchGestureUtils {
             repeat(numberOfClockHoursBetween - 1) {
                 minutes += 60
             }
-//            for (i in 1..(numberOfClockHoursBetween - 1)) {
-//                minutes += 60
-//            }
 
             minutes += if (end.minute == 0) 0 else end.minute
         } else if (numberOfClockHoursBetween == 1) {
@@ -174,68 +172,65 @@ object TouchGestureUtils {
         return minutes
     }
 
-    fun checkIfCanDrag(startAngle: Float, angle: Float, touchStroke: Float): Boolean {
-        val currentAngleTranslated = translateAngle270To0(angle)
-        val startAngleTranslated = translateAngle270To0(startAngle)
-
-        val dragDirection = if (currentAngleTranslated < startAngleTranslated) {
-            DragDirection.Backward
-        } else if (currentAngleTranslated > startAngleTranslated) {
-            DragDirection.Forward
-        } else {
-            DragDirection.None
-        }
-
-        Log.i("TouchGestureUtils", "182 dragDirection $dragDirection")
-
-        val passedTheStartEndMark = if (dragDirection == DragDirection.Backward && currentAngleTranslated in 360f - touchStroke/2f..360f) {
-            true
-        } else if (dragDirection == DragDirection.Forward && currentAngleTranslated in 0f..touchStroke/2f) {
-            true
-        } else {
-            false
-        }
-
-        return passedTheStartEndMark
-    }
-
     fun checkIfTimeInRange(time: Time, rangeStart: Time, rangeEnd: Time): Boolean {
         if (time.hour in rangeStart.hour..rangeEnd.hour) {
-            if (time.hour == rangeStart.hour && time.minute < rangeStart.minute) return false
-            else if (time.hour == rangeEnd.hour && time.minute > rangeEnd.minute) return false
-            else return true
+            return if (time.hour == rangeStart.hour && time.minute < rangeStart.minute) false
+            else if (time.hour == rangeEnd.hour && time.minute > rangeEnd.minute) false
+            else true
         }
 
         return false
     }
 
-    fun checkIfTouchInsideDial(distance: Float, centerRadius: Float, innerRadius: Float, touchStroke: Float): Boolean {
-        if (distance >= centerRadius - touchStroke * 0.5f && distance <= innerRadius + touchStroke * 2f) {
-            return true
-        } else {
-            return false
+    fun checkIfTimeInTimeRange(time: Time, startTime: Time, endTime: Time): Boolean {
+        return if (time.hour < startTime.hour || time.hour > endTime.hour) false
+        else {
+            when (time.hour) {
+                startTime.hour -> {
+                    time.minute >= startTime.minute
+                }
+
+                endTime.hour -> {
+                    time.minute <= endTime.minute
+                }
+
+                else -> true
+            }
         }
     }
 
+    fun checkIfTouchInsideDial(distance: Float, centerRadius: Float, innerRadius: Float, touchStroke: Float): Boolean {
+        return distance >= centerRadius - touchStroke * 0.5f && distance <= innerRadius + touchStroke * 2f
+    }
+
     fun checkIfTouchNearDialEdge(distance: Float, innerRadius: Float, outerRadius: Float, touchStroke: Float): Boolean {
-        if (distance >= innerRadius - touchStroke * 0.5f && distance <= outerRadius + touchStroke * 2f) {
-            return true
-        } else {
-            return false
-        }
+        return distance >= innerRadius - touchStroke * 0.5f && distance <= outerRadius + touchStroke * 2f
     }
 
     fun checkIfTouchWithinAngleRange(angle: Float, startAngle: Float, endAngle: Float): Boolean {
         // The task stores the appropriate angle values, i.e. values corresponding to how the circle is drawn (the 0 degree starts at the right-hand side (east) of the circle). We want to 'correct' these angles as if 0 degree starts at the top of the circle (north)
         val angleCorrected = mapAngle270To0Degree(angle)
-        var startAngleCorrected = mapAngle270To0Degree(startAngle)
-        var endAngleCorrected = mapAngle270To0Degree(endAngle)
+        val startAngleCorrected = mapAngle270To0Degree(startAngle)
+        val endAngleCorrected = mapAngle270To0Degree(endAngle)
 
-        if (angleCorrected in startAngleCorrected..endAngleCorrected) {
-            return true
-        }
+        return angleCorrected in startAngleCorrected..endAngleCorrected
+    }
 
-        return false
+    fun checkIfTouchWithinTaskArea(angle: Float, clockStart: Time, minuteAngle: Float, taskStart: Time, taskEnd: Time): Boolean {
+        val taskStartAngle = calculateAngleFromTime (
+            clockStart,
+            taskStart,
+            minuteAngle
+        )
+        val taskEndAngle = calculateAngleFromTime (
+            clockStart,
+            taskEnd,
+            minuteAngle
+        )
+        val isTouchWithinTaskArea =
+            checkIfTouchWithinAngleRange(angle, taskStartAngle, taskEndAngle)
+
+        return isTouchWithinTaskArea
     }
 
     fun createClockHoursArray (start: Time, end: Time): Array<Time> {
@@ -288,18 +283,18 @@ object TouchGestureUtils {
 
     fun sweepAngle(start: Float, end: Float): Float {
         return if (start < end) {
-            (end - start).toFloat()
+            (end - start)
         } else {
-            (360 - start + end).toFloat()
+            (360 - start + end)
         }
     }
 
     // Returns an angle adjusted in such a way that 270 degree corresponds to the 0/360 degree mark
     fun translateAngle270To0(angle: Float): Float {
-        if (angle in 270f..360f) {
-            return angle - 270f
+        return if (angle in 270f..360f) {
+            angle - 270f
         } else {
-            return angle + 90f
+            angle + 90f
         }
     }
 }

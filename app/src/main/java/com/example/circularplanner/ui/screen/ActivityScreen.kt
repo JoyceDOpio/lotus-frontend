@@ -39,6 +39,7 @@ import com.example.circularplanner.service.ServiceHelper
 import com.example.circularplanner.service.StopwatchService
 import com.example.circularplanner.ui.component.ActivityGraph
 import com.example.circularplanner.ui.component.ActivityRecorder
+import com.example.circularplanner.ui.component.ComparisonDial
 import com.example.circularplanner.ui.component.PopupDialog
 import com.example.circularplanner.ui.navigation.RecordedActivity
 import com.example.circularplanner.ui.viewmodel.ActivityUiState
@@ -107,66 +108,88 @@ fun ActivityScreen(
 //        verticalArrangement = Arrangement.Top
         verticalArrangement = Arrangement.Center
     ) {
-        ActivityGraph(
-            dayState = dayState,
-            drawClockHand = true,
-            onNavigateToTaskActivityComparison = onNavigateToTaskActivityComparison,
-            selectActivity = selectActivity,
-            selectTask = selectTask
-        )
+        Row (
+            modifier = Modifier
+                .weight(1.5f),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ActivityGraph(
+                dayState = dayState,
+                drawClockHand = true,
+                onNavigateToTaskActivityComparison = onNavigateToTaskActivityComparison,
+                selectActivity = selectActivity,
+                selectTask = selectTask
+            )
+        }
+
+        Row (
+            modifier = Modifier
+                .weight(3.5f),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ComparisonDial(
+                dayState = dayState,
+                drawClockHand = true,
+                onNavigateToTaskActivityComparison = onNavigateToTaskActivityComparison,
+                selectActivity = selectActivity,
+                selectTask = selectTask
+            )
+        }
 
         Column(
             modifier = Modifier
 //                .verticalScroll(rememberScrollState())
 //                .fillMaxSize()
                 .fillMaxWidth()
+                .weight(1f),
+            verticalArrangement = Arrangement.Bottom
         ) {
 
-            // Day notes
-            Row(
-                modifier = Modifier
-                    .padding(
-                        horizontal = 5.dp
-                    )
-                    .padding(
-                        top = 10.dp,
-                        bottom = 5.dp
-                    )
-                    .fillMaxWidth()
-                    .border(
-                        width = 1.dp,
-                        color = Color.LightGray,
-                        shape = RoundedCornerShape(15.dp)
-                    )
-                ,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "DAY NOTES",// TODO: Read text from string resource
-                    modifier = Modifier
-                        .padding(
-                            horizontal = 10.dp
-                        )
-                    ,
-                    color = MaterialTheme.colorScheme.primary
-                )
-
-                IconButton(
-                    onClick = {
-                        popupState = NoteModePopup.Day
-                        showPopupWindow = true
-                    }
-                ) {
-                    Icon(
-                        imageVector = ImageVector.vectorResource(id = R.drawable.add_square_svgrepo_com),
-                        contentDescription = "Add",
-                        modifier = Modifier.fillMaxSize(0.8F),
-//                    tint = Color(BOTTOM_BAR_TEXT_COLOR)
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
+//            // Day notes
+//            Row(
+//                modifier = Modifier
+//                    .padding(
+//                        horizontal = 5.dp
+//                    )
+//                    .padding(
+//                        top = 10.dp,
+//                        bottom = 5.dp
+//                    )
+//                    .fillMaxWidth()
+//                    .border(
+//                        width = 1.dp,
+//                        color = Color.LightGray,
+//                        shape = RoundedCornerShape(15.dp)
+//                    )
+//                ,
+//                horizontalArrangement = Arrangement.SpaceBetween,
+//                verticalAlignment = Alignment.CenterVertically
+//            ) {
+//                Text(
+//                    text = "DAY NOTES",// TODO: Read text from string resource
+//                    modifier = Modifier
+//                        .padding(
+//                            horizontal = 10.dp
+//                        )
+//                    ,
+//                    color = MaterialTheme.colorScheme.primary
+//                )
+//
+//                IconButton(
+//                    onClick = {
+//                        popupState = NoteModePopup.Day
+//                        showPopupWindow = true
+//                    }
+//                ) {
+//                    Icon(
+//                        imageVector = ImageVector.vectorResource(id = R.drawable.add_square_svgrepo_com),
+//                        contentDescription = "Add",
+//                        modifier = Modifier.fillMaxSize(0.8F),
+////                    tint = Color(BOTTOM_BAR_TEXT_COLOR)
+//                        tint = MaterialTheme.colorScheme.primary
+//                    )
+//                }
+//            }
 
             // Main activity
             ActivityRecorder(

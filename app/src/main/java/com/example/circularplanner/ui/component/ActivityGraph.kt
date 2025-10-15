@@ -4,15 +4,24 @@ import android.graphics.Paint
 import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.magnifier
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -21,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -32,11 +42,15 @@ import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
@@ -44,9 +58,11 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
+import com.example.circularplanner.R
 import com.example.circularplanner.data.Time
 import com.example.circularplanner.ui.viewmodel.DayState
 import com.example.circularplanner.utils.TouchGestureUtils
@@ -69,7 +85,7 @@ enum class ActivityGraphDisplayType {
 fun ActivityGraph (
     dayState: DayState,
     drawClockHand: Boolean = false,
-    height: Dp = 320.dp,// Minimum height is 300.dp - at 280.dp there is a problem with index out of bounds
+//    height: Dp = 320.dp,// Minimum height is 300.dp - at 280.dp there is a problem with index out of bounds
     onNavigateToTaskActivityComparison: () -> Unit,
     selectActivity: (UUID?) -> Unit,
     selectTask: (UUID?) -> Unit
@@ -87,7 +103,7 @@ fun ActivityGraph (
     // The actual start and end time of the day
     var actualActiveTimeStart = dayState.actualActiveTimeStart
     var actualActiveTimeEnd = dayState.actualActiveTimeEnd
-//    var xOffsetInMinutesTask = 0
+    // In case the activity starts before the active time start we need to draw the task axis a little further
     var xOffsetInMinutesTask = TouchGestureUtils.calculateTotalNumberOfMinutes(
         actualActiveTimeStart ?: activeTimeStart, activeTimeStart
     )
@@ -112,6 +128,28 @@ fun ActivityGraph (
 
     var clockTime by remember { mutableStateOf(Time(LocalTime.now().hour, LocalTime.now().minute)) }
 
+    var magnifierSourceCenter by remember {
+        mutableStateOf(Offset.Unspecified)
+    }
+    var magnifierCenterOffset by remember {
+        mutableStateOf(Offset(0f, -160f))
+    }
+    val magnifierSize = DpSize(80.dp, 80.dp)
+    var showMagnifier by remember { mutableStateOf(false) }
+    val magnifierModifier = Modifier
+        .magnifier(
+            sourceCenter = { magnifierSourceCenter },
+            magnifierCenter = { magnifierSourceCenter + magnifierCenterOffset },
+            zoom = 8f,
+            size = magnifierSize,
+            cornerRadius = 50.dp,
+        )
+        .pointerInput(Unit) {
+            detectDragGestures { change, _ ->
+                if (change.position.y in 0f..canvasHeight) magnifierSourceCenter = change.position
+            }
+        }
+
     fun calculateClockTimeFromAxis(minuteWidth: Float, touchOffsetX: Float, activeTimeStart: Time): Time {
         var hour = activeTimeStart.hour
         val totalMinutes = (touchOffsetX / minuteWidth) + activeTimeStart.minute
@@ -121,19 +159,6 @@ fun ActivityGraph (
         hour += hoursToAdd
 
         return Time(hour, minutes)
-    }
-
-    fun checkIfTimeInTimeRange(time: Time, startTime: Time, endTime: Time): Boolean {
-        if (time.hour < startTime.hour || time.hour > endTime.hour) return false
-        else {
-            if (time.hour == startTime.hour) {
-                if (time.minute >= startTime.minute) return true
-                else return false
-            } else if (time.hour == endTime.hour) {
-                if (time.minute <= endTime.minute) return true
-                return false
-            } else return true
-        }
     }
 
     fun checkIfTouchWithinAxis(touchOffsetX: Offset, axisStart: Offset, axisEnd: Offset, touchStroke: Float): Boolean {
@@ -148,10 +173,10 @@ fun ActivityGraph (
     fun selectTaskAndActivity(time: Time) {
         // Select task
         for (task in tasks) {
-            val isTouchedTimeInTaskRange = checkIfTimeInTimeRange(
+            val isTouchedTimeInTaskRange = TouchGestureUtils.checkIfTimeInRange(
                 time = time,
-                startTime = task.startTime!!,
-                endTime = task.endTime!!
+                rangeStart = task.startTime!!,
+                rangeEnd = task.endTime!!
             )
             if (isTouchedTimeInTaskRange) {
                 selectTask(task.id)
@@ -160,10 +185,10 @@ fun ActivityGraph (
 
         // Select activity
         for (activity in activities) {
-            val isTouchedTimeInActivityRange = checkIfTimeInTimeRange(
+            val isTouchedTimeInActivityRange = TouchGestureUtils.checkIfTimeInRange(
                 time = time,
-                startTime = activity.startTime,
-                endTime = activity.endTime ?: Time(LocalTime.now().hour, LocalTime.now().minute)//TODO: Test me
+                rangeStart = activity.startTime,
+                rangeEnd = activity.endTime ?: Time(LocalTime.now().hour, LocalTime.now().minute)//TODO: Test me
             )
 
             if (isTouchedTimeInActivityRange) {
@@ -198,18 +223,27 @@ fun ActivityGraph (
     // Graph
     Box (
         modifier = Modifier
-            .height(height)
+//            .height(height)
             .fillMaxWidth()
             .onSizeChanged {
                 graphBoxSize = it
             }
             .background(Color(0xffffffff))
+            .onGloballyPositioned { layoutCoordinates ->
+                val topLeft = layoutCoordinates.boundsInRoot().topLeft
+                magnifierSourceCenter = layoutCoordinates.boundsInRoot().center
+            }
     ) {
         Box (
             modifier = Modifier
                 .fillMaxHeight()
                 .fillMaxWidth()
                 .horizontalScroll(canvasScrollState)
+                .onGloballyPositioned { layoutCoordinates ->
+                    magnifierSourceCenter = layoutCoordinates.boundsInRoot().topCenter
+                }
+                .conditional(showMagnifier, magnifierModifier)
+            ,
         ) {
             Canvas (
                 modifier = Modifier
@@ -226,6 +260,7 @@ fun ActivityGraph (
                                 selectTask(null)
                                 selectActivity(null)
 
+                                var time: Time? = null
                                 touchWithinAxis = checkIfTouchWithinAxis(
                                     touchOffsetX = offset,
                                     axisStart = Offset(
@@ -233,19 +268,34 @@ fun ActivityGraph (
                                         y = canvasHeight * 0.5f
                                     ),
                                     axisEnd = Offset(
-                                        x = (with(localDensity) { canvasWidth.toPx() } - with(localDensity) { axisHorizontalPadding.toPx() }),
+                                        x = (with(localDensity) { canvasWidth.toPx() } - with(
+                                            localDensity
+                                        ) { axisHorizontalPadding.toPx() }),
                                         y = canvasHeight * 0.5f
                                     ),
                                     touchStroke = touchStroke
                                 )
 
-                                if (touchWithinAxis) {
+                                // If touch within the magnifier
+                                if (offset.x in (magnifierSourceCenter.x + magnifierCenterOffset.x - (magnifierSize.width * 0.5f).toPx())..(magnifierSourceCenter.x + magnifierCenterOffset.x + (magnifierSize.width * 0.5f).toPx()) && offset.y in (magnifierSourceCenter.y + magnifierCenterOffset.y - (magnifierSize.height * 0.5f).toPx())..(magnifierSourceCenter.y + magnifierCenterOffset.y + (magnifierSize.height * 0.5f).toPx())) {
+                                    time = calculateClockTimeFromAxis(
+                                        minuteWidth = with(localDensity) { minuteWidth.toPx() },
+                                        touchOffsetX = magnifierSourceCenter.x - with(
+                                            localDensity
+                                        ) { axisHorizontalPadding.toPx() },
+                                        activeTimeStart = activeTimeStart
+                                    )
+                                }
+                                else if (touchWithinAxis) {
                                     // Determine what time the touch offset corresponds to
-                                    val time = calculateClockTimeFromAxis(
+                                    time = calculateClockTimeFromAxis(
                                         minuteWidth = with(localDensity) { minuteWidth.toPx() },
                                         touchOffsetX = offset.x - with(localDensity) { axisHorizontalPadding.toPx() },
                                         activeTimeStart = activeTimeStart
                                     )
+                                }
+
+                                if (time != null) {
                                     // Select task and activity
                                     selectTaskAndActivity(time)
 
@@ -293,7 +343,7 @@ fun ActivityGraph (
                     )
                     val activityDuration = TouchGestureUtils.calculateTotalNumberOfMinutes(
                         activity.startTime,
-                        activity.endTime ?: Time(LocalTime.now().hour, LocalTime.now().minute)//TODO: Test me
+                        activity.endTime ?: Time(LocalTime.now().hour, LocalTime.now().minute)
                     )
 
                     drawTask(
@@ -447,7 +497,74 @@ fun ActivityGraph (
                     )
                 }
             }
+
         }
+
+        Box (
+            modifier = Modifier
+                // If I place the offset modifier at the end of the modifiers' chain, it is ignored
+                // TODO: The offset should dependent on canvas height
+//                    .align(Alignment.TopEnd)
+//                    .clip(shape = RoundedCornerShape(0.dp, 5.dp, 5.dp, 0.dp))
+                // TODO: This width should have a specific value in px or something
+                .fillMaxWidth()
+                // TODO: The height could cover the upper and lower axis completely
+                .fillMaxHeight()
+//                .background(Color(0xffd4567))
+            ,
+            contentAlignment = Alignment.TopEnd
+        ) {
+            IconButton(
+                onClick = {
+                    showMagnifier = !showMagnifier
+                },
+                modifier = Modifier
+                    .padding(5.dp)
+                    .clip(CircleShape)
+                    .background(Color(CLOCK_LABEL_COLOR))
+            ) {
+                Icon(
+                    imageVector = if (showMagnifier) ImageVector.vectorResource(id = R.drawable.cross_small_svgrepo_com) else ImageVector.vectorResource(id = R.drawable.loupe_search_svgrepo_com),
+                    contentDescription = "Magnifier",
+                    modifier = Modifier.fillMaxSize(0.8F),
+                    tint = Color(0xffffffff)
+                )
+            }
+        }
+
+//        Box (
+//            modifier = Modifier
+//                .alpha(if (showMagnifier) 1f else 0f)
+//                .fillMaxWidth()
+//                .fillMaxHeight()
+////                .background(Color(0xffd4567))
+//            ,
+//            contentAlignment = Alignment.TopStart
+//        ) {
+//            Box (
+//                modifier = Modifier
+//                    .size(50.dp)
+//                    .offset(0.dp, 0.dp)
+//                    .graphicsLayer(
+//                        translationX = (magnifierSourceCenter + magnifierCenterOffset).x,
+//                        translationY = (magnifierSourceCenter + magnifierCenterOffset).y
+//                    )
+//                    .clip(CircleShape)
+//                    .zIndex(10000f)
+////                    .background(Color(0xffd5566e))
+//                ,
+//                contentAlignment = Alignment.Center
+//            ) {
+//                Icon(
+//                    imageVector = ImageVector.vectorResource(id = R.drawable.arrow_down_svgrepo_com),
+//                    contentDescription = "Arrow",
+//                    modifier = Modifier
+//                        .fillMaxSize(0.8F)
+//                    ,
+//                    tint = Color(CLOCK_LABEL_COLOR)
+//                )
+//            }
+//        }
     }
 }
 

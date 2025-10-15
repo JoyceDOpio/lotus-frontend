@@ -167,7 +167,9 @@ Log.i("taskUiState", taskUiState.toString())
     ) { innerPadding ->
         Column(
             modifier = modifier
-                .padding(horizontal = 15.dp)
+                .padding(
+                    horizontal = 15.dp
+                )
                 .padding(innerPadding)
                 .fillMaxWidth()
                 .fillMaxHeight()
@@ -178,7 +180,7 @@ Log.i("taskUiState", taskUiState.toString())
             // Label
             Text(
                 modifier = Modifier
-                    .padding(bottom = 10.dp),
+                    .padding(vertical = 15.dp),
                 text = label,
                 fontSize = 20.sp,
                 color = MaterialTheme.colorScheme.primary

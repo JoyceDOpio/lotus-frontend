@@ -22,7 +22,7 @@ import com.example.circularplanner.ui.component.ActiveTimeHeader
 import com.example.circularplanner.ui.component.ActiveTimeSetUp
 import com.example.circularplanner.ui.component.Calendar
 import com.example.circularplanner.ui.component.DragItemListGoal
-import com.example.circularplanner.ui.component.TaskDial
+import com.example.circularplanner.ui.component.PlannerDial
 import com.example.circularplanner.ui.component.DragItemListTask
 import com.example.circularplanner.ui.component.PopupDialog
 import com.example.circularplanner.ui.viewmodel.DayState
@@ -108,7 +108,7 @@ fun TaskScreen(
                         userInput = userInput
                     )
 
-                    TaskDial(
+                    PlannerDial(
                         dayState = dayState,
                         drawClockHand = userInput.selectedDate.isEqual(LocalDate.now()),
                         lastTaskPriority = lastTaskPriority,

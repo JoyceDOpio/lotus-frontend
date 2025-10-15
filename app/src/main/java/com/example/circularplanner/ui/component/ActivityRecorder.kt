@@ -325,7 +325,12 @@ fun ActivityRecorder(
                             ActivityState.Ready -> "Start activity"//TODO: Read string from resource
                             ActivityState.Started -> "Stop activity"//TODO: Read string from resource
                         },
-                        modifier = Modifier.fillMaxSize(0.8F),
+                        modifier = Modifier.fillMaxSize(
+                            when (activityState) {
+                                ActivityState.Started -> 0.7F
+                                ActivityState.Idle, ActivityState.Ready -> 0.8f
+                            }
+                        ),
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }

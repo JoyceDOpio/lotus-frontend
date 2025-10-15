@@ -1,5 +1,6 @@
 package com.example.circularplanner.ui.screen
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -141,42 +143,68 @@ fun TaskActivityComparisonScreen (
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        Spacer(Modifier.weight(1f))
-
-                        Text(
+                        Row (
                             modifier = Modifier
-                                .padding(vertical = 15.dp)
+                                .weight(1f)
+                        ) {
+                            Spacer(Modifier.weight(1f))
+                        }
+
+                        Row (
+                            modifier = Modifier
                                 .weight(1f)
                             ,
-                            text = taskLabel,// TODO: Read text from string resource
-                            color = MaterialTheme.colorScheme.primary
-                        )
-
-                        val dropdownItems = listOf<DropDownItem>(
-                            DropDownItem(
-                                text = "Edit",
-                                iconId = R.drawable.edit_24dp_5f6368_fill0_wght400_grad0_opsz24,
-                                onClick = {
-                                    popupState = TaskActivityComparisonModePopup.Task
-                                    showPopupWindow = true
-                                }
-                            ),
-                            DropDownItem(
-                                text = "Delete",
-                                iconId = R.drawable.delete_24dp_5f6368_fill0_wght400_grad0_opsz24,
-                                onClick = {
-                                    deleteTask()
-                                    selectTask(null)
-//                                    showPopupWindow = true
-                                }
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                modifier = Modifier
+                                    .padding(vertical = 15.dp)
+                                    .weight(1f)
+                                ,
+                                text = taskLabel,// TODO: Read text from string resource
+                                color = MaterialTheme.colorScheme.primary,
+                                textAlign = TextAlign.Center
                             )
-                        )
-                        TaskDropdownMenu(
-                            dropdownItems = dropdownItems,
+                        }
+
+                        Row (
                             modifier = Modifier
                                 .weight(1f)
-                                .fillMaxSize(0.7F)
-                        )
+                            ,
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.End
+                        ) {
+
+                            val dropdownItems = listOf<DropDownItem>(
+                                DropDownItem(
+                                    text = "Edit",
+                                    iconId = R.drawable.edit_24dp_5f6368_fill0_wght400_grad0_opsz24,
+                                    onClick = {
+                                        popupState = TaskActivityComparisonModePopup.Task
+                                        showPopupWindow = true
+                                    }
+                                ),
+                                DropDownItem(
+                                    text = "Delete",
+                                    iconId = R.drawable.delete_24dp_5f6368_fill0_wght400_grad0_opsz24,
+                                    onClick = {
+                                        deleteTask()
+                                        selectTask(null)
+//                                    showPopupWindow = true
+                                    }
+                                )
+                            )
+                            TaskDropdownMenu(
+                                dropdownItems = dropdownItems,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxSize(0.7F)
+                            )
+                        }
+
+
+
                     }
 
                     TaskCard (
@@ -234,36 +262,67 @@ fun TaskActivityComparisonScreen (
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        Text(
+                        Row (
                             modifier = Modifier
-                                .padding(vertical = 15.dp),
-                            text = activityLabel,// TODO: Read text from string resource
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                                .weight(1f)
+                        ) {
+                            Spacer(Modifier.weight(1f).background(Color(0xffFAA18F)))
+                        }
 
-                        val dropdownItems = listOf<DropDownItem>(
-                            DropDownItem(
-                                text = "Edit",
-                                iconId = R.drawable.edit_24dp_5f6368_fill0_wght400_grad0_opsz24,
-                                onClick = {
-                                    popupState = TaskActivityComparisonModePopup.Activity
-                                    showPopupWindow = true
-                                }
-                            ),
-                            DropDownItem(
-                                text = "Delete",
-                                iconId = R.drawable.delete_24dp_5f6368_fill0_wght400_grad0_opsz24,
-                                onClick = {
-                                    deleteActivity()
-                                    selectActivity(null)
-//                                    showPopupWindow = true
-                                }
+                        Row (
+                            modifier = Modifier
+                                .weight(1f)
+                            ,
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                modifier = Modifier
+                                    .padding(vertical = 15.dp)
+                                    .weight(1f)
+//                                    .background(Color(0xffBBE6FC))// TODO: Add color to a theme
+                                ,
+                                text = activityLabel,// TODO: Read text from string resource
+                                color = MaterialTheme.colorScheme.primary,
+                                textAlign = TextAlign.Center
                             )
-                        )
-                        TaskDropdownMenu(
-                            dropdownItems = dropdownItems,
-                            modifier = Modifier.fillMaxSize(0.7F)
-                        )
+                        }
+
+                        Row (
+                            modifier = Modifier
+                                .weight(1f)
+                            ,
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.End
+                        ) {
+
+                            val dropdownItems = listOf<DropDownItem>(
+                                DropDownItem(
+                                    text = "Edit",
+                                    iconId = R.drawable.edit_24dp_5f6368_fill0_wght400_grad0_opsz24,
+                                    onClick = {
+                                        popupState = TaskActivityComparisonModePopup.Activity
+                                        showPopupWindow = true
+                                    }
+                                ),
+                                DropDownItem(
+                                    text = "Delete",
+                                    iconId = R.drawable.delete_24dp_5f6368_fill0_wght400_grad0_opsz24,
+                                    onClick = {
+                                        deleteActivity()
+                                        selectActivity(null)
+//                                    showPopupWindow = true
+                                    }
+                                )
+                            )
+                            TaskDropdownMenu(
+                                dropdownItems = dropdownItems,
+                                modifier = Modifier
+                                    .fillMaxSize(0.7F)
+                                    .weight(1f)
+
+                            )
+                        }
                     }
 
                     TaskCard (
