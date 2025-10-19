@@ -291,9 +291,11 @@ object TouchGestureUtils {
 
     // Returns an angle adjusted in such a way that 270 degree corresponds to the 0/360 degree mark
     fun translateAngle270To0(angle: Float): Float {
-        return if (angle in 270f..360f) {
+        // If the range is 270-360, the 270 degree will be translated to 0 - we want 270 to correspond to 360 degree
+        return if (angle in 271f..360f) {
             angle - 270f
-        } else {
+        }
+        else {
             angle + 90f
         }
     }
