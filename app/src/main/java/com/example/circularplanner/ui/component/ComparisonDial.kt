@@ -161,6 +161,7 @@ fun ComparisonDial(
 
     Box (
         modifier = Modifier
+//            .background(Color(0xffffffff))
             .width(380.dp)
             .height(440.dp),
         contentAlignment = Alignment.TopEnd

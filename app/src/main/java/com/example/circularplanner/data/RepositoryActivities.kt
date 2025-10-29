@@ -4,8 +4,8 @@ import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 
 class RepositoryActivities(private val activityDao: DaoActivity): IActivitiesRepository {
-    override fun getAllActivitiesPerDayStream(date: String): Flow<List<Activity>> {
-        return activityDao.getAllActivities(date)
+    override fun getMainActivitiesPerDayStream(date: String): Flow<List<Activity>> {
+        return activityDao.getMainActivities(date)
     }
 
     override fun getActivityStream(id: UUID): Flow<Activity?> {
@@ -18,6 +18,10 @@ class RepositoryActivities(private val activityDao: DaoActivity): IActivitiesRep
 
     override fun getSubRecordedActivity(): Flow<Activity?> {
         return activityDao.getSubRecordedActivity()
+    }
+
+    override fun getSubActivitiesPerMainActivity(mainActivityId: UUID): Flow<List<Activity>> {
+        return activityDao.getSubActivities(mainActivityId)
     }
 
     override suspend fun insertActivity(activity: Activity, vararg voiceNotes: VoiceNote) {

@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import com.example.circularplanner.data.Time
 import com.example.circularplanner.ui.viewmodel.DayState
 import com.example.circularplanner.ui.viewmodel.UserInput
+import com.example.circularplanner.utils.TouchGestureUtils
 import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -47,33 +48,6 @@ fun ActiveTimeHeader (
         return minutes
     }
 
-    fun formatTime(minutesTotal: Int): String {
-        var hours = minutesTotal / MINUTES_IN_HOUR
-        var minutes = 0
-
-        if (minutesTotal % MINUTES_IN_HOUR != 0) {
-            hours = floor(hours.toDouble()).toInt()
-            minutes = minutesTotal - hours * MINUTES_IN_HOUR
-        }
-
-        var minuteText = ""
-        var hourText = ""
-
-        if (hours == 1) {
-            hourText = "$hours hour"
-        }
-
-        if (hours > 1) {
-            hourText = "$hours hours"
-        }
-
-        if (minutes > 0) {
-            minuteText = "$minutes min"
-        }
-
-        return (hourText + " " + minuteText).trim()
-    }
-
     var minutesLeft = calculateTimeIntervalInMinutes(
         Time(
             LocalDateTime.now().hour,
@@ -83,9 +57,9 @@ fun ActiveTimeHeader (
     )
 
     // Every minute update time left
-    LaunchedEffect(Unit) {
+    LaunchedEffect(true) {
         while (true) {
-            delay(1000L * 60)
+            delay(1000L * SECONDS_IN_MINUTE)
             minutesLeft = calculateTimeIntervalInMinutes(
                 Time(
                     LocalDateTime.now().hour,
@@ -114,7 +88,7 @@ fun ActiveTimeHeader (
                 color = Color(ACTIVE_TIME_LABEL)
             )
             Text (
-                text = formatTime(calculateTimeIntervalInMinutes(startTime, endTime)),
+                text = TouchGestureUtils.formatTime(calculateTimeIntervalInMinutes(startTime, endTime)),
                 color = Color(ACTIVE_TIME_VALUE)
             )
         }
@@ -132,7 +106,7 @@ fun ActiveTimeHeader (
                 )
 
                 Text (
-                    text = formatTime(if (minutesLeft > 0) minutesLeft else 0),
+                    text = TouchGestureUtils.formatTime(if (minutesLeft > 0) minutesLeft else 0),
                     color = Color(ACTIVE_TIME_VALUE)
                 )
             }

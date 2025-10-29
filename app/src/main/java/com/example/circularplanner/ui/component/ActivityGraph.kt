@@ -101,10 +101,10 @@ fun ActivityGraph (
     val activeTimeStart: Time = dayState.activeTimeStart
     val activeTimeEnd: Time = dayState.activeTimeEnd
     // The actual start and end time of the day
-    var actualActiveTimeStart = dayState.actualActiveTimeStart
-    var actualActiveTimeEnd = dayState.actualActiveTimeEnd
+    val actualActiveTimeStart = dayState.actualActiveTimeStart
+    val actualActiveTimeEnd = dayState.actualActiveTimeEnd
     // In case the activity starts before the active time start we need to draw the task axis a little further
-    var xOffsetInMinutesTask = TouchGestureUtils.calculateTotalNumberOfMinutes(
+    val xOffsetInMinutesTask = TouchGestureUtils.calculateTotalNumberOfMinutes(
         actualActiveTimeStart ?: activeTimeStart, activeTimeStart
     )
 
@@ -153,8 +153,8 @@ fun ActivityGraph (
     fun calculateClockTimeFromAxis(minuteWidth: Float, touchOffsetX: Float, activeTimeStart: Time): Time {
         var hour = activeTimeStart.hour
         val totalMinutes = (touchOffsetX / minuteWidth) + activeTimeStart.minute
-        var hoursToAdd = (totalMinutes / 60).toInt()
-        var minutes = (totalMinutes % 60).toInt()
+        val hoursToAdd = (totalMinutes / 60).toInt()
+        val minutes = (totalMinutes % 60).toInt()
 
         hour += hoursToAdd
 

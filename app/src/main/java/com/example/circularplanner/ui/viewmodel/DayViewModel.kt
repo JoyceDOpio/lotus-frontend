@@ -1,7 +1,6 @@
 package com.example.circularplanner.ui.viewmodel
 
 import android.os.Parcelable
-import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -37,7 +36,7 @@ import kotlin.collections.sortedWith
 const val ACTIVITY_SAVED_STATE_KEY = "activity"
 const val MAIN_RECORDED_ACTIVITY_SAVED_STATE_KEY = "recorded_activity_main"
 const val SUB_RECORDED_ACTIVITY_SAVED_STATE_KEY = "recorded_activity_sub"
-//const val RECORDED_ACTIVITY_VOICE_NOTES_SAVED_STATE_KEY = "recorded_activity_voice_notes"
+const val SUB_ACTIVITIES_SAVED_STATE_KEY = "sub_activities"
 const val TASK_SAVED_STATE_KEY = "task"
 const val USER_INPUT_SAVED_STATE_KEY = "user_input"
 const val VOICE_NOTES_SAVED_STATE_KEY = "voice_notes"
@@ -96,7 +95,8 @@ data class ActivityUiState (
     var startTime: Time = Time(0, 0),// Default value: start of the day//TODO: Maybe I should change the default value to null
     var endTime: Time? = null,
     var voiceNotesUiState: VoiceNotesUiState = emptyList(),
-    val mainActivityId: UUID? = null
+    val mainActivityId: UUID? = null,
+    var subActivitiesUiState: List<ActivityUiState> = emptyList()
 )
 
 @Parcelize
@@ -198,13 +198,25 @@ class DayViewModel(
                     activityId = it.activityId
                 )
             }
+            val subActivities = (savedStateHandle.get<List<ActivitySavedState>>(SUB_ACTIVITIES_SAVED_STATE_KEY) ?: emptyList()).map { it ->
+                ActivityUiState(
+                    id = it.id,
+                    title = it.title,
+                    note = it.note,
+                    startTime = Time.parse(it.startTime),
+                    endTime = if (it.endTime != "") Time.parse(it.startTime) else Time(23, 59),
+                    voiceNotesUiState = voiceNotesUiState
+                )
+            }
+
             ActivityUiState(
                 id = it.id,
                 title = it.title,
                 note = it.note,
                 startTime = Time.parse(it.startTime),
                 endTime = if (it.endTime != "") Time.parse(it.startTime) else Time(23, 59),
-                voiceNotesUiState = voiceNotesUiState
+                voiceNotesUiState = voiceNotesUiState,
+                subActivitiesUiState = subActivities
             )
         } else {
             ActivityUiState()
@@ -235,9 +247,6 @@ class DayViewModel(
         }
     })
 
-    val nextTaskUiState = MutableStateFlow(TaskUiState())
-    val previousTaskUiState = MutableStateFlow(TaskUiState())
-
     val userInput = MutableStateFlow((savedStateHandle.get<UserInput>(USER_INPUT_SAVED_STATE_KEY)).let { it ->
         it ?: UserInput()
     })
@@ -254,7 +263,7 @@ class DayViewModel(
         combine(
             flow = daysRepository.getDayStream(input.selectedDate.toString()),
             flow2 = tasksRepository.getAllTasksPerDayStream(input.selectedDate.toString()),
-            flow3 = activitiesRepository.getAllActivitiesPerDayStream(input.selectedDate.toString())
+            flow3 = activitiesRepository.getMainActivitiesPerDayStream(input.selectedDate.toString())
         ) { day, tasks, activities ->
             // Update the day UI state with the actual active time start and end
             dayUiState.update {
@@ -366,7 +375,7 @@ class DayViewModel(
             // If activity exists, update it
             val activityId = activityUiState.value.id
 
-            var activity = dayState.value.activities.find { activity -> activity.id == activityId }
+            val activity = dayState.value.activities.find { activity -> activity.id == activityId }
 
             if (activity == null) {
                 activitiesRepository.insertActivity(
@@ -400,7 +409,7 @@ class DayViewModel(
             // If activity exists, update it
             val activityId = subRecordedActivityUiState.value.id
 
-            var activity = dayState.value.activities.find { activity -> activity.id == activityId }
+            val activity = dayState.value.activities.find { activity -> activity.id == activityId }
 
             if (activity == null) {
                 activitiesRepository.insertActivity(
@@ -412,41 +421,10 @@ class DayViewModel(
         }
     }
 
-    fun saveNextTask() {
-        viewModelScope.launch {
-            // If task exists, update it
-            val taskId = nextTaskUiState.value.id
-            Log.i("DayViewModel", "nextTaskUiState " + nextTaskUiState.value.toString())
-
-            if (taskId != null) {
-                val tasks = dayState.value.tasks + toDoTasks.value
-                val task = tasks.find { task -> task.id == taskId }
-
-                if (task != null) {
-                    val updatedTask = nextTaskUiState.value.toTask().copy(
-                        id = taskId
-                    )
-                    tasksRepository.updateTask(updatedTask)
-                }
-                // Else, save the new task
-                else {
-                    tasksRepository.insertTask(nextTaskUiState.value.toTask())
-                }
-            }
-            // Else, save the new task
-            else {
-                Log.i("DayViewModel", "nextTaskFromState " + nextTaskUiState.value.toTask().toString())
-
-                tasksRepository.insertTask(nextTaskUiState.value.toTask())
-            }
-        }
-    }
-
     fun saveTask() {
         viewModelScope.launch {
             // If task exists, update it
             val taskId = taskUiState.value.id
-            Log.i("DayViewModel", "taskUiState " + taskUiState.value.toString())
 
             if (taskId != null) {
                 val tasks = dayState.value.tasks + toDoTasks.value
@@ -470,8 +448,6 @@ class DayViewModel(
 //                    daysRepository.insertDay(dayState.value.toDay())
 //                }
 
-                Log.i("DayViewModel", "taskFromState " + taskUiState.value.toTask().toString())
-
                 tasksRepository.insertTask(taskUiState.value.toTask())
             }
         }
@@ -491,6 +467,15 @@ class DayViewModel(
         }
     }
 
+    fun saveTaskToStateHandle() {
+        if (taskUiState.value.id != null) {
+            savedStateHandle.set(
+                key = TASK_SAVED_STATE_KEY,
+                value = taskUiState.value.toSavedState()
+            )
+        }
+    }
+
     fun saveVoiceNote(voiceNote: VoiceNote) {
         viewModelScope.launch {
             voiceNotesRepository.insertVoiceNotes(voiceNote)
@@ -503,15 +488,81 @@ class DayViewModel(
             if (id != null) {
                 val activity = dayState.value.activities.find { activity -> activity.id == id }
                 if (activity != null) {
-                    var voiceNotesUiState = emptyList<VoiceNoteUiState>()
-                    voiceNotesRepository.getAllVoiceNotesPerActivity(id).collect { voiceNotes ->
+                    combine(
+                        flow = voiceNotesRepository.getAllVoiceNotesPerActivity(id),
+                        flow2 = activitiesRepository.getSubActivitiesPerMainActivity(id)
+                    ) { voiceNotes, subActivities ->
+                        var voiceNotesUiState = emptyList<VoiceNoteUiState>()
+                        var subActivitiesUiState = emptyList<ActivityUiState>()
+
                         for (voiceNote in voiceNotes) {
+                            // Append the mapped voice note to the voice notes list
                             voiceNotesUiState = voiceNotesUiState + VoiceNoteUiState(
                                 id = voiceNote.id,
                                 uri = voiceNote.uri,
                                 duration = voiceNote.duration,
                                 timestamp = voiceNote.timestamp,
                                 activityId = voiceNote.activityId
+                            )
+                        }
+                        for (subActivity in subActivities) {
+                            subActivitiesUiState = subActivitiesUiState + ActivityUiState(
+                                id = subActivity.id,
+                                title = subActivity.title,
+                                note = subActivity.note,
+                                startTime = subActivity.startTime,
+                                endTime = subActivity.endTime,
+//                                voiceNotesUiState = TODO: Add the voice notes of the sub-activity
+                                mainActivityId = subActivity.mainActivityId
+                            )
+                        }
+                        activityUiState.update {
+                            ActivityUiState(
+                                id = activity.id,
+                                title = activity.title,
+                                startTime = activity.startTime,
+                                endTime = activity.endTime,
+                                voiceNotesUiState = voiceNotesUiState,
+                                subActivitiesUiState = subActivitiesUiState
+                            )
+                        }
+                    }
+//                    var voiceNotesUiState = emptyList<VoiceNoteUiState>()
+//                    voiceNotesRepository.getAllVoiceNotesPerActivity(id).collect { voiceNotes ->
+//                        for (voiceNote in voiceNotes) {
+//                            // Append the mapped voice note to the voice notes list
+//                            voiceNotesUiState = voiceNotesUiState + VoiceNoteUiState(
+//                                id = voiceNote.id,
+//                                uri = voiceNote.uri,
+//                                duration = voiceNote.duration,
+//                                timestamp = voiceNote.timestamp,
+//                                activityId = voiceNote.activityId
+//                            )
+//                        }
+//
+//                        activityUiState.update {
+//                            ActivityUiState(
+//                                id = activity.id,
+//                                title = activity.title,
+//                                startTime = activity.startTime,
+//                                endTime = activity.endTime,
+//                                voiceNotesUiState = voiceNotesUiState
+//                            )
+//                        }
+//                    }
+
+
+                    var subActivitiesUiState = emptyList<ActivityUiState>()
+                    activitiesRepository.getSubActivitiesPerMainActivity(id).collect { subActivities ->
+                        for (subActivity in subActivities) {
+                            subActivitiesUiState = subActivitiesUiState + ActivityUiState(
+                                id = subActivity.id,
+                                title = subActivity.title,
+                                note = subActivity.note,
+                                startTime = subActivity.startTime,
+                                endTime = subActivity.endTime,
+//                                voiceNotesUiState = TODO: Add the voice notes of the sub-activity
+                                mainActivityId = subActivity.mainActivityId
                             )
                         }
 
@@ -521,16 +572,30 @@ class DayViewModel(
                                 title = activity.title,
                                 startTime = activity.startTime,
                                 endTime = activity.endTime,
-                                voiceNotesUiState = voiceNotesUiState
+                                subActivitiesUiState = subActivitiesUiState
                             )
                         }
                     }
+
+
 
                     // Set the selected activity saved state
                     savedStateHandle.set(
                         key = ACTIVITY_SAVED_STATE_KEY,
                         value = activityUiState.value.toSavedState()
                     )
+
+                    // TODO: Set the selected activity's voice notes saved state
+//                    savedStateHandle.set(
+//                        key = VOICE_NOTES_SAVED_STATE_KEY,
+//                        value = activityUiState.value.voiceNotesUiState.toSavedState()
+//                    )
+
+                    // TODO: Set the selected activity's sub-activities saved state
+//                    savedStateHandle.set(
+//                        key = SUB_ACTIVITIES_SAVED_STATE_KEY,
+//                        value = activityUiState.value.toSavedState()
+//                    )
                 }
             }
             else {
@@ -540,6 +605,14 @@ class DayViewModel(
                 // Reset the selected activity saved state
                 savedStateHandle.set(
                     key = ACTIVITY_SAVED_STATE_KEY,
+                    value = null
+                )
+                savedStateHandle.set(
+                    key = VOICE_NOTES_SAVED_STATE_KEY,
+                    value = null
+                )
+                savedStateHandle.set(
+                    key = SUB_ACTIVITIES_SAVED_STATE_KEY,
                     value = null
                 )
             }
@@ -573,77 +646,6 @@ class DayViewModel(
             key = TASK_SAVED_STATE_KEY,
             value = if (task == null) task else taskUiState.value.toSavedState()
         )
-    }
-
-    fun selectNextTask(selectedTask: Task) {
-        val tasks = dayState.value.tasks
-        var nextTask: Task? = null
-
-        for (task in tasks) {
-            // Find the first task which starts after the selected task
-            if (task.compareTo(selectedTask) == 1) {
-                nextTask = task
-                break
-            }
-        }
-
-        if (nextTask != null) {
-            nextTaskUiState.update {
-                TaskUiState(
-                    id = nextTask.id,
-                    title = nextTask.title,
-                    description = nextTask.description,
-                    date = nextTask.date,
-                    startTime = nextTask.startTime,// Tasks from day state should have a date, start and end time
-                    endTime = nextTask.endTime,
-                    priority = nextTask.priority
-                )
-            }
-        } else {
-            nextTaskUiState.update {
-                TaskUiState()
-            }
-        }
-    }
-
-    fun selectPreviousTask(selectedTask: Task) {
-        val tasks = dayState.value.tasks
-        var previousTask: Task? = null
-        Log.i("DayViewModel", "tasks $tasks")
-
-        // If task's start is before the selected task's start time, it can be counted as a previous task
-        for (task in tasks) {
-            Log.i("DayViewModel", "task $task")
-            if (task.compareTo(selectedTask) == -1) {
-                previousTask = task
-            } else {
-                break
-            }
-        }
-
-        if (previousTask != null) {
-            previousTaskUiState.update {
-                TaskUiState(
-                    id = previousTask.id,
-                    title = previousTask.title,
-                    description = previousTask.description,
-                    date = previousTask.date,
-                    startTime = previousTask.startTime,// Tasks from day state should have a date, start and end time
-                    endTime = previousTask.endTime,
-                    priority = previousTask.priority
-                )
-            }
-        } else {
-            previousTaskUiState.update {
-                TaskUiState()
-            }
-        }
-
-//        // Set the selected task saved state
-//        savedStateHandle.set(
-//            key = TASK_SAVED_STATE_KEY,
-//            value = if (task == null) task else taskUiState.value.toSavedState()
-//        )
     }
 
     fun setActiveTimeEnd(time: Time) {
@@ -708,6 +710,12 @@ class DayViewModel(
                 endTime = time
             )
         }
+        if (subRecordedActivityUiState.value.id != null) {
+            savedStateHandle.set(
+                key = SUB_RECORDED_ACTIVITY_SAVED_STATE_KEY,
+                value = subRecordedActivityUiState.value.toSavedState()
+            )
+        }
     }
 
 //    fun setRecordedActivityId(id: UUID) {
@@ -724,11 +732,37 @@ class DayViewModel(
                 id = id
             )
         }
+        if (mainRecordedActivityUiState.value.id != null) {
+            savedStateHandle.set(
+                key = MAIN_RECORDED_ACTIVITY_SAVED_STATE_KEY,
+                value = mainRecordedActivityUiState.value.toSavedState()
+            )
+        }
     }
     fun setSubRecordedActivityId(id: UUID) {
         subRecordedActivityUiState.update {
             it.copy(
                 id = id
+            )
+        }
+        if (subRecordedActivityUiState.value.id != null) {
+            savedStateHandle.set(
+                key = SUB_RECORDED_ACTIVITY_SAVED_STATE_KEY,
+                value = subRecordedActivityUiState.value.toSavedState()
+            )
+        }
+    }
+
+    fun setSubRecordedActivityMainActivityId(mainActivityId: UUID) {
+        subRecordedActivityUiState.update {
+            it.copy(
+                mainActivityId = mainActivityId
+            )
+        }
+        if (subRecordedActivityUiState.value.id != null) {
+            savedStateHandle.set(
+                key = SUB_RECORDED_ACTIVITY_SAVED_STATE_KEY,
+                value = subRecordedActivityUiState.value.toSavedState()
             )
         }
     }
@@ -747,12 +781,24 @@ class DayViewModel(
                 note = note
             )
         }
+        if (mainRecordedActivityUiState.value.id != null) {
+            savedStateHandle.set(
+                key = MAIN_RECORDED_ACTIVITY_SAVED_STATE_KEY,
+                value = mainRecordedActivityUiState.value.toSavedState()
+            )
+        }
     }
 
     fun setSubRecordedActivityNote(note: String) {
         subRecordedActivityUiState.update {
             it.copy(
                 note = note
+            )
+        }
+        if (subRecordedActivityUiState.value.id != null) {
+            savedStateHandle.set(
+                key = SUB_RECORDED_ACTIVITY_SAVED_STATE_KEY,
+                value = subRecordedActivityUiState.value.toSavedState()
             )
         }
     }
@@ -763,12 +809,24 @@ class DayViewModel(
                 startTime = time
             )
         }
+        if (mainRecordedActivityUiState.value.id != null) {
+            savedStateHandle.set(
+                key = MAIN_RECORDED_ACTIVITY_SAVED_STATE_KEY,
+                value = mainRecordedActivityUiState.value.toSavedState()
+            )
+        }
     }
 
     fun setSubRecordedActivityStartTime(time: Time) {
         subRecordedActivityUiState.update {
             it.copy(
                 startTime = time
+            )
+        }
+        if (subRecordedActivityUiState.value.id != null) {
+            savedStateHandle.set(
+                key = SUB_RECORDED_ACTIVITY_SAVED_STATE_KEY,
+                value = subRecordedActivityUiState.value.toSavedState()
             )
         }
     }
@@ -783,22 +841,6 @@ class DayViewModel(
             savedStateHandle.set(
                 key = MAIN_RECORDED_ACTIVITY_SAVED_STATE_KEY,
                 value = mainRecordedActivityUiState.value.toSavedState()
-            )
-        }
-    }
-
-    fun setNextTaskEndTime(time: Time) {
-        nextTaskUiState.update {
-            it.copy(
-                endTime = time
-            )
-        }
-    }
-
-    fun setNextTaskStartTime(time: Time) {
-        nextTaskUiState.update {
-            it.copy(
-                startTime = time
             )
         }
     }
@@ -841,23 +883,6 @@ class DayViewModel(
         }
     }
 
-    fun setPreviousTaskEndTime(time: Time) {
-        previousTaskUiState.update {
-            it.copy(
-                endTime = time
-            )
-        }
-    }
-
-    fun setPreviousTaskStartTime(time: Time) {
-        previousTaskUiState.update {
-            it.copy(
-                startTime = time
-            )
-        }
-    }
-
-
     fun setSelectedDate(date: LocalDate) {
         userInput.update {
             it.copy(
@@ -876,6 +901,7 @@ class DayViewModel(
                 date = date
             )
         }
+        saveTaskToStateHandle()
     }
 
     fun setTaskDescription (description: String) {
@@ -884,6 +910,7 @@ class DayViewModel(
                 description = description
             )
         }
+        saveTaskToStateHandle()
     }
 
     fun setTaskEndTime(time: Time) {
@@ -892,6 +919,7 @@ class DayViewModel(
                 endTime = time
             )
         }
+        saveTaskToStateHandle()
     }
 
     fun setTaskPriority(value: Int) {
@@ -900,6 +928,7 @@ class DayViewModel(
                 priority = value
             )
         }
+        saveTaskToStateHandle()
     }
 
     fun setTaskStartTime(time: Time) {
@@ -908,6 +937,7 @@ class DayViewModel(
                 startTime = time
             )
         }
+        saveTaskToStateHandle()
     }
 
     fun setTaskTitle (title: String) {
@@ -916,6 +946,7 @@ class DayViewModel(
                 title = title
             )
         }
+        saveTaskToStateHandle()
     }
 
     fun updateLastPlayedPosition(position: Long, itemIndex: Int) {

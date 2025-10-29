@@ -46,8 +46,6 @@ fun Navigation(
     val taskUiState by dayViewModel.taskUiState.collectAsState()
     val toDoTasks by dayViewModel.toDoTasks.collectAsState(emptyList())
     val userInput by dayViewModel.userInput.collectAsState()
-    val nextTaskUiState by dayViewModel.nextTaskUiState.collectAsState()
-    val previousTaskUiState by dayViewModel.previousTaskUiState.collectAsState()
 
     val context = LocalContext.current
     val audioRecorder = AudioRecorder()
@@ -81,8 +79,6 @@ fun Navigation(
                 mainRecordedActivityUiState = mainRecordedActivityUiState,
                 subRecordedActivityUiState = subRecordedActivityUiState,
                 stopwatchService = stopwatchService,
-                nextTaskUiState = nextTaskUiState,
-                previousTaskUiState = previousTaskUiState,
                 taskUiState = taskUiState,
                 toDoTasks = toDoTasks,
                 userInput = userInput,
@@ -113,7 +109,6 @@ fun Navigation(
                 },
                 onClickSaveActiveTime = {
                     dayViewModel.saveDay()
-//                    dayViewModel.setIsActiveTimeSetUp(false)
                 },
                 onMoveToToDoList = {
                     val task = dayState.tasks.find { task -> task.id == taskUiState.id }
@@ -130,12 +125,8 @@ fun Navigation(
                     }
                 },
                 onNavigateToTaskActivityComparison = { navController.navigate(route = TaskActivityComparisonRoute) },
-                onSetDayNote = dayViewModel::setDayNote,
                 onSetSelectedDate = { date ->
                     dayViewModel.setSelectedDate(date)
-                },
-                onSwitchGoals = { firstId, secondId ->
-                    goalViewModel.switchPriorities(firstId, secondId)
                 },
                 onSwitchScreen = dayViewModel::setIsActivityDisplay,
                 saveMainRecordedActivity = dayViewModel::saveMainRecordedActivity,
@@ -143,7 +134,6 @@ fun Navigation(
                 saveDay = dayViewModel::saveDay,
                 saveGoal = goalViewModel::saveGoal,
                 saveGoalFromState = goalViewModel::saveGoal,
-                saveNextTask = dayViewModel::saveNextTask,
                 saveTask = dayViewModel::saveTask,
                 saveTaskFromState = dayViewModel::saveTask,
 //                saveTaskFromState = {
@@ -153,13 +143,9 @@ fun Navigation(
                 saveVoiceNote = dayViewModel::saveVoiceNote,
                 selectActivity = dayViewModel::selectActivity,
                 selectGoal = goalViewModel::selectGoal,
-                selectNextTask = dayViewModel::selectNextTask,
-                selectPreviousTask = dayViewModel::selectPreviousTask,
                 selectTask = dayViewModel::selectTask,
                 setActiveTimeStart = dayViewModel::setActiveTimeStart,
                 setActiveTimeEnd = dayViewModel::setActiveTimeEnd,
-                saveActivity = if (recordedActivity == RecordedActivity.Main) dayViewModel::saveMainRecordedActivity else dayViewModel::saveSubRecordedActivity,
-                setActivityNote = if (recordedActivity == RecordedActivity.Main) dayViewModel::setMainRecordedActivityNote else dayViewModel::setSubRecordedActivityNote,
                 setActualActiveTimeEnd = dayViewModel::setActualActiveTimeEnd,
                 setActualActiveTimeStart = dayViewModel::setActualActiveTimeStart,
                 setDayNote = dayViewModel::setDayNote,
@@ -169,16 +155,14 @@ fun Navigation(
                 setSubRecordedActivityEndTime = dayViewModel::setSubRecordedActivityEndTime,
                 setMainRecordedActivityId = dayViewModel::setMainRecordedActivityId,
                 setSubRecordedActivityId = dayViewModel::setSubRecordedActivityId,
+                setRecordedSubActivityMainActivityId = dayViewModel::setSubRecordedActivityMainActivityId,
                 setMainRecordedActivityNote = dayViewModel::setMainRecordedActivityNote,
                 setSubRecordedActivityNote = dayViewModel::setSubRecordedActivityNote,
                 setMainRecordedActivityStartTime = dayViewModel::setMainRecordedActivityStartTime,
                 setSubRecordedActivityStartTime = dayViewModel::setSubRecordedActivityStartTime,
                 setMainRecordedActivityTitle = dayViewModel::setMainRecordedActivityTitle,
                 setSubRecordedActivityTitle = dayViewModel::setSubRecordedActivityTitle,
-                setIsActiveTimeSetUp = dayViewModel::setIsActiveTimeSetUp,
                 setRecordedActivityState = { state -> setRecordedActivityState(state) },
-                setNextTaskEndTime = dayViewModel::setNextTaskEndTime,
-                setNextTaskStartTime = dayViewModel::setNextTaskStartTime,
                 setTaskDate = dayViewModel::setTaskDate,
                 setTaskDescription = dayViewModel::setTaskDescription,
                 setTaskEndTime = dayViewModel::setTaskEndTime,

@@ -9,6 +9,7 @@ import java.util.UUID
 
 @Entity(
     tableName = "activities",
+    // TODO: sub-activities must be deleted when the main activity is deleted
 //    foreignKeys = [
 //        ForeignKey(
 //            entity = Activity::class,

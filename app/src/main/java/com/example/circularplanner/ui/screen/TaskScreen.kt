@@ -43,8 +43,6 @@ fun TaskScreen(
     lastGoalPriority: Int?,
     lastTaskPriority: Int?,
     state: State,
-    nextTaskUiState: TaskUiState,
-    previousTaskUiState: TaskUiState,
     taskUiState: TaskUiState,
     toDoTasks: List<Task>,
     userInput: UserInput,
@@ -52,24 +50,17 @@ fun TaskScreen(
     deleteTask: () -> Unit,
     onMoveToToDoList: () -> Unit,
     onClickSaveActiveTime: () -> Unit,
-    onSwitchGoals: (UUID, UUID) -> Unit,
     saveGoal: (Goal) -> Unit,
     saveGoalFromState: () -> Unit,
     saveTask: (Task) -> Unit,
     saveTaskFromState: () -> Unit,
     selectGoal: (UUID?) -> Unit,
-    selectNextTask: (Task) -> Unit,
-    selectPreviousTask: (Task) -> Unit,
     selectTask: (UUID?) -> Unit,
     setActiveTimeStart: (Time) -> Unit,
     setActiveTimeEnd: (Time) -> Unit,
     setGoalPriority: (Int) -> Unit,
     setGoalTitle: (String) -> Unit,
-    setIsActiveTimeSetUp: (Boolean) -> Unit,
     onSetSelectedDate: (LocalDate) -> Unit,
-    setNextTaskStartTime: (Time) -> Unit,
-    setNextTaskEndTime: (Time) -> Unit,
-    saveNextTask: () -> Unit,
     setTaskDate: (LocalDate?) -> Unit,
     setTaskDescription: (String) -> Unit,
     setTaskEndTime: (Time) -> Unit,
@@ -77,7 +68,6 @@ fun TaskScreen(
     setTaskPriority: (Int) -> Unit,
     setTaskTitle: (String) -> Unit
 ) {
-//    val showActiveTimeSetUp = dayUiState.isActiveTimeSetUp
     var showActiveTimeSetUp by remember { mutableStateOf(false) }
 
     Column(
@@ -87,10 +77,6 @@ fun TaskScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-//        // Show planner
-//        AnimatedVisibility(
-//            visible = !showActiveTimeSetUp
-//        ) {
             // Show the day planner
             AnimatedVisibility(
                 visible = state == State.Task,
@@ -112,24 +98,16 @@ fun TaskScreen(
                         dayState = dayState,
                         drawClockHand = userInput.selectedDate.isEqual(LocalDate.now()),
                         lastTaskPriority = lastTaskPriority,
-                        nextTaskUiState = nextTaskUiState,
-                        previousTaskUiState = previousTaskUiState,
                         taskUiState = taskUiState,
                         userInput = userInput,
                         deleteTask = deleteTask,
                         onMoveToToDoList = onMoveToToDoList,
-//                        onPressActiveTime = { setIsActiveTimeSetUp(true) },
                         onPressActiveTime = { showActiveTimeSetUp = true },
-                        saveNextTask = saveNextTask,
                         saveTask = saveTask,
                         saveTaskFromState = saveTaskFromState,
-                        selectNextTask = selectNextTask,
-                        selectPreviousTask = selectPreviousTask,
                         selectTask = selectTask,
                         setTaskEndTime = setTaskEndTime,
                         setTaskStartTime = setTaskStartTime,
-                        setNextTaskEndTime = setNextTaskEndTime,
-                        setNextTaskStartTime = setNextTaskStartTime,
                         setTaskDate = setTaskDate,
                         setTaskDescription = setTaskDescription,
                         setTaskPriority = setTaskPriority,
@@ -177,7 +155,6 @@ fun TaskScreen(
                     items = goals,
                     goalUiState = goalUiState,
                     lastGoalPriority = lastGoalPriority,
-//                    onSwitch = onSwitchGoals,
                     deleteGoal = deleteGoal,
                     saveGoal = saveGoal,
                     saveGoalFromState = saveGoalFromState,
@@ -186,20 +163,6 @@ fun TaskScreen(
                     setGoalTitle = setGoalTitle
                 )
             }
-//        }
-
-//        // Show active time setup
-//        AnimatedVisibility(
-//            visible = showActiveTimeSetUp
-//        ) {
-//            ActiveTimeSetUp(
-//                dayUiState = dayUiState,
-//                onBack = { setIsActiveTimeSetUp(false) },
-//                onClickSaveActiveTime = onClickSaveActiveTime,
-//                setActiveTimeStart = setActiveTimeStart,
-//                setActiveTimeEnd = setActiveTimeEnd
-//            )
-//        }
     }
 
     if (showActiveTimeSetUp) {

@@ -29,16 +29,6 @@ object NotificationModule {
     @ServiceScoped
     @Provides
     fun provideNotificationBuilder(@ApplicationContext context: Context): NotificationCompat.Builder {
-//        val job = SupervisorJob()
-//        val scope = CoroutineScope(Dispatchers.IO + job)
-//        var activitiesRepository = RepositoryActivities(OfflineDatabase.getDatabase(context).activityDao())
-//        var recordedActivity: Activity? = null
-//
-//        scope.launch {
-//            recordedActivity = activitiesRepository.getRecordedActivity().first()
-//            Log.i("NotificationModule", recordedActivity.toString())
-//        }
-
         return NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
 //            .setContentTitle(recordedActivity?.title ?: "Activity")//TODO: Set it to the activity's title
             .setContentTitle("Activity")//TODO: Set it to the activity's title

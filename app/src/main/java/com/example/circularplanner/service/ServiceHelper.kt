@@ -19,7 +19,7 @@ object ServiceHelper {
     fun clickPendingIntent(context: Context): PendingIntent {
         // When the notification is clicked, the MainActivity should be opened
         val clickIntent = Intent(context, MainActivity::class.java).apply {
-            putExtra(STOPWATCH_STATE, StopwatchState.Started.name)
+//            putExtra(STOPWATCH_STATE, StopwatchState.Started.name)
         }
 
         return PendingIntent.getActivity(
@@ -42,7 +42,7 @@ object ServiceHelper {
 //            flag
 //        )
 //    }
-//
+
 //    fun cancelPendingIntent(context: Context): PendingIntent {
 //        val cancelIntent = Intent(context, StopwatchService::class.java).apply {
 //            putExtra(STOPWATCH_STATE, StopwatchState.Canceled.name)
@@ -55,7 +55,7 @@ object ServiceHelper {
 //            flag
 //        )
 //    }
-//
+
 //    fun stopPendingIntent(context: Context): PendingIntent {
 //        val stopIntent = Intent(context, StopwatchService::class.java).apply {
 //            putExtra(STOPWATCH_STATE, StopwatchState.Stopped.name)

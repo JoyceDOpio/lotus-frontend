@@ -81,6 +81,8 @@ fun VoiceNoteListItem (
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // TODO: Add timestamp
+
                 // Play/pause button
                 IconButton(
                     modifier = Modifier
@@ -142,6 +144,8 @@ fun VoiceNoteListItem (
                     modifier = Modifier
                         .padding(horizontal = 5.dp)
                 )
+
+                // TODO: Add option to delete
             }
         }
     }

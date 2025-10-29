@@ -1,5 +1,6 @@
 package com.example.circularplanner.ui.screen
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -37,8 +38,8 @@ import com.example.circularplanner.R
 import com.example.circularplanner.data.Time
 import com.example.circularplanner.ui.component.DropDownItem
 import com.example.circularplanner.ui.component.PopupDialog
+import com.example.circularplanner.ui.component.SubActivityList
 import com.example.circularplanner.ui.component.TaskCard
-import com.example.circularplanner.ui.component.TaskCardDisplayType
 import com.example.circularplanner.ui.component.TaskDropdownMenu
 import com.example.circularplanner.ui.component.VoiceNoteList
 import com.example.circularplanner.ui.viewmodel.ActivityUiState
@@ -47,7 +48,6 @@ import com.example.circularplanner.ui.viewmodel.DayState
 import com.example.circularplanner.ui.viewmodel.TaskUiState
 import com.example.circularplanner.ui.viewmodel.UserInput
 import com.example.circularplanner.ui.viewmodel.VoiceNoteUiState
-import com.example.circularplanner.utils.TaskModePopup
 import java.util.UUID
 
 enum class TaskActivityComparisonModePopup {
@@ -202,9 +202,6 @@ fun TaskActivityComparisonScreen (
                                     .fillMaxSize(0.7F)
                             )
                         }
-
-
-
                     }
 
                     TaskCard (
@@ -218,7 +215,8 @@ fun TaskActivityComparisonScreen (
                             text = taskDetails.description,
                             modifier = modifier
                                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState()),
+                                .verticalScroll(rememberScrollState())
+                            ,
                             fontWeight = FontWeight.Normal,
                             fontSize = 18.sp
                         )
@@ -244,7 +242,8 @@ fun TaskActivityComparisonScreen (
                 modifier = Modifier
                     .padding(
                         horizontal = 15.dp,
-                        vertical = 5.dp)
+                        vertical = 5.dp
+                    )
                     .fillMaxWidth(),
                 thickness = 1.dp,
             )
@@ -266,7 +265,9 @@ fun TaskActivityComparisonScreen (
                             modifier = Modifier
                                 .weight(1f)
                         ) {
-                            Spacer(Modifier.weight(1f).background(Color(0xffFAA18F)))
+                            Spacer(Modifier
+                                .weight(1f)
+                            )
                         }
 
                         Row (
@@ -329,17 +330,40 @@ fun TaskActivityComparisonScreen (
                         date = userInput.selectedDate,
                         endTime = activityDetails.endTime,
                         startTime = activityDetails.startTime,
-                        title = activityDetails.title
+                        title = activityDetails.title,
+                        subActivities = activityDetails.subActivitiesUiState
                     ) {
-                        VoiceNoteList(
-                            activityUiState = activityUiState,
-                            audioViewModel = audioViewModel,
-                            removeVoiceNote = deleteVoiceNote,
-                            updateLastPlayedPosition = updateLastPlayedPosition
-                        )
+                        if (activityDetails.note != "") {
+                            // Notes
+                            Text(
+                                text = activityDetails.note,
+                                modifier = modifier
+//                                .fillMaxSize()
+                                    .verticalScroll(rememberScrollState()),
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 18.sp
+                            )
+                        }
+
+                        if (!activityUiState.voiceNotesUiState.isEmpty()) {
+                            VoiceNoteList(
+                                activityUiState = activityUiState,
+                                audioViewModel = audioViewModel,
+                                removeVoiceNote = deleteVoiceNote,
+                                updateLastPlayedPosition = updateLastPlayedPosition
+                            )
+                        }
+
+                        if (!activityUiState.subActivitiesUiState.isEmpty()) {
+                            SubActivityList(
+                                mainActivityUiState = activityUiState,
+                                removeVoiceNote = deleteVoiceNote,
+                                updateLastPlayedPosition = updateLastPlayedPosition
+                            )
+                        }
                     }
                 }
-                // Otherwise, show a statement that there is no task planned for the select time
+                // Otherwise, show a statement that there is no activity carried out during the select time
                 else {
                     Column (
                         modifier = Modifier

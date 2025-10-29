@@ -3,6 +3,7 @@ package com.example.circularplanner.utils
 import androidx.compose.ui.geometry.Offset
 import com.example.circularplanner.data.Time
 import kotlin.math.atan2
+import kotlin.math.floor
 import kotlin.math.sqrt
 
 // Are we setting the start angle (start time) or end angle (end time) of a given task
@@ -257,6 +258,38 @@ object TouchGestureUtils {
 
     fun Float.square(): Float {
         return this * this
+    }
+
+    fun formatTime(minutesTotal: Int): String {
+        var hours = minutesTotal / com.example.circularplanner.ui.component.MINUTES_IN_HOUR
+        var minutes = 0
+
+        if (minutesTotal % com.example.circularplanner.ui.component.MINUTES_IN_HOUR != 0) {
+            hours = floor(hours.toDouble()).toInt()
+            minutes = minutesTotal - hours * com.example.circularplanner.ui.component.MINUTES_IN_HOUR
+        }
+
+        var minuteText = ""
+        var hourText = ""
+        // TODO: Read the labels from resource
+
+        if (hours == 1) {
+            hourText = "$hours hour"
+        }
+
+        if (hours > 1) {
+            hourText = "$hours hours"
+        }
+
+        if (minutes > 0) {
+            minuteText = "$minutes min"
+        }
+
+        if (hours == 0 && minutes == 0) {
+            minuteText = "${0} min"
+        }
+
+        return ("$hourText $minuteText").trim()
     }
 
     // We want the 0 degree angle to correspond to 270 degree (the north of the circle, and not east). We use this for example to draw the clock upright. The purpose of this offset is to TURN the circle LEFT (ANTI-CLOCKWISE) by 90 degrees

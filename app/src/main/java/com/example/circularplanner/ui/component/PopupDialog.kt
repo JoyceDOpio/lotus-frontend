@@ -20,8 +20,8 @@ fun PopupDialog (
         Card(
             modifier = Modifier
                 .size(
-                    380.dp,
-                    400.dp
+                    420.dp,
+                    450.dp
                 )
                 .padding(10.dp)
             ,
