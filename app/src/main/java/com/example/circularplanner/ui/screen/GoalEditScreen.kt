@@ -1,7 +1,9 @@
 package com.example.circularplanner.ui.screen
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,6 +21,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,9 +32,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.circularplanner.R
+import com.example.circularplanner.ui.theme.Red
 import com.example.circularplanner.ui.viewmodel.GoalUiState
 import java.util.UUID
 
@@ -42,16 +50,28 @@ fun GoalEditScreen(
     setGoalPriority: (Int) -> Unit,
     setGoalTitle: (String) -> Unit
 ) {
+    // Texts
+    val createLabelText = "CREATE A GOAL"// TODO: Read string from resource
+    val editLabelText = "EDIT GOAL"// TODO: Read string from resource
+    val titlePlaceholderText = "Title"// TODO: Read string from resource
+
     fun getLabel(goalId: UUID?): String {
         if (goalId == null) {
-            return "CREATE A GOAL"
+            return createLabelText
         }
 
-        return "EDIT GOAL"
+        return editLabelText
     }
 
     val label: String = getLabel(goalUiState.id)
     val goalDetails = goalUiState
+
+    // Validation:
+    // - title cannot be empty
+    var isTitle by remember { mutableStateOf(true) }
+
+    // Warning text
+    val emptyTitleWarning = "The title cannot be empty"// TODO: Read string from resource
 
     if (goalUiState.priority == null) {
         setGoalPriority(lastPriority + 1)
@@ -82,8 +102,12 @@ fun GoalEditScreen(
 
                     // Save button
                     IconButton(onClick = {
-                        saveGoal()
-                        onBack()
+                        if (goalDetails.title == "") isTitle = false
+
+                        if (isTitle) {
+                            saveGoal()
+                            onBack()
+                        }
                     }) {
                         Icon(
                             imageVector = ImageVector.vectorResource(id = R.drawable.save_alt_svgrepo_com),
@@ -118,17 +142,41 @@ fun GoalEditScreen(
             // Title field
             OutlinedTextField(
                 value = goalDetails.title,
-                onValueChange = setGoalTitle,
+                onValueChange = { value ->
+                    setGoalTitle(value)
+                    if (value != "") isTitle = true
+                },
                 modifier = Modifier
                     .padding(vertical = 5.dp)
                     .fillMaxWidth()
                     .fillMaxHeight(0.5f),
                 textStyle = TextStyle(fontSize = 18.sp),
-                label = { Text("Title") },
+                label = { Text(titlePlaceholderText) },
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 singleLine = false,
                 shape = RoundedCornerShape(15.dp)
             )
+
+            // Warning
+            AnimatedVisibility(
+                visible = !isTitle
+            ) {
+                Row (
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    Text(
+                        modifier = Modifier
+                            .padding(start = 10.dp)
+                        ,
+                        text = emptyTitleWarning,
+                        fontSize = 13.sp,
+                        color = Red,
+                        textAlign = TextAlign.Start
+                    )
+                }
+            }
         }
     }
 }

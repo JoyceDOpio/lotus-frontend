@@ -5,22 +5,16 @@ import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,15 +24,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.circularplanner.R
 import com.example.circularplanner.data.Goal
 import com.example.circularplanner.data.Task
@@ -50,8 +40,6 @@ import com.example.circularplanner.ui.component.ActivityRecorder
 import com.example.circularplanner.ui.component.Calendar
 import com.example.circularplanner.ui.component.ComparisonDial
 import com.example.circularplanner.ui.component.PopupDialog
-import com.example.circularplanner.ui.component.leftBorder
-import com.example.circularplanner.ui.navigation.RecordedActivity
 import java.util.UUID
 import com.example.circularplanner.ui.viewmodel.ActivityUiState
 import com.example.circularplanner.ui.viewmodel.DayState
@@ -59,7 +47,6 @@ import com.example.circularplanner.ui.viewmodel.DayUiState
 import com.example.circularplanner.ui.viewmodel.GoalUiState
 import com.example.circularplanner.ui.viewmodel.TaskUiState
 import com.example.circularplanner.ui.viewmodel.UserInput
-import com.example.circularplanner.utils.NoteModePopup
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -74,21 +61,25 @@ enum class State {
     ToDo
 }
 
+enum class ActivityPopupState {
+    ActivityRecorder,
+    Notes
+}
+
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 @SuppressLint("ViewModelConstructorInComposable")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlannerScreen(
     context: Context,
-    activityUiState: ActivityUiState,
     dayUiState: DayUiState,
     dayState: DayState,
     goals: List<Goal>,
     goalUiState: GoalUiState,
     lastGoalPriority: Int?,
     lastTaskPriority: Int?,
-    mainRecordedActivityUiState: ActivityUiState,
-    subRecordedActivityUiState: ActivityUiState,
+    recordedMainActivityUiState: ActivityUiState,
+    recordedSubActivityUiState: ActivityUiState,
     stopwatchService: StopwatchService,
     taskUiState: TaskUiState,
     toDoTasks: List<Task>,
@@ -97,6 +88,7 @@ fun PlannerScreen(
     clearSubRecordedActivity: () -> Unit,
     deleteGoal: (Goal) -> Unit,
     deleteTask: () -> Unit,
+    onMoveToCalendar: () -> Unit,
     onMoveToToDoList: () -> Unit,
     onNavigateToTaskActivityComparison: () -> Unit,
     onClickSaveActiveTime: () -> Unit,
@@ -115,8 +107,6 @@ fun PlannerScreen(
     selectTask: (UUID?) -> Unit,
     setActiveTimeEnd: (Time) -> Unit,
     setActiveTimeStart: (Time) -> Unit,
-//    setMainActivityNote: (String) -> Unit,
-//    setSubActivityNote: (String) -> Unit,
     setActualActiveTimeEnd: (Time) -> Unit,
     setActualActiveTimeStart: (Time) -> Unit,
     setDayNote: (String) -> Unit,
@@ -133,7 +123,6 @@ fun PlannerScreen(
     setSubRecordedActivityStartTime: (Time) -> Unit,
     setMainRecordedActivityTitle: (String) -> Unit,
     setSubRecordedActivityTitle: (String) -> Unit,
-    setRecordedActivityState: (RecordedActivity) -> Unit,
     setTaskDate: (LocalDate?) -> Unit,
     setTaskDescription: (String) -> Unit,
     setTaskEndTime: (Time) -> Unit,
@@ -145,13 +134,17 @@ fun PlannerScreen(
 ) {
     val formatter = DateTimeFormatter.ofPattern("d. MMMM yyyy")
     val selectedDate = userInput.selectedDate
-    val showActivityScreen = dayUiState.isActivityDisplay
 
     var displayState by remember { mutableStateOf(State.Task) }
     var button1State by remember { mutableStateOf(State.Goal) }
     var button2State by remember { mutableStateOf(State.ToDo) }
 
     var showPopupWindow by remember { mutableStateOf(false) }
+
+    val showActivityScreen = dayUiState.isActivityDisplay
+    var activityPopupState by remember { mutableStateOf(ActivityPopupState.ActivityRecorder) }
+
+    val isSubActivityTimerRunning  = (recordedSubActivityUiState.id != null)
 
     Scaffold (
         topBar = {
@@ -177,6 +170,18 @@ fun PlannerScreen(
 //                            Icon(Icons.Filled.Menu, contentDescription = "Localized description")
 //                        }
 //                    }
+                    if (showActivityScreen) {
+                        IconButton(
+                            onClick = { onSwitchScreen(false) }
+                        ) {
+                            Icon(
+                                imageVector = ImageVector.vectorResource(id = R.drawable.cancel_svgrepo_com),
+                                contentDescription = "Back",
+                                modifier = Modifier.fillMaxSize(0.8F),
+                                tint = Color(BOTTOM_BAR_TEXT_COLOR)
+                            )
+                        }
+                    }
                     // These actions should be at the end of the BottomAppBar. They use the default medium
                     // content alpha provided by BottomAppBar
                     // The Spacer pushes the other icons to the end of the app bar
@@ -247,13 +252,13 @@ fun PlannerScreen(
                                         },
                                     contentDescription = when (button1State) {
                                         State.Goal -> {
-                                            "Goals"// TODO: Read string from resource
+                                            "Goals"
                                         }
                                         State.Task -> {
-                                            "Tasks"// TODO: Read string from resource
+                                            "Tasks"
                                         }
                                         State.ToDo -> {
-                                            "ToDo"// TODO: Read string from resource
+                                            "ToDo"
                                         }
                                     },
                                     modifier = Modifier.fillMaxSize(0.8F),
@@ -294,13 +299,13 @@ fun PlannerScreen(
                                     },
                                     contentDescription = when (button2State) {
                                         State.Goal -> {
-                                            "Goals"// TODO: Read string from resource
+                                            "Goals"
                                         }
                                         State.Task -> {
-                                            "Tasks"// TODO: Read string from resource
+                                            "Tasks"
                                         }
                                         State.ToDo -> {
-                                            "ToDo"// TODO: Read string from resource
+                                            "ToDo"
                                         }
                                     },
                                     modifier = Modifier.fillMaxSize(0.8F),
@@ -311,41 +316,21 @@ fun PlannerScreen(
 
                         // If the selected date is in the future, don't show the activities. The activity recording should be reserved only for today.
                         if (!selectedDate.isAfter(LocalDate.now())) {
-                            AnimatedVisibility(
-                                visible = showActivityScreen
-                            ) {
-                                IconButton(onClick = {
+                            IconButton(onClick = {
+                                if (showActivityScreen) {
                                     // Show the activity recorder in a pop-up dialog
                                     showPopupWindow = true
-                                }) {
-                                    Icon(
-                                        imageVector = ImageVector.vectorResource(id = R.drawable.timer_svgrepo_com),
-                                        contentDescription = "Activity recorder",
-                                        modifier = Modifier.fillMaxSize(0.8F),
-                                        tint = Color(BOTTOM_BAR_TEXT_COLOR)
-                                    )
-                                }
-                            }
-
-                            IconButton(onClick = {
-                                onSwitchScreen(!showActivityScreen)
-                            }) {
-                                if (!showActivityScreen) {
-                                    Icon(
-                                        imageVector = ImageVector.vectorResource(id = R.drawable.graph_svgrepo_com),
-                                        contentDescription = "Activity display",
-                                        modifier = Modifier.fillMaxSize(0.8F),
-                                        tint = Color(BOTTOM_BAR_TEXT_COLOR)
-                                    )
                                 }
                                 else {
-                                    Icon(
-                                        imageVector = ImageVector.vectorResource(id = R.drawable.graph_infographic_data_element_2_svgrepo_com),
-                                        contentDescription = "Task display",
-                                        modifier = Modifier.fillMaxSize(0.8F),
-                                        tint = Color(BOTTOM_BAR_TEXT_COLOR)
-                                    )
+                                    onSwitchScreen(true)
                                 }
+                            }) {
+                                Icon(
+                                    imageVector = if (showActivityScreen) ImageVector.vectorResource(id = R.drawable.timer_svgrepo_com) else ImageVector.vectorResource(id = R.drawable.pie_chart_svgrepo_com),
+                                    contentDescription = "Activity recorder",
+                                    modifier = Modifier.fillMaxSize((if (showActivityScreen) 0.8f else 0.7f)),
+                                    tint = Color(BOTTOM_BAR_TEXT_COLOR)
+                                )
                             }
                         }
                     }
@@ -417,7 +402,6 @@ fun PlannerScreen(
                 TaskScreen(
                     innerPadding = innerPadding,
                     dayState = dayState,
-                    dayUiState = dayUiState,
                     goalUiState = goalUiState,
                     goals = goals,
                     lastGoalPriority = lastGoalPriority,
@@ -429,6 +413,7 @@ fun PlannerScreen(
                     deleteGoal = deleteGoal,
                     deleteTask = deleteTask,
                     onClickSaveActiveTime = onClickSaveActiveTime,
+                    onMoveToCalendar = onMoveToCalendar,
                     onMoveToToDoList = onMoveToToDoList,
                     onSetSelectedDate = onSetSelectedDate,
                     saveGoal = saveGoal,
@@ -472,59 +457,60 @@ fun PlannerScreen(
             }
         ) {
             if (showActivityScreen) {
-                ActivityRecorder(
-                    context = context,
-                    modifier = Modifier
-                        .padding(
-                            horizontal = 5.dp,
-                            vertical = 5.dp
+                when (activityPopupState) {
+                    ActivityPopupState.ActivityRecorder -> {
+                        ActivityRecorder(
+                            context = context,
+                            modifier = Modifier
+                                .padding(
+                                    horizontal = 5.dp,
+                                    vertical = 5.dp
+                                )
+                            ,
+                            dayState = dayState,
+                            recordedMainActivityUiState = recordedMainActivityUiState,
+                            recordedSubActivityUiState = recordedSubActivityUiState,
+                            stopwatchService = stopwatchService,
+                            clearRecordedMainActivity = clearMainRecordedActivity,
+                            clearRecordedSubActivity = clearSubRecordedActivity,
+                            onNavigateToActivityNoteEdit = {
+                                activityPopupState = ActivityPopupState.Notes
+                            },
+                            saveRecordedMainActivity = saveMainRecordedActivity,
+                            saveRecordedSubActivity = saveSubRecordedActivity,
+                            saveDay = saveDay,
+                            saveVoiceNote = saveVoiceNote,
+                            setActualActiveTimeEnd = setActualActiveTimeEnd,
+                            setActualActiveTimeStart = setActualActiveTimeStart,
+                            setRecordedMainActivityId = setMainRecordedActivityId,
+                            setRecordedSubActivityId = setSubRecordedActivityId,
+                            setRecordedSubActivityMainActivityId = setRecordedSubActivityMainActivityId,
+                            setRecordedMainActivityTitle = setMainRecordedActivityTitle,
+                            setRecordedSubActivityTitle = setSubRecordedActivityTitle,
+                            setRecordedMainActivityStartTime = setMainRecordedActivityStartTime,
+                            setRecordedSubActivityStartTime = setSubRecordedActivityStartTime,
+                            setRecordedMainActivityEndTime = setMainRecordedActivityEndTime,
+                            setRecordedSubActivityEndTime = setSubRecordedActivityEndTime,
+                            startRecording = startRecording,
+                            stopRecording = stopRecording,
                         )
-//                        .border(
-//                            width = 1.dp,
-//                            color = Color.LightGray,
-//                            shape = RoundedCornerShape(15.dp)
-//                        )
-                    ,
-//                .clip(RoundedCornerShape(15.dp))
-                    dayState = dayState,
-                    recordedMainActivityUiState = mainRecordedActivityUiState,
-                    recordedSubActivityUiState = subRecordedActivityUiState,
-                    stopwatchService = stopwatchService,
-                    clearRecordedMainActivity = clearMainRecordedActivity,
-                    clearRecordedSubActivity = clearSubRecordedActivity,
-                    onNavigateToMainActivityNoteEdit = {// TODO
-                        setRecordedActivityState(RecordedActivity.Main)
-//                        popupState = NoteModePopup.Activity
-////                        showPopupWindow = true
-//                        showNotes = true
-                    },
-                    onNavigateToSubActivityNoteEdit = {// TODO
-                        setRecordedActivityState(RecordedActivity.Sub)
-//                        popupState = NoteModePopup.Activity
-////                        showPopupWindow = true
-//                        showNotes = true
-                    },
-                    saveRecordedMainActivity = saveMainRecordedActivity,
-                    saveRecordedSubActivity = saveSubRecordedActivity,
-                    saveDay = saveDay,
-                    saveVoiceNote = saveVoiceNote,
-//                setActivityNote = setMainActivityNote,
-                    setActualActiveTimeEnd = setActualActiveTimeEnd,
-                    setActualActiveTimeStart = setActualActiveTimeStart,
-                    setRecordedMainActivityId = setMainRecordedActivityId,
-                    setRecordedSubActivityId = setSubRecordedActivityId,
-                    setRecordedSubActivityMainActivityId = setRecordedSubActivityMainActivityId,
-//                setRecordedActivityNote = setMainRecordedActivityNote,
-                    setRecordedMainActivityTitle = setMainRecordedActivityTitle,
-                    setRecordedSubActivityTitle = setSubRecordedActivityTitle,
-                    setRecordedMainActivityStartTime = setMainRecordedActivityStartTime,
-                    setRecordedSubActivityStartTime = setSubRecordedActivityStartTime,
-                    setRecordedMainActivityEndTime = setMainRecordedActivityEndTime,
-                    setRecordedSubActivityEndTime = setSubRecordedActivityEndTime,
-                    startRecording = startRecording,
-                    stopRecording = stopRecording,
-//                removeVoiceNote = removeVoiceNote
-                )
+                    }
+                    ActivityPopupState.Notes -> {
+                        ActivityEditScreen(
+                            activityUiState = if (isSubActivityTimerRunning) recordedSubActivityUiState else recordedMainActivityUiState,
+                            onBack = {
+                                activityPopupState = ActivityPopupState.ActivityRecorder
+                            },
+                            saveActivity = {
+                                if (isSubActivityTimerRunning) saveSubRecordedActivity() else saveMainRecordedActivity()
+                                activityPopupState = ActivityPopupState.ActivityRecorder
+                            },
+                            setActivityNote = { value ->
+                                if (isSubActivityTimerRunning) setSubRecordedActivityNote(value) else setMainRecordedActivityNote(value)
+                            }
+                        )
+                    }
+                }
             }
             else {
                 when (displayState) {

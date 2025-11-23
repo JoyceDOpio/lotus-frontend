@@ -32,7 +32,7 @@ fun ListItemGoal(
     modifier: Modifier = Modifier,
     goal: Goal,
     onNavigateToGoalEdit: () -> Unit,
-    deleteGoal: (Goal) -> Unit,
+    onDeleteGoal: (Goal) -> Unit,
     selectGoal: (UUID?) -> Unit
 ){
     OutlinedCard(
@@ -103,7 +103,7 @@ fun ListItemGoal(
                         text = "Delete",
                         iconId = R.drawable.delete_24dp_5f6368_fill0_wght400_grad0_opsz24,
                         onClick = {
-                            deleteGoal(goal)
+                            onDeleteGoal(goal)
                         }
                     ),
                 )

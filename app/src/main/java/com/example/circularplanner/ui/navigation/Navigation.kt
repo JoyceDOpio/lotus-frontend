@@ -1,6 +1,7 @@
 package com.example.circularplanner.ui.navigation
 
 import android.os.Build
+import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
@@ -12,6 +13,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.circularplanner.service.StopwatchService
+import com.example.circularplanner.ui.screen.MoveToCalendarScreen
 import com.example.circularplanner.ui.screen.PlannerScreen
 import com.example.circularplanner.ui.screen.TaskActivityComparisonScreen
 import com.example.circularplanner.ui.screen.WelcomeScreen
@@ -23,11 +25,6 @@ import com.example.circularplanner.ui.viewmodel.toVoiceNote
 import com.example.circularplanner.utils.AudioRecorder
 import java.io.File
 
-enum class RecordedActivity {
-    Main,
-    Sub
-}
-
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 @Composable
 fun Navigation(
@@ -38,7 +35,6 @@ fun Navigation(
 
     val activityUiState by dayViewModel.activityUiState.collectAsState()
     val dayState by dayViewModel.dayState.collectAsState()
-//    val recordedActivityUiState by dayViewModel.mainRecordedActivityUiState.collectAsState()
     val mainRecordedActivityUiState by dayViewModel.mainRecordedActivityUiState.collectAsState()
     val subRecordedActivityUiState by dayViewModel.subRecordedActivityUiState.collectAsState()
     val dayUiState by dayViewModel.dayUiState.collectAsState()
@@ -55,29 +51,44 @@ fun Navigation(
     val goalUiState by goalViewModel.goalUiState.collectAsState()
     val lastGoalPriority by goalViewModel.lastPriority.collectAsState()
 
-    var recordedActivity = RecordedActivity.Main
-
-    fun setRecordedActivityState(state: RecordedActivity) {
-        recordedActivity = state
-    }
-
     NavHost(
         navController = navController,
-//        startDestination = WelcomeRoute// TODO: Move welcoming (goals display) to the splash screen
+//        startDestination = WelcomeRoute// TODO: Display welcoming (goals) once every day
         startDestination = PlannerRoute
     ) {
+        composable<MoveToCalendarRoute> { backStackEntry ->
+            MoveToCalendarScreen(
+                dayState = dayState,
+                taskUiState = taskUiState,
+                userInput = userInput,
+                onBack = { navController.popBackStack() },
+                onClickSaveActiveTime = {
+                    dayViewModel.saveDay()
+                },
+                onSetSelectedDate = { date ->
+                    dayViewModel.setSelectedDate(date)
+                },
+                saveTask = dayViewModel::saveTask,
+                setActiveTimeStart = dayViewModel::setActiveTimeStart,
+                setActiveTimeEnd = dayViewModel::setActiveTimeEnd,
+                setTaskDate = dayViewModel::setTaskDate,
+                setTaskEndTime = dayViewModel::setTaskEndTime,
+                setTaskPriority = dayViewModel::setTaskPriority,
+                setTaskStartTime = dayViewModel::setTaskStartTime,
+            )
+        }
+
         composable<PlannerRoute> { backStackEntry ->
             PlannerScreen(
                 context = context,
-                activityUiState = if (recordedActivity == RecordedActivity.Main) mainRecordedActivityUiState else subRecordedActivityUiState,
                 dayUiState = dayUiState,
                 dayState = dayState,
                 goals = goals,
                 goalUiState = goalUiState,
                 lastGoalPriority = lastGoalPriority,
                 lastTaskPriority = lastTaskPriority,
-                mainRecordedActivityUiState = mainRecordedActivityUiState,
-                subRecordedActivityUiState = subRecordedActivityUiState,
+                recordedMainActivityUiState = mainRecordedActivityUiState,
+                recordedSubActivityUiState = subRecordedActivityUiState,
                 stopwatchService = stopwatchService,
                 taskUiState = taskUiState,
                 toDoTasks = toDoTasks,
@@ -104,11 +115,15 @@ fun Navigation(
                     val task = tasks.find { task -> task.id == dayViewModel.taskUiState.value.id }
 
                     if (task != null) {
+                        Log.i("Navigation", "task $task")
                         dayViewModel.deleteTask(task)
                     }
                 },
                 onClickSaveActiveTime = {
                     dayViewModel.saveDay()
+                },
+                onMoveToCalendar = {
+                    navController.navigate(route = MoveToCalendarRoute)
                 },
                 onMoveToToDoList = {
                     val task = dayState.tasks.find { task -> task.id == taskUiState.id }
@@ -136,10 +151,6 @@ fun Navigation(
                 saveGoalFromState = goalViewModel::saveGoal,
                 saveTask = dayViewModel::saveTask,
                 saveTaskFromState = dayViewModel::saveTask,
-//                saveTaskFromState = {
-//                    Log.i("taskUiState", taskUiState.toString())
-//                    dayViewModel.saveTask()
-//                },
                 saveVoiceNote = dayViewModel::saveVoiceNote,
                 selectActivity = dayViewModel::selectActivity,
                 selectGoal = goalViewModel::selectGoal,
@@ -162,7 +173,6 @@ fun Navigation(
                 setSubRecordedActivityStartTime = dayViewModel::setSubRecordedActivityStartTime,
                 setMainRecordedActivityTitle = dayViewModel::setMainRecordedActivityTitle,
                 setSubRecordedActivityTitle = dayViewModel::setSubRecordedActivityTitle,
-                setRecordedActivityState = { state -> setRecordedActivityState(state) },
                 setTaskDate = dayViewModel::setTaskDate,
                 setTaskDescription = dayViewModel::setTaskDescription,
                 setTaskEndTime = dayViewModel::setTaskEndTime,
@@ -181,7 +191,9 @@ fun Navigation(
                 taskUiState = taskUiState,
                 userInput = userInput,
                 deleteActivity = { dayViewModel.deleteActivity(dayViewModel.activityUiState.value.toActivity()) },
-                deleteTask = { dayViewModel.deleteTask(dayViewModel.taskUiState.value.toTask()) },
+                deleteTask = { dayViewModel.deleteTask(dayViewModel.taskUiState.value.toTask().copy(
+                    id = dayViewModel.taskUiState.value.id!!
+                )) },
                 deleteVoiceNote = {voiceNoteUiState ->
                     try {
                         val file = File(voiceNoteUiState.uri)
@@ -204,6 +216,7 @@ fun Navigation(
                 selectActivity = dayViewModel::selectActivity,
                 selectTask = dayViewModel::selectTask,
                 setActivityNote = dayViewModel::setActivityNote,
+                setActivityTitle = dayViewModel::setActivityTitle,
                 setTaskDescription = dayViewModel::setTaskDescription,
                 setTaskEndTime = dayViewModel::setTaskEndTime,
                 setTaskPriority = dayViewModel::setTaskPriority,

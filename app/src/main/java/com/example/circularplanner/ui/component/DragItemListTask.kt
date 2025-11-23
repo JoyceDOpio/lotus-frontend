@@ -19,6 +19,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.zIndex
 import com.example.circularplanner.data.Task
 import com.example.circularplanner.data.Time
+import com.example.circularplanner.ui.screen.DeleteScreen
 import com.example.circularplanner.ui.screen.TaskEditScreen
 import com.example.circularplanner.ui.screen.TaskInfoScreen
 import com.example.circularplanner.ui.viewmodel.DayState
@@ -34,6 +35,7 @@ fun DragItemListTask(//TODO: Merge with DragItemListGoal
     lastTaskPriority: Int?,
     taskUiState: TaskUiState,
     deleteTask: () -> Unit,
+    onMoveToCalendar: () -> Unit,
     onMoveToToDoList: () -> Unit,
     saveTask: (Task) -> Unit,
     saveTaskFromState: () -> Unit,
@@ -149,11 +151,9 @@ fun DragItemListTask(//TODO: Merge with DragItemListGoal
                 Modifier
             }
 
-//            listItem(modifier, item)
             ListItemTask(
                 modifier,
                 item,
-//                onNavigateToTaskInfo = onNavigateToTaskInfo,
                 onNavigateToTaskInfo = { showPopupWindow = true },
                 selectTask = selectTask
             )
@@ -186,14 +186,15 @@ fun DragItemListTask(//TODO: Merge with DragItemListGoal
                 TaskModePopup.Info -> {
                     TaskInfoScreen(
                         displayType = TaskCardDisplayType.Popup,
+                        dayState = dayState,
                         taskUiState = taskUiState,
-                        deleteTask = deleteTask,
+                        onDeleteTask = {
+                            taskState = TaskModePopup.Delete
+                        },
                         onBack = {
                             showPopupWindow = false
                         },
-                        onNavigateToMoveToCalendar = {
-//                    val task = toDoTasks.find { task -> task.id == taskUiState.id }
-                        },
+                        onMoveToCalendar = onMoveToCalendar,
                         onMoveToToDoList = onMoveToToDoList,
                         onNavigateToTaskEdit = {
                             taskState = TaskModePopup.Edit
@@ -201,7 +202,19 @@ fun DragItemListTask(//TODO: Merge with DragItemListGoal
                     )
                 }
 
-                TaskModePopup.Delete -> TODO()
+                TaskModePopup.Delete -> {
+                    DeleteScreen(
+                        onBack = {
+                            taskState = TaskModePopup.Info
+                            showPopupWindow = false
+                        },
+                        onDelete = {
+                            deleteTask()
+                            selectTask(null)
+                            showPopupWindow = false
+                        }
+                    )
+                }
             }
         }
     }

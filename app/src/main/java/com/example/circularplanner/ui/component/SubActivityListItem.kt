@@ -1,32 +1,19 @@
 package com.example.circularplanner.ui.component
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,14 +21,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.circularplanner.R
 import com.example.circularplanner.data.Time
@@ -55,17 +38,14 @@ import java.time.LocalDateTime
 fun SubActivityListItem (
     ordinalNumber: Int,
     subActivity: ActivityUiState,
-    deleteVoiceNote: (VoiceNoteUiState) -> Unit,
+    onDelete: (ActivityUiState) -> Unit,
+    onDeleteVoiceNote: (VoiceNoteUiState) -> Unit,
+    onEdit: (ActivityUiState) -> Unit,
     updateLastPlayedPosition: (Long, Int) -> Unit
 ) {
     val audioViewModel: AudioViewModel = viewModel(factory = AudioViewModel.Factory)
 
     var showContent by remember { mutableStateOf(false) }
-    val contentAlpha by animateFloatAsState(
-        targetValue = if (showContent) 1f else 0f,
-        animationSpec = tween(durationMillis = 1000),
-        label = ""
-    )
     // A value to use in case an activity has not been finished yet
     var endTimeValue = subActivity.endTime
 
@@ -73,23 +53,16 @@ fun SubActivityListItem (
         endTimeValue = Time(LocalDateTime.now().hour, LocalDateTime.now().minute)
     }
 
-//    OutlinedCard(
-//    Card(
-    Row(
+    // Texts
+    val notesHeader = "NOTES"// TODO: Read string from source string
+    val editText = "Edit"//TODO: Read from string resource
+    val deleteText = "Delete"//TODO: Read from string resource
+
+    Column(
         modifier = Modifier
-//            .padding(vertical = 10.dp)
-            .sizeIn(maxHeight = 50.dp)
+            .padding(vertical = 5.dp)
             .fillMaxWidth()
-//            .background(Color(0xffffffff))
-        ,
-//        border = CardDefaults.outlinedCardBorder()
     ) {
-        Column (
-            modifier = Modifier
-//                .padding(horizontal = 10.dp)
-            ,
-            verticalArrangement = Arrangement.Center,
-        ) {
             Row (
                 modifier = Modifier
                     .fillMaxSize()
@@ -99,11 +72,12 @@ fun SubActivityListItem (
             ) {
                 Row (
                     modifier = Modifier
-                        .fillMaxWidth(0.5f)
+                        .fillMaxWidth(0.6f)
                     ,
                     horizontalArrangement = Arrangement.Start,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Number of sub-activity
                     Text (
                         text = ordinalNumber.toString(),
                         fontWeight = FontWeight.Bold,
@@ -112,12 +86,15 @@ fun SubActivityListItem (
 
                     Spacer(modifier = Modifier.width(10.dp))
 
-                    Row () {
+                    Row (
+
+                    ) {
+                        // Sub-activity start time
                         Text (text = "${subActivity.startTime}")
 
                         Spacer(modifier = Modifier.width(10.dp))
 
-                        // Time duration
+                        // Sub-activity duration
                         val totalMinutes = TouchGestureUtils.calculateTotalNumberOfMinutes(
                             subActivity.startTime, endTimeValue)
                         val hours = totalMinutes / TouchGestureUtils.MINUTES_IN_HOUR
@@ -140,20 +117,19 @@ fun SubActivityListItem (
 
                         Text(
                             text = timeDurationText,
-                            fontWeight = FontWeight.Thin,
-//                                fontSize = 18.sp
+                            fontWeight = FontWeight.Thin
                         )
                     }
                 }
 
-//                Spacer(modifier = Modifier.width(20.dp))
-
                 Row (
                     modifier = Modifier
-                        .fillMaxWidth(0.5f)
+                        .fillMaxWidth(1f)
                     ,
                     horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
                 ){
+                    // Sub-activity title
                     Text (
                         text = subActivity.title,
                         modifier = Modifier
@@ -179,35 +155,59 @@ fun SubActivityListItem (
                             )
                         }
                     }
+
+                    val dropdownItems = listOf(
+                        DropDownItem(
+                            text = editText,
+                            iconId = R.drawable.edit_24dp_5f6368_fill0_wght400_grad0_opsz24,
+                            onClick = { onEdit(subActivity) }
+                        ),
+                        DropDownItem(
+                            text = deleteText,
+                            iconId = R.drawable.delete_24dp_5f6368_fill0_wght400_grad0_opsz24,
+                            onClick = { onDelete(subActivity) }
+                        )
+                    )
+                    TaskDropdownMenu(
+                        dropdownItems = dropdownItems,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxSize(0.7F)
+                    )
                 }
             }
 
 
-            Column (
-                modifier = Modifier
-                    .alpha(contentAlpha)
+            AnimatedVisibility(
+                visible = showContent
             ) {
-                val totalMinutes = TouchGestureUtils.calculateTotalNumberOfMinutes(subActivity.startTime, endTimeValue)
+                Column (
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 23.dp)
+                ) {
+                    // Notes
+                    Text (
+                        text = notesHeader,
+                        fontWeight = FontWeight.Light,
+                        color = MaterialTheme.colorScheme.primary
+                    )
 
-                Text (text = TouchGestureUtils.formatTime(totalMinutes))
+                    Text(
+                        text = subActivity.note,
+                        modifier = Modifier
+                            .fillMaxSize()
+                        ,
+                        fontWeight = FontWeight.Normal
+                    )
 
-                // Notes
-                Text(
-                    text = subActivity.note,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState()),
-                    fontWeight = FontWeight.Normal,
-                    fontSize = 18.sp
-                )
-
-                VoiceNoteList(
-                    activityUiState = subActivity,
-                    audioViewModel = audioViewModel,
-                    removeVoiceNote = deleteVoiceNote,
-                    updateLastPlayedPosition = updateLastPlayedPosition
-                )
+                    VoiceNoteList(
+                        activityUiState = subActivity,
+                        audioViewModel = audioViewModel,
+                        onDeleteItem = onDeleteVoiceNote,
+                        updateLastPlayedPosition = updateLastPlayedPosition
+                    )
+                }
             }
-        }
     }
 }

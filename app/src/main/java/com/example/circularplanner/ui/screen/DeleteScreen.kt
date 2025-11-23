@@ -19,17 +19,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.circularplanner.R
 
 enum class DeleteType {
     Activity,
     Goal,
-    Task
+    Task,
+    VoiceNote
 }
+
+class Deletable()
+
 @Composable
 fun DeleteScreen (
     onBack: () -> Unit,
     onDelete: () -> Unit,
+//    onDelete: (Deletable) -> Unit,
     deleteType: DeleteType = DeleteType.Task
 ) {
 //    val icon = R.drawable.delete_24dp_5f6368_fill0_wght400_grad0_opsz24
@@ -37,6 +41,7 @@ fun DeleteScreen (
         DeleteType.Activity -> "activity"
         DeleteType.Goal -> "goal"
         DeleteType.Task -> "task"
+        DeleteType.VoiceNote -> "voice note"
     }
     }?"//TODO: Read string from resource
     val cancelButtonText = "Cancel"
@@ -78,8 +83,6 @@ fun DeleteScreen (
 
                 Button(
                     onClick = onDelete,
-//                modifier = Modifier
-//                    .fillMaxWidth(0.9f),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(

@@ -20,6 +20,8 @@ data class Task (
     @PrimaryKey
     val id: UUID = UUID.randomUUID()
 ) {
+
+
     fun compareTo(task: Task): Int {
         //TODO: handle case when task is null
 
@@ -45,4 +47,28 @@ data class Task (
 
         return 0
     }
+}
+
+val taskComparator = Comparator<Task> { a, b ->
+    // return:
+    // -1 if the task starts earlier than the task it is compared to
+    // 0 the tasks have the same starting time
+    // 1 if the task starts later than the task it is compared to
+    if (a.startTime != null && b.startTime != null) {
+        if (a.startTime!!.hour < b.startTime!!.hour) {
+            return@Comparator -1
+        } else if (a.startTime!!.hour > b.startTime!!.hour) {
+            return@Comparator 1
+        } else {
+            if (a.startTime!!.minute < b.startTime!!.minute) {
+                return@Comparator -1
+            } else if (a.startTime!!.minute > b.startTime!!.minute) {
+                return@Comparator 1
+            } else {
+                return@Comparator 0
+            }
+        }
+    }
+
+    return@Comparator 0
 }

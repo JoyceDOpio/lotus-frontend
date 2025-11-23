@@ -89,6 +89,7 @@ data class TaskSavedState (
 //typealias VoiceNotes = List<VoiceNote>
 typealias VoiceNotesUiState = List<VoiceNoteUiState>
 data class ActivityUiState (
+    val date: LocalDate = LocalDate.now(),
     val id: UUID? = null,
     var title: String = "",
     var note: String = "",
@@ -101,6 +102,7 @@ data class ActivityUiState (
 
 @Parcelize
 data class ActivitySavedState (
+    val date: LocalDate,
     val id: UUID,
     val title: String = "",
     val note: String = "",
@@ -166,6 +168,7 @@ class DayViewModel(
         viewModelScope.launch {
             activitiesRepository.getMainRecordedActivity().first()?.also { recordedActivity ->
                 mainRecordedActivityUiState.value = ActivityUiState(
+                    date = recordedActivity.date,
                     id = recordedActivity.id,
                     title = recordedActivity.title,
                     note = recordedActivity.note,
@@ -175,6 +178,7 @@ class DayViewModel(
 
             activitiesRepository.getSubRecordedActivity().first()?.also { recordedActivity ->
                 subRecordedActivityUiState.value = ActivityUiState(
+                    date = recordedActivity.date,
                     id = recordedActivity.id,
                     title = recordedActivity.title,
                     note = recordedActivity.note,
@@ -200,6 +204,7 @@ class DayViewModel(
             }
             val subActivities = (savedStateHandle.get<List<ActivitySavedState>>(SUB_ACTIVITIES_SAVED_STATE_KEY) ?: emptyList()).map { it ->
                 ActivityUiState(
+                    date = it.date,
                     id = it.id,
                     title = it.title,
                     note = it.note,
@@ -210,6 +215,7 @@ class DayViewModel(
             }
 
             ActivityUiState(
+                date = it.date,
                 id = it.id,
                 title = it.title,
                 note = it.note,
@@ -331,21 +337,21 @@ class DayViewModel(
 
     fun deleteTask(task: Task) {
         viewModelScope.launch {
-            if (task.priority != null) {
-                val taskPriority = task.priority
-
-                toDoTasks.collect { list ->
-                    list.forEach { toDoTask ->
-                        toDoTask.priority?.let {
-                            if (it > taskPriority!!) {
-                                tasksRepository.updateTask(toDoTask.copy(
-                                    priority = toDoTask.priority!! - 1
-                                ))
-                            }
-                        }
-                    }
-                }
-            }
+//            if (task.priority != null) {
+//                val taskPriority = task.priority
+//
+//                toDoTasks.collect { list ->
+//                    list.forEach { toDoTask ->
+//                        toDoTask.priority?.let {
+//                            if (it > taskPriority!!) {
+//                                tasksRepository.updateTask(toDoTask.copy(
+//                                    priority = toDoTask.priority!! - 1
+//                                ))
+//                            }
+//                        }
+//                    }
+//                }
+//            }
             tasksRepository.deleteTask(task)
         }
     }
@@ -488,45 +494,49 @@ class DayViewModel(
             if (id != null) {
                 val activity = dayState.value.activities.find { activity -> activity.id == id }
                 if (activity != null) {
-                    combine(
-                        flow = voiceNotesRepository.getAllVoiceNotesPerActivity(id),
-                        flow2 = activitiesRepository.getSubActivitiesPerMainActivity(id)
-                    ) { voiceNotes, subActivities ->
-                        var voiceNotesUiState = emptyList<VoiceNoteUiState>()
-                        var subActivitiesUiState = emptyList<ActivityUiState>()
+//                    combine(
+//                        flow = voiceNotesRepository.getAllVoiceNotesPerActivity(id),
+//                        flow2 = activitiesRepository.getSubActivitiesPerMainActivity(id)
+//                    ) { voiceNotes, subActivities ->
+//                        var voiceNotesUiState = emptyList<VoiceNoteUiState>()
+//                        var subActivitiesUiState = emptyList<ActivityUiState>()
+//
+//                        for (voiceNote in voiceNotes) {
+//                            // Append the mapped voice note to the voice notes list
+//                            voiceNotesUiState = voiceNotesUiState + VoiceNoteUiState(
+//                                id = voiceNote.id,
+//                                uri = voiceNote.uri,
+//                                duration = voiceNote.duration,
+//                                timestamp = voiceNote.timestamp,
+//                                activityId = voiceNote.activityId
+//                            )
+//                        }
+//                        for (subActivity in subActivities) {
+//                            subActivitiesUiState = subActivitiesUiState + ActivityUiState(
+//                                id = subActivity.id,
+//                                title = subActivity.title,
+//                                note = subActivity.note,
+//                                startTime = subActivity.startTime,
+//                                endTime = subActivity.endTime,
+////                                voiceNotesUiState = TODO: Add the voice notes of the sub-activity
+//                                mainActivityId = subActivity.mainActivityId
+//                            )
+//                        }
+//                        activityUiState.update {
+//                            ActivityUiState(
+//                                id = activity.id,
+//                                title = activity.title,
+//                                note = activity.note,
+//                                startTime = activity.startTime,
+//                                endTime = activity.endTime,
+//                                voiceNotesUiState = voiceNotesUiState,
+//                                subActivitiesUiState = subActivitiesUiState
+//                            )
+//                        }
+//                    }
 
-                        for (voiceNote in voiceNotes) {
-                            // Append the mapped voice note to the voice notes list
-                            voiceNotesUiState = voiceNotesUiState + VoiceNoteUiState(
-                                id = voiceNote.id,
-                                uri = voiceNote.uri,
-                                duration = voiceNote.duration,
-                                timestamp = voiceNote.timestamp,
-                                activityId = voiceNote.activityId
-                            )
-                        }
-                        for (subActivity in subActivities) {
-                            subActivitiesUiState = subActivitiesUiState + ActivityUiState(
-                                id = subActivity.id,
-                                title = subActivity.title,
-                                note = subActivity.note,
-                                startTime = subActivity.startTime,
-                                endTime = subActivity.endTime,
-//                                voiceNotesUiState = TODO: Add the voice notes of the sub-activity
-                                mainActivityId = subActivity.mainActivityId
-                            )
-                        }
-                        activityUiState.update {
-                            ActivityUiState(
-                                id = activity.id,
-                                title = activity.title,
-                                startTime = activity.startTime,
-                                endTime = activity.endTime,
-                                voiceNotesUiState = voiceNotesUiState,
-                                subActivitiesUiState = subActivitiesUiState
-                            )
-                        }
-                    }
+
+
 //                    var voiceNotesUiState = emptyList<VoiceNoteUiState>()
 //                    voiceNotesRepository.getAllVoiceNotesPerActivity(id).collect { voiceNotes ->
 //                        for (voiceNote in voiceNotes) {
@@ -555,29 +565,74 @@ class DayViewModel(
                     var subActivitiesUiState = emptyList<ActivityUiState>()
                     activitiesRepository.getSubActivitiesPerMainActivity(id).collect { subActivities ->
                         for (subActivity in subActivities) {
+                            var voiceNotesUiState = emptyList<VoiceNoteUiState>()
+//                            voiceNotesRepository.getAllVoiceNotesPerActivity(subActivity.id).collect { voiceNotes ->
+//                                for (voiceNote in voiceNotes) {
+//                                    // Append the mapped voice note to the voice notes list
+//                                    voiceNotesUiState = voiceNotesUiState + VoiceNoteUiState(
+//                                        id = voiceNote.id,
+//                                        uri = voiceNote.uri,
+//                                        duration = voiceNote.duration,
+//                                        timestamp = voiceNote.timestamp,
+//                                        activityId = voiceNote.activityId
+//                                    )
+//                                }
+//
+//                                subActivitiesUiState = subActivitiesUiState + ActivityUiState(
+//                                    id = subActivity.id,
+//                                    title = subActivity.title,
+//                                    note = subActivity.note,
+//                                    startTime = subActivity.startTime,
+//                                    endTime = subActivity.endTime,
+//                                    voiceNotesUiState = voiceNotesUiState,//TODO: Add the voice notes of the sub-activity
+//                                    mainActivityId = subActivity.mainActivityId
+//                                )
+//                            }
+
                             subActivitiesUiState = subActivitiesUiState + ActivityUiState(
+                                date = subActivity.date,
                                 id = subActivity.id,
                                 title = subActivity.title,
                                 note = subActivity.note,
                                 startTime = subActivity.startTime,
                                 endTime = subActivity.endTime,
-//                                voiceNotesUiState = TODO: Add the voice notes of the sub-activity
+                                voiceNotesUiState = voiceNotesUiState,//TODO: Add the voice notes of the sub-activity
                                 mainActivityId = subActivity.mainActivityId
                             )
                         }
 
                         activityUiState.update {
                             ActivityUiState(
+                                date = activity.date,
                                 id = activity.id,
                                 title = activity.title,
+                                note = activity.note,
                                 startTime = activity.startTime,
                                 endTime = activity.endTime,
                                 subActivitiesUiState = subActivitiesUiState
                             )
                         }
+
+                        var voiceNotesUiState = emptyList<VoiceNoteUiState>()
+                        voiceNotesRepository.getAllVoiceNotesPerActivity(id).collect { voiceNotes ->
+                            for (voiceNote in voiceNotes) {
+                                // Append the mapped voice note to the voice notes list
+                                voiceNotesUiState = voiceNotesUiState + VoiceNoteUiState(
+                                    id = voiceNote.id,
+                                    uri = voiceNote.uri,
+                                    duration = voiceNote.duration,
+                                    timestamp = voiceNote.timestamp,
+                                    activityId = voiceNote.activityId
+                                )
+                            }
+
+                            activityUiState.update { it ->
+                                it.copy(
+                                    voiceNotesUiState = voiceNotesUiState
+                                )
+                            }
+                        }
                     }
-
-
 
                     // Set the selected activity saved state
                     savedStateHandle.set(
@@ -775,6 +830,14 @@ class DayViewModel(
         }
     }
 
+    fun setActivityTitle(title: String) {
+        activityUiState.update {
+            it.copy(
+                title = title
+            )
+        }
+    }
+
     fun setMainRecordedActivityNote(note: String) {
         mainRecordedActivityUiState.update {
             it.copy(
@@ -922,7 +985,7 @@ class DayViewModel(
         saveTaskToStateHandle()
     }
 
-    fun setTaskPriority(value: Int) {
+    fun setTaskPriority(value: Int?) {
         taskUiState.update {
             it.copy(
                 priority = value
@@ -969,7 +1032,7 @@ class DayViewModel(
 }
 
 fun ActivityUiState.toActivity(): Activity = Activity(
-    date = LocalDate.now(),
+    date = this.date,
     title = this.title,
     note = this.note,
     startTime = this.startTime,
@@ -979,6 +1042,7 @@ fun ActivityUiState.toActivity(): Activity = Activity(
 )
 
 fun ActivityUiState.toSavedState(): ActivitySavedState = ActivitySavedState(
+    date = this.date,
     id = this.id!!,
     title = this.title,
     startTime = this.startTime.toString()
@@ -1002,6 +1066,7 @@ fun TaskUiState.toSavedState(): TaskSavedState = TaskSavedState(
     description = this.description
 )
 
+// This method inserts a random UUID value as the task's id
 fun TaskUiState.toTask(): Task = Task(
     date = this.date,
     title = this.title,

@@ -25,6 +25,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -94,7 +95,7 @@ fun ActivityGraph (
     val activities = dayState.activities
 
     var canvasWidth by remember { mutableStateOf(0.dp) }
-    var canvasHeight by remember { mutableStateOf(0f) }
+    var canvasHeight by remember { mutableFloatStateOf(0f) }
     var canvasHeightDp by remember { mutableStateOf(0.dp) }
 
     // The planned start and end time of the day
@@ -704,7 +705,7 @@ fun DrawScope.drawHourLabels(
         )
 
         // Draw hour label
-        var hourStep = activeTimeHourSteps[i]
+        val hourStep = activeTimeHourSteps[i]
         // Let only the first and last label display the hour and minute values - other labels will display only the hour value
         val hourStepLabel = buildAnnotatedString {
             if (i == 0 || i == minutesBetweenHoursAccumulated.size - 1) {
@@ -726,19 +727,11 @@ fun DrawScope.drawHourLabels(
             hourOffset.y - hourStepLabelTextLayout.size.height * 0.5f
         )
 
-        // If i refers to the second or second last hour label
+        // If it is refers to the second or second last hour label
         if (i == 1 || i == (minutesBetweenHoursAccumulated.size - 2)) {
             // If the interval between the two consecutive hour labels is less than 30 minutes, don't draw it the second/second last label
-            if (i == 1 && minutesBetweenHoursAccumulated[i] - minutesBetweenHoursAccumulated[0] >= 30) {
-                // Draw the hour labels between the two axes
-                drawText(
-                    textMeasurer = textMeasurer,
-                    text = hourStepLabel,
-                    topLeft = hourOffset,
-                    style = textStyle
-                )
-            }
-            if (i == (minutesBetweenHoursAccumulated.size - 2) && (minutesBetweenHoursAccumulated[minutesBetweenHoursAccumulated.size - 1] - minutesBetweenHoursAccumulated[i]) >= 30) {
+            if ((i == 1 && minutesBetweenHoursAccumulated[i] - minutesBetweenHoursAccumulated[0] >= 30)
+                || (i == (minutesBetweenHoursAccumulated.size - 2) && (minutesBetweenHoursAccumulated[minutesBetweenHoursAccumulated.size - 1] - minutesBetweenHoursAccumulated[i]) >= 30)) {
                 // Draw the hour labels between the two axes
                 drawText(
                     textMeasurer = textMeasurer,

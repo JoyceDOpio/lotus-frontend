@@ -1,5 +1,6 @@
 package com.example.circularplanner.utils
 
+import android.util.Log
 import androidx.compose.ui.geometry.Offset
 import com.example.circularplanner.data.Time
 import kotlin.math.atan2
@@ -61,7 +62,11 @@ object TouchGestureUtils {
     }
 
     // Calculate the angle the given time corresponds to on the dial (not translated)
-    fun calculateAngleFromTime (activeTimeStart: Time, time: Time, minuteAngle: Float): Float {
+    fun calculateAngleFromTime (activeTimeStart: Time, activeTimeEnd: Time, time: Time, minuteAngle: Float): Float {
+        // It seems that calculating the angle might not return exactly 0 degrees for the start time and 360 degrees for the end time, so it's better to directly return 0f and 360f
+//        if (time.compareTo(activeTimeStart) == 0) return 0f
+//        if (time.compareTo(activeTimeEnd) == 0) return 360f
+
         // Number of minutes the task time corresponds to counting from the active time start
         val minute = calculateTotalNumberOfMinutes(
             activeTimeStart,
@@ -69,6 +74,8 @@ object TouchGestureUtils {
         )
         // We have to offset these angles because startMinute * taskDialState.minuteAngle returns a biased angle
         val taskAngle = offsetAngle(minute * minuteAngle)// It seems that during this conversion around 0.33 is subtracted
+
+        Log.i("TouchGestureUtils", "taskAngle $taskAngle")
 
         return taskAngle
     }
@@ -142,6 +149,9 @@ object TouchGestureUtils {
             translateAngle270To0(angle),
             minuteAngle
         )
+        Log.i("TouchGestureUtils", "angle $angle")
+        Log.i("TouchGestureUtils", "translateAngle270To0(angle) ${translateAngle270To0(angle)}")
+        Log.i("TouchGestureUtils", "minute $minute")
         val time =
             calculateClockTimeBasedOnMinutesFromStartTime(
                 start = clockStart,
@@ -217,14 +227,16 @@ object TouchGestureUtils {
         return angleCorrected in startAngleCorrected..endAngleCorrected
     }
 
-    fun checkIfTouchWithinTaskArea(angle: Float, clockStart: Time, minuteAngle: Float, taskStart: Time, taskEnd: Time): Boolean {
+    fun checkIfTouchWithinTaskArea(angle: Float, clockStart: Time, clockEnd: Time, minuteAngle: Float, taskStart: Time, taskEnd: Time): Boolean {
         val taskStartAngle = calculateAngleFromTime (
             clockStart,
+            clockEnd,
             taskStart,
             minuteAngle
         )
         val taskEndAngle = calculateAngleFromTime (
             clockStart,
+            clockEnd,
             taskEnd,
             minuteAngle
         )
@@ -325,7 +337,7 @@ object TouchGestureUtils {
     // Returns an angle adjusted in such a way that 270 degree corresponds to the 0/360 degree mark
     fun translateAngle270To0(angle: Float): Float {
         // If the range is 270-360, the 270 degree will be translated to 0 - we want 270 to correspond to 360 degree
-        return if (angle in 271f..360f) {
+        return if (angle in 270f..360f) {
             angle - 270f
         }
         else {

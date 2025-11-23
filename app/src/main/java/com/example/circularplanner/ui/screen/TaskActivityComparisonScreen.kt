@@ -1,7 +1,5 @@
 package com.example.circularplanner.ui.screen
 
-import android.util.Log
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -52,7 +51,8 @@ import java.util.UUID
 
 enum class TaskActivityComparisonModePopup {
     Activity,
-    Task
+    Task,
+    VoiceNote
 }
 
 @Composable
@@ -71,6 +71,7 @@ fun TaskActivityComparisonScreen (
     selectActivity: (UUID?) -> Unit,
     selectTask: (UUID?) -> Unit,
     setActivityNote: (String) -> Unit,
+    setActivityTitle: (String) -> Unit,
     setTaskDescription: (String) -> Unit,
     setTaskEndTime: (Time) -> Unit,
     setTaskPriority: (Int) -> Unit,
@@ -83,24 +84,23 @@ fun TaskActivityComparisonScreen (
 
     val audioViewModel: AudioViewModel = viewModel(factory = AudioViewModel.Factory)
 
+    // Texts
     val activityLabel = "ACTIVITY"//TODO: Read from string resource
     val taskLabel = "TASK"//TODO: Read from string resource
+    val editText = "Edit"//TODO: Read from string resource
+    val deleteText = "Delete"//TODO: Read from string resource
+    val noTaskText = "NO TASK TO DISPLAY"//TODO: Read from string resource
+    val noActivityText = "NO ACTIVITY TO DISPLAY"//TODO: Read from string resource
 
     var showPopupWindow by remember { mutableStateOf(false) }
     var popupState by remember { mutableStateOf(TaskActivityComparisonModePopup.Task) }
+    var isEditing by remember { mutableStateOf(true) }
 
     Scaffold (
         bottomBar = {
             BottomAppBar (
                 containerColor = Color(BOTTOM_BAR_COLOR),
                 actions = {
-//                    // Leading icons should typically have a high content alpha
-//                    CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.high) {
-//                        IconButton(onClick = { /* doSomething() */ }) {
-//                            Icon(Icons.Filled.Menu, contentDescription = "Localized description")
-//                        }
-//                    }
-
                     // Close button
                     IconButton(onClick = {
                         // Navigate to the previous stack entry
@@ -162,7 +162,7 @@ fun TaskActivityComparisonScreen (
                                     .padding(vertical = 15.dp)
                                     .weight(1f)
                                 ,
-                                text = taskLabel,// TODO: Read text from string resource
+                                text = taskLabel,
                                 color = MaterialTheme.colorScheme.primary,
                                 textAlign = TextAlign.Center
                             )
@@ -176,22 +176,23 @@ fun TaskActivityComparisonScreen (
                             horizontalArrangement = Arrangement.End
                         ) {
 
-                            val dropdownItems = listOf<DropDownItem>(
+                            val dropdownItems = listOf(
                                 DropDownItem(
-                                    text = "Edit",
+                                    text = editText,
                                     iconId = R.drawable.edit_24dp_5f6368_fill0_wght400_grad0_opsz24,
                                     onClick = {
                                         popupState = TaskActivityComparisonModePopup.Task
                                         showPopupWindow = true
+                                        isEditing = true
                                     }
                                 ),
                                 DropDownItem(
-                                    text = "Delete",
+                                    text = deleteText,
                                     iconId = R.drawable.delete_24dp_5f6368_fill0_wght400_grad0_opsz24,
                                     onClick = {
-                                        deleteTask()
-                                        selectTask(null)
-//                                    showPopupWindow = true
+                                        popupState = TaskActivityComparisonModePopup.Task
+                                        showPopupWindow = true
+                                        isEditing = false
                                     }
                                 )
                             )
@@ -206,6 +207,7 @@ fun TaskActivityComparisonScreen (
 
                     TaskCard (
                         date = userInput.selectedDate,
+                        dayState = dayState,
                         endTime = taskDetails.endTime,
                         startTime = taskDetails.startTime,
                         title = taskDetails.title
@@ -231,7 +233,7 @@ fun TaskActivityComparisonScreen (
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "NO TASK TO DISPLAY",// TODO: Read string from resource
+                            text = noTaskText,
                             color = Color.LightGray
                         )
                     }
@@ -251,7 +253,6 @@ fun TaskActivityComparisonScreen (
             // Activity
             Column (
                 modifier = Modifier
-//                    .background(Color(0xff97dde8))// TODO: Add color to a theme
                     .fillMaxHeight(),
                 verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -281,7 +282,6 @@ fun TaskActivityComparisonScreen (
                                 modifier = Modifier
                                     .padding(vertical = 15.dp)
                                     .weight(1f)
-//                                    .background(Color(0xffBBE6FC))// TODO: Add color to a theme
                                 ,
                                 text = activityLabel,// TODO: Read text from string resource
                                 color = MaterialTheme.colorScheme.primary,
@@ -296,23 +296,23 @@ fun TaskActivityComparisonScreen (
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.End
                         ) {
-
-                            val dropdownItems = listOf<DropDownItem>(
+                            val dropdownItems = listOf(
                                 DropDownItem(
-                                    text = "Edit",
+                                    text = editText,
                                     iconId = R.drawable.edit_24dp_5f6368_fill0_wght400_grad0_opsz24,
                                     onClick = {
                                         popupState = TaskActivityComparisonModePopup.Activity
                                         showPopupWindow = true
+                                        isEditing = true
                                     }
                                 ),
                                 DropDownItem(
-                                    text = "Delete",
+                                    text = deleteText,
                                     iconId = R.drawable.delete_24dp_5f6368_fill0_wght400_grad0_opsz24,
                                     onClick = {
-                                        deleteActivity()
-                                        selectActivity(null)
-//                                    showPopupWindow = true
+                                        popupState = TaskActivityComparisonModePopup.Activity
+                                        showPopupWindow = true
+                                        isEditing = false
                                     }
                                 )
                             )
@@ -328,42 +328,67 @@ fun TaskActivityComparisonScreen (
 
                     TaskCard (
                         date = userInput.selectedDate,
+                        dayState = dayState,
                         endTime = activityDetails.endTime,
                         startTime = activityDetails.startTime,
                         title = activityDetails.title,
                         subActivities = activityDetails.subActivitiesUiState
                     ) {
-                        if (activityDetails.note != "") {
-                            // Notes
-                            Text(
-                                text = activityDetails.note,
-                                modifier = modifier
-//                                .fillMaxSize()
-                                    .verticalScroll(rememberScrollState()),
-                                fontWeight = FontWeight.Normal,
-                                fontSize = 18.sp
-                            )
-                        }
+                        Column (
+                            modifier = modifier
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                            ,
+                        ) {
+                            if (activityDetails.note != "") {
+                                // Notes
+                                Text(
+                                    text = activityDetails.note,
+                                    modifier = modifier
+                                        .fillMaxWidth()
+                                    ,
+                                    fontWeight = FontWeight.Normal,
+                                    fontSize = 18.sp
+                                )
+                            }
 
-                        if (!activityUiState.voiceNotesUiState.isEmpty()) {
-                            VoiceNoteList(
-                                activityUiState = activityUiState,
-                                audioViewModel = audioViewModel,
-                                removeVoiceNote = deleteVoiceNote,
-                                updateLastPlayedPosition = updateLastPlayedPosition
-                            )
-                        }
+                            if (!activityUiState.voiceNotesUiState.isEmpty()) {
+                                Spacer(modifier = Modifier.height(10.dp))
 
-                        if (!activityUiState.subActivitiesUiState.isEmpty()) {
-                            SubActivityList(
-                                mainActivityUiState = activityUiState,
-                                removeVoiceNote = deleteVoiceNote,
-                                updateLastPlayedPosition = updateLastPlayedPosition
-                            )
+                                VoiceNoteList(
+                                    activityUiState = activityUiState,
+                                    audioViewModel = audioViewModel,
+                                    onDeleteItem = { voiceNote ->
+                                        popupState = TaskActivityComparisonModePopup.VoiceNote
+                                        showPopupWindow = true
+                                        isEditing = false
+                                    },
+                                    updateLastPlayedPosition = updateLastPlayedPosition
+                                )
+                            }
+
+                            if (!activityUiState.subActivitiesUiState.isEmpty()) {
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                SubActivityList(
+                                    mainActivityUiState = activityUiState,
+                                    onDeleteItem = { subActivity ->
+//                                        selectActivity(subActivity.id)// FIXME: If I select the activity, it will disrupt the task comparison
+//                                        popupState = TaskActivityComparisonModePopup.Activity
+//                                        showPopupWindow = true
+//                                        isEditing = false
+                                    },
+                                    onEditItem = { subActivity ->
+
+                                    },
+                                    removeVoiceNote = deleteVoiceNote,
+                                    updateLastPlayedPosition = updateLastPlayedPosition
+                                )
+                            }
                         }
                     }
                 }
-                // Otherwise, show a statement that there is no activity carried out during the select time
+                // Otherwise, show a statement that there was no activity carried out during the selected time
                 else {
                     Column (
                         modifier = Modifier
@@ -372,7 +397,7 @@ fun TaskActivityComparisonScreen (
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "NO ACTIVITY TO DISPLAY",// TODO: Read string from resource
+                            text = noActivityText,
                             color = Color.LightGray
                         )
                     }
@@ -389,29 +414,74 @@ fun TaskActivityComparisonScreen (
         ) {
             when (popupState) {
                 TaskActivityComparisonModePopup.Activity -> {
-                    ActivityNoteEditScreen(
-                        activityUiState = activityUiState,
-                        onBack = {
-                            showPopupWindow = false
-                        },
-                        saveActivity = saveActivity,
-                        setActivityNote = setActivityNote
-                    )
+                    if (isEditing) {
+                        ActivityEditScreen(
+                            activityUiState = activityUiState,
+                            mode = ActivityEditMode.Full,
+                            onBack = {
+                                showPopupWindow = false
+                            },
+                            saveActivity = saveActivity,
+                            setActivityNote = setActivityNote,
+                            setActivityTitle = setActivityTitle
+                        )
+                    }
+                    else {
+                        DeleteScreen(
+                            onBack = {
+                                showPopupWindow = false
+                            },
+                            onDelete = {
+                                deleteActivity()
+                                selectActivity(null)
+                                showPopupWindow = false
+                            },
+                            deleteType = DeleteType.Activity
+                        )
+                    }
                 }
                 TaskActivityComparisonModePopup.Task -> {
-                    TaskEditScreen(
-                        dayState = dayState,
-                        lastTaskPriority = 0,
-                        taskUiState = taskUiState,
+                    if (isEditing) {
+                        TaskEditScreen(
+                            dayState = dayState,
+                            lastTaskPriority = 0,
+                            taskUiState = taskUiState,
+                            onBack = {
+                                showPopupWindow = false
+                            },
+                            saveTask = saveTaskFromState,
+                            setTaskEndTime = setTaskEndTime,
+                            setTaskDescription = setTaskDescription,
+                            setTaskPriority = setTaskPriority,
+                            setTaskStartTime = setTaskStartTime,
+                            setTaskTitle = setTaskTitle
+                        )
+                    }
+                    else {
+                        DeleteScreen(
+                            onBack = {
+                                showPopupWindow = false
+                            },
+                            onDelete = {
+                                deleteTask()
+                                selectTask(null)
+                                showPopupWindow = false
+                            }
+                        )
+                    }
+                }
+
+                TaskActivityComparisonModePopup.VoiceNote -> {
+                    DeleteScreen(
                         onBack = {
                             showPopupWindow = false
                         },
-                        saveTask = saveTaskFromState,
-                        setTaskEndTime = setTaskEndTime,
-                        setTaskDescription = setTaskDescription,
-                        setTaskPriority = setTaskPriority,
-                        setTaskStartTime = setTaskStartTime,
-                        setTaskTitle = setTaskTitle
+                        onDelete = {
+//                            deleteVoiceNote(voiceNote)
+//                            selectActivity(null)
+//                            showPopupWindow = false
+                        },
+                        deleteType = DeleteType.VoiceNote
                     )
                 }
             }

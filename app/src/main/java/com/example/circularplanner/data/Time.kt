@@ -19,17 +19,17 @@ data class Time(
     // 0 the times are the same
     // 1 if this time is later than the time it is compared to
     fun compareTo(time: Time): Int {
-        if (this.hour < time.hour) {
-            return -1
+        return if (this.hour < time.hour) {
+            -1
         } else if (this.hour > time.hour) {
-            return 1
+            1
         } else {
             if (this.minute < time.minute) {
-                return -1
+                -1
             } else if (this.minute > time.minute) {
-                return 1
+                1
             } else {
-                return 0
+                0
             }
         }
     }

@@ -101,7 +101,8 @@ class StopwatchService: Service() {
             val notificationChannel = NotificationChannel(
                 NOTIFICATION_CHANNEL_ID,
                 NOTIFICATION_CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_HIGH
+                NotificationManager.IMPORTANCE_DEFAULT
+//                NotificationManager.IMPORTANCE_HIGH
             )
             notificationChannel.setSound(null, null)
             notificationChannel.setShowBadge(true)
@@ -156,6 +157,7 @@ class StopwatchService: Service() {
 
     private fun resumeStopwatch(onTick: (hr: String, min: String, sec: String) -> Unit) {
         if (this::subTimer.isInitialized) subTimer.cancel()
+        subDuration = Duration.ZERO
         currentState.value = StopwatchState.Main
         // Start the main timer again
         timer = fixedRateTimer(initialDelay = 1000L, period = 1000L) {
@@ -197,11 +199,11 @@ class StopwatchService: Service() {
 //        notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build())
 //    }
 
-    @SuppressLint("ForegroundServiceType")
-    private fun startForegroundService() {
-        createNotificationChannel()
-        startForeground(NOTIFICATION_ID, notificationBuilder.build())
-    }
+//    @SuppressLint("ForegroundServiceType")
+//    private fun startForegroundService() {
+//        createNotificationChannel()
+//        startForeground(NOTIFICATION_ID, notificationBuilder.build())
+//    }
 
     private fun startStopwatch(onTick: (hr: String, min: String, sec: String) -> Unit) {
         timer = fixedRateTimer(initialDelay = 1000L, period = 1000L) {
@@ -226,6 +228,7 @@ class StopwatchService: Service() {
 
     private fun stopStopwatch() {
         duration = Duration.ZERO
+        subDuration = Duration.ZERO
         currentState.value = StopwatchState.Main
         stopForegroundService()
     }

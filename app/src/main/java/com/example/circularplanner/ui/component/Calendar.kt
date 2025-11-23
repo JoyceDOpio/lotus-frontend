@@ -61,7 +61,7 @@ fun Calendar(
     var weeksIndex by remember { mutableIntStateOf(0) }
     val today = LocalDate.now()
     val formatter = DateTimeFormatter.ofPattern("d")
-    var numberOfDaysPerWeek = 7
+    val numberOfDaysPerWeek = 7
     val daysOfWeek = mutableListOf<String>()
     for (dayOfWeek in DayOfWeek.entries) {
         val localizedDayName = dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
@@ -90,8 +90,8 @@ fun Calendar(
     fun getWeek (date: LocalDate = LocalDate.now()) : List<LocalDate> {
         // Gives the first day of the week (Monday) in which the given day is
         val firstDayOfTheWeek = date.with(DayOfWeek.MONDAY)
-        var day = firstDayOfTheWeek
-        var week = List<LocalDate>(
+        val day = firstDayOfTheWeek
+        val week = List<LocalDate>(
             size = 7,
             init = { index ->
                 day.plusDays(index.toLong())
@@ -115,7 +115,7 @@ fun Calendar(
         // Append more data to the beginning of the list
         if (direction == ListDirection.START) {
             val week = getPreviousWeek(weeks[0][0])
-            var newWeeks = List(
+            val newWeeks = List(
                 size = (weeks.size + 1),
                 init = { index ->
                     if (index == 0) {
@@ -130,7 +130,7 @@ fun Calendar(
         // Append more data to the end of the list
         else if (direction == ListDirection.END) {
             val week = getNextWeek(weeks[weeks.size - 1][0])
-            var newWeeks = List(
+            val newWeeks = List(
                 size = (weeks.size + 1),
                 init = { index ->
                     if (index == weeks.size) {
@@ -149,7 +149,7 @@ fun Calendar(
             week.forEachIndexed { dayIndex, day ->
                 if (day == userInput.selectedDate) {
                     circledDateIndex = dayIndex
-                    weeksIndex = weekIndex
+//                    weeksIndex = weekIndex
                 }
             }
         }

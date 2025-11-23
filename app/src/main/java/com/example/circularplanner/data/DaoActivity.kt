@@ -7,6 +7,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
+import com.example.circularplanner.ui.viewmodel.ActivityUiState
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 
@@ -32,6 +33,9 @@ interface DaoActivity {
 
     @Query("SELECT * FROM activities WHERE id = :id")
     fun getActivity(id: UUID): Flow<Activity>
+
+//    @Query("SELECT * FROM activities WHERE id = :id")
+//    fun getActivity(id: UUID): Flow<ActivityUiState>
 
     @Query("SELECT * FROM activities WHERE date = :date AND main_activity_id IS NULL ORDER BY start_time ASC")
     fun getMainActivities(date: String): Flow<List<Activity>>

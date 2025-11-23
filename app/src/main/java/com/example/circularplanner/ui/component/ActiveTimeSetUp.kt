@@ -1,5 +1,6 @@
 package com.example.circularplanner.ui.component
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,10 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomAppBar
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,13 +41,14 @@ import com.example.circularplanner.R
 import com.example.circularplanner.data.Time
 import com.example.circularplanner.ui.screen.BOTTOM_BAR_COLOR
 import com.example.circularplanner.ui.screen.BOTTOM_BAR_TEXT_COLOR
-import com.example.circularplanner.ui.viewmodel.DayUiState
+import com.example.circularplanner.ui.theme.Red
+import com.example.circularplanner.ui.viewmodel.DayState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActiveTimeSetUp (
     modifier: Modifier = Modifier,
-    dayUiState: DayUiState,// TODO: There is a loophole here - it is possible I should read the first value from DayState
+    dayState: DayState,
     onBack: () -> Unit,
     onClickSaveActiveTime: () -> Unit,
     setActiveTimeStart: (Time) -> Unit,
@@ -57,38 +56,42 @@ fun ActiveTimeSetUp (
 ){
     var showTimePicker by remember { mutableStateOf(false) }
     var showStartActiveTimePicker by remember { mutableStateOf(false) }
-    val activeTimeStart = dayUiState.activeTimeStart
-    val activeTimeEnd = dayUiState.activeTimeEnd
-    var isActiveTimeValid by remember { mutableStateOf(false) }
     val startActiveTimePickerState = rememberTimePickerState(
-        activeTimeStart.hour,
-        activeTimeStart.minute
+        dayState.activeTimeStart.hour,
+        dayState.activeTimeStart.minute
     )
     val endActiveTimePickerState = rememberTimePickerState(
-        activeTimeEnd.hour,
-        activeTimeEnd.minute
+        dayState.activeTimeEnd.hour,
+        dayState.activeTimeEnd.minute
     )
 
-    fun validateActiveTime(): Boolean {
-        val start = activeTimeStart
-        val end = activeTimeEnd
+    // Validation:
+    // - start time must be earlier than end time
+    var isStartTimeEarlierThanEndTime by remember { mutableStateOf(true) }
+    // - if there are tasks, the active time should not infringe on the tasks' time boundaries
+    var isActiveTimeStartBeforeFirstTask by remember { mutableStateOf(true) }
+    var isActiveTimeEndAfterLastTask by remember { mutableStateOf(true) }
 
-        if (start.hour == 0 && start.minute == 0) {
-            if (end.hour >= start.hour || end.minute >= start.minute) {
-                return true
-            }
-        } else {
-            if (end.hour == start.hour) {
-                if (end.minute > start.minute) {
-                    return true
-                }
-            } else if (end.hour > start.hour) {
-                return true
-            }
-        }
+    // Warning texts
+    val startTimeLaterThanEndTimeWarning = "The start time must be earlier than the end time"// TODO: Read string from resource
+    val activeTimeStartLaterThanFirstTaskWarning = "The active time start is later than the start of the first task"
+    val activeTimeEndEarlierThanLastTaskWarning = "The active time end is earlier than the end of the last task"
 
-        return false
+    val startTime = Time(startActiveTimePickerState.hour, startActiveTimePickerState.minute)
+    val endTime = Time(endActiveTimePickerState.hour, endActiveTimePickerState.minute)
+
+    val tasks = dayState.tasks
+    // Check whether the start- and end time have correct values
+    isStartTimeEarlierThanEndTime = (startTime.compareTo(endTime) == -1)
+    if (!tasks.isEmpty()) {
+        isActiveTimeStartBeforeFirstTask = (startTime.compareTo(tasks[0].startTime!!) == -1 || startTime.compareTo(tasks[0].startTime!!) == 0)
+        isActiveTimeEndAfterLastTask = (endTime.compareTo(tasks[tasks.size - 1].endTime!!) == 1 || endTime.compareTo(tasks[tasks.size - 1].endTime!!) == 0)
     }
+
+    // Texts
+    val headerText = "ACTIVE TIME"// TODO: Read string from resource
+    val cancelText = "Cancel"// TODO: Read string from resource
+    val okText = "OK"// TODO: Read string from resource
 
     fun onCancelCloseTimePicker() {
         showTimePicker = false
@@ -101,7 +104,6 @@ fun ActiveTimeSetUp (
         } else {
             setActiveTimeEnd(Time(endActiveTimePickerState.hour, endActiveTimePickerState.minute))
         }
-        isActiveTimeValid = validateActiveTime()
 
         showTimePicker = false
         showStartActiveTimePicker = false
@@ -116,13 +118,6 @@ fun ActiveTimeSetUp (
             BottomAppBar (
                 containerColor = Color(BOTTOM_BAR_COLOR),
                 actions = {
-//                    // Leading icons should typically have a high content alpha
-//                    CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.high) {
-//                        IconButton(onClick = { /* doSomething() */ }) {
-//                            Icon(Icons.Filled.Menu, contentDescription = "Localized description")
-//                        }
-//                    }
-
                     // Close button
                     IconButton(onClick = {
                         // Navigate to previous stack entry
@@ -143,7 +138,13 @@ fun ActiveTimeSetUp (
 
                     // Save button
                     IconButton(onClick = {
-                        onClickSaveActiveTime()
+                        if (
+                            isStartTimeEarlierThanEndTime
+                            && isActiveTimeStartBeforeFirstTask
+                            && isActiveTimeEndAfterLastTask
+                        ) {
+                            onClickSaveActiveTime()
+                        }
                     }) {
                         Icon(
                             imageVector = ImageVector.vectorResource(id = R.drawable.save_alt_svgrepo_com),
@@ -169,7 +170,7 @@ fun ActiveTimeSetUp (
             Text(
                 modifier = Modifier
                     .padding(bottom = 10.dp),
-                text = "ACTIVE TIME",// TODO: Read string from resource
+                text = headerText,
                 fontSize = 20.sp,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -194,8 +195,8 @@ fun ActiveTimeSetUp (
                         modifier = Modifier
                             .padding(10.dp),
                         text = "%d:%02d".format(
-                            activeTimeStart.hour,
-                            activeTimeStart.minute
+                            startTime.hour,
+                            startTime.minute
                         ),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -223,14 +224,59 @@ fun ActiveTimeSetUp (
                         modifier = Modifier
                             .padding(10.dp),
                         text = "%d:%02d".format(
-                            activeTimeEnd.hour,
-                            activeTimeEnd.minute
+                            endTime.hour,
+                            endTime.minute
                         ),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
+            }
+
+            // Warnings
+            AnimatedVisibility(
+                visible = !isStartTimeEarlierThanEndTime
+            ) {
+                Text(
+                    modifier = Modifier
+                        .padding(start = 10.dp)
+                    ,
+                    text = startTimeLaterThanEndTimeWarning,
+                    fontSize = 13.sp,
+                    color = Red,
+                    textAlign = TextAlign.Start
+                )
+            }
+
+            // Warnings
+            AnimatedVisibility(
+                visible = !isActiveTimeStartBeforeFirstTask
+            ) {
+                Text(
+                    modifier = Modifier
+                        .padding(start = 10.dp)
+                    ,
+                    text = activeTimeStartLaterThanFirstTaskWarning,
+                    fontSize = 13.sp,
+                    color = Red,
+                    textAlign = TextAlign.Start
+                )
+            }
+
+            // Warnings
+            AnimatedVisibility(
+                visible = !isActiveTimeEndAfterLastTask
+            ) {
+                Text(
+                    modifier = Modifier
+                        .padding(start = 10.dp)
+                    ,
+                    text = activeTimeEndEarlierThanLastTaskWarning,
+                    fontSize = 13.sp,
+                    color = Red,
+                    textAlign = TextAlign.Start
+                )
             }
         }
     }
@@ -246,14 +292,14 @@ fun ActiveTimeSetUp (
                     onClick = {
                         onSaveCloseTimePicker()
                     }
-                ) { Text("OK") }
+                ) { Text(okText) }
             },
             dismissButton = {
                 TextButton(
                     onClick = {
                         onCancelCloseTimePicker()
                     }
-                ) { Text("Cancel") }
+                ) { Text(cancelText) }
             }
         )
         {

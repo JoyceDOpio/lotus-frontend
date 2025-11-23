@@ -1,8 +1,7 @@
 package com.example.circularplanner.ui.screen
 
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -23,45 +21,56 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.circularplanner.R
+import com.example.circularplanner.ui.theme.Red
 import com.example.circularplanner.ui.viewmodel.ActivityUiState
-import com.example.circularplanner.ui.viewmodel.DayState
-import com.example.circularplanner.ui.viewmodel.DayUiState
 
+enum class ActivityEditMode {
+    Full,
+    Notes
+}
 @Composable
-fun ActivityNoteEditScreen(// TODO: Merge with DayNoteEditScreen
+fun ActivityEditScreen(// TODO: Merge with DayNoteEditScreen
     modifier: Modifier = Modifier,
     activityUiState: ActivityUiState,
+    mode: ActivityEditMode = ActivityEditMode.Notes,
     onBack: () -> Unit,
     saveActivity: () -> Unit,
-    setActivityNote: (String) -> Unit
+    setActivityNote: (String) -> Unit,
+    setActivityTitle: (String) -> Unit = {}
 ) {
-    val label = "ACTIVITY NOTES"// TODO: Read text from string resource
+    // Texts
+    val labelText = "EDIT ACTIVITY"// TODO: Read text from string resource
+    val titlePlaceholderText = "Title"// TODO: Read string from resource
+    val notesPlaceholderText = "Notes"// TODO: Read string from resource
+
     val activityDetails = activityUiState
+
+    // Validation:
+    // - title cannot be empty
+    var isTitle by remember { mutableStateOf(true) }
+
+    // Warning texts
+    val emptyTitleWarning = "The title cannot be empty"// TODO: Read string from resource
 
     Scaffold (
         bottomBar = {
             BottomAppBar (
                 containerColor = Color(BOTTOM_BAR_COLOR),
                 actions = {
-//                    // Leading icons should typically have a high content alpha
-//                    CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.high) {
-//                        IconButton(onClick = { /* doSomething() */ }) {
-//                            Icon(Icons.Filled.Menu, contentDescription = "Localized description")
-//                        }
-//                    }
-
                     // Close button
                     IconButton(onClick = {
                         // Navigate to previous stack entry
@@ -82,8 +91,14 @@ fun ActivityNoteEditScreen(// TODO: Merge with DayNoteEditScreen
 
                     // Save button
                     IconButton(onClick = {
-                        saveActivity()
-                        onBack()
+                        if (mode == ActivityEditMode.Full) {
+                            if (activityDetails.title == "") isTitle = false
+                        }
+
+                        if (isTitle) {
+                            saveActivity()
+                            onBack()
+                        }
                     }) {
                         Icon(
                             imageVector = ImageVector.vectorResource(id = R.drawable.save_alt_svgrepo_com),
@@ -110,10 +125,48 @@ fun ActivityNoteEditScreen(// TODO: Merge with DayNoteEditScreen
             Text(
                 modifier = Modifier
                     .padding(bottom = 10.dp),
-                text = label,
+                text = labelText,
                 fontSize = 20.sp,
                 color = MaterialTheme.colorScheme.primary
             )
+
+            // Activity title
+            if (mode == ActivityEditMode.Full) {
+                OutlinedTextField(
+                    value = activityDetails.title,
+                    onValueChange = { value ->
+                        setActivityTitle(value)
+                        if (value != "") isTitle = true
+                    },
+                    modifier = Modifier
+                        .padding(vertical = 5.dp)
+                        .fillMaxWidth(),
+                    textStyle = TextStyle(fontSize = 20.sp),
+                    label = { Text(titlePlaceholderText) },
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                    singleLine = false,
+                    shape = RoundedCornerShape(15.dp)
+                )
+
+                AnimatedVisibility(
+                    visible = !isTitle
+                ) {
+                    Row (
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Start
+                    ) {
+                        Text(
+                            modifier = Modifier
+                                .padding(start = 10.dp)
+                            ,
+                            text = emptyTitleWarning,
+                            fontSize = 13.sp,
+                            color = Red
+                        )
+                    }
+                }
+            }
 
             // Activity note
             OutlinedTextField(
@@ -123,7 +176,7 @@ fun ActivityNoteEditScreen(// TODO: Merge with DayNoteEditScreen
                     .padding(vertical = 5.dp)
                     .fillMaxWidth(),
                 textStyle = TextStyle(fontSize = 20.sp),
-                label = { Text("Notes") },// TODO: Read text from string resource
+                label = { Text(notesPlaceholderText) },
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 singleLine = false,
                 shape = RoundedCornerShape(15.dp)

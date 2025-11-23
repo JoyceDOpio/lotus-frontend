@@ -26,7 +26,6 @@ import com.example.circularplanner.ui.component.PlannerDial
 import com.example.circularplanner.ui.component.DragItemListTask
 import com.example.circularplanner.ui.component.PopupDialog
 import com.example.circularplanner.ui.viewmodel.DayState
-import com.example.circularplanner.ui.viewmodel.DayUiState
 import com.example.circularplanner.ui.viewmodel.GoalUiState
 import com.example.circularplanner.ui.viewmodel.TaskUiState
 import com.example.circularplanner.ui.viewmodel.UserInput
@@ -37,7 +36,6 @@ import java.util.UUID
 fun TaskScreen(
     innerPadding: PaddingValues,
     dayState: DayState,
-    dayUiState: DayUiState,
     goals: List<Goal>,
     goalUiState: GoalUiState,
     lastGoalPriority: Int?,
@@ -48,6 +46,7 @@ fun TaskScreen(
     userInput: UserInput,
     deleteGoal: (Goal) -> Unit,
     deleteTask: () -> Unit,
+    onMoveToCalendar: () -> Unit,
     onMoveToToDoList: () -> Unit,
     onClickSaveActiveTime: () -> Unit,
     saveGoal: (Goal) -> Unit,
@@ -133,6 +132,7 @@ fun TaskScreen(
                     lastTaskPriority = lastTaskPriority,
                     taskUiState = taskUiState,
                     deleteTask = deleteTask,
+                    onMoveToCalendar = onMoveToCalendar,
                     onMoveToToDoList = onMoveToToDoList,
                     saveTask = saveTask,
                     saveTaskFromState = saveTaskFromState,
@@ -173,7 +173,8 @@ fun TaskScreen(
         ) {
             // Show active time setup
             ActiveTimeSetUp(
-                dayUiState = dayUiState,
+                dayState = dayState,
+//                dayUiState = dayUiState,
                 onBack = { showActiveTimeSetUp = false },
                 onClickSaveActiveTime = {
                     onClickSaveActiveTime()

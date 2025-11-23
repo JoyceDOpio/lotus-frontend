@@ -61,7 +61,7 @@ object DrawScopeUtils {
             style = TextStyle()
         )
 
-        var clockCenterLabelOffset = Offset(
+        val clockCenterLabelOffset = Offset(
             center.x - hourStepLabelTextLayout.size.width / 2f,
             center.y - hourStepLabelTextLayout.size.height / 2f
         )
@@ -135,7 +135,7 @@ object DrawScopeUtils {
             var stepAngle = minutesBetweenHoursAccumulated[i] * minuteAngle + DEG_OFFSET
 
             // Draw hour label
-            var hourStep = activeTimeHourSteps[i]
+            val hourStep = activeTimeHourSteps[i]
             // Let only the first and last label display the hour and minute values - other labels will display only the hour value
             val hourStepLabel = buildAnnotatedString {
                 append("%d".format(hourStep.hour))
@@ -160,14 +160,29 @@ object DrawScopeUtils {
             )
 
             if (i > 0) {
-                drawText(
-                    textMeasurer = textMeasurer,
-                    text = hourStepLabel,
-                    topLeft = stepLabelOffset,
-                    style = textStyle
-                )
+                // If it is refers to the second or second last hour label
+                if (i == 1 || i == (minutesBetweenHoursAccumulated.size - 2)) {
+                    // If the interval between the two consecutive hour labels is less than 30 minutes, don't draw it the second/second last label
+                    if ((i == 1 && minutesBetweenHoursAccumulated[i] - minutesBetweenHoursAccumulated[0] >= 30)
+                        || (i == (minutesBetweenHoursAccumulated.size - 2) && (minutesBetweenHoursAccumulated[minutesBetweenHoursAccumulated.size - 1] - minutesBetweenHoursAccumulated[i]) >= 30)) {
+                        drawText(
+                            textMeasurer = textMeasurer,
+                            text = hourStepLabel,
+                            topLeft = stepLabelOffset,
+                            style = textStyle
+                        )
+                    }
+                }
+                else {
+                    drawText(
+                        textMeasurer = textMeasurer,
+                        text = hourStepLabel,
+                        topLeft = stepLabelOffset,
+                        style = textStyle
+                    )
+                }
             } else {
-                var circleCenterOffset = Offset(
+                val circleCenterOffset = Offset(
                     x = center.x + (outerRadius * cos(stepAngle * DEG_TO_RAD)).toFloat(),
                     y = center.y + (outerRadius * sin(stepAngle * DEG_TO_RAD)).toFloat()
                 )

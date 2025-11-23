@@ -1,6 +1,5 @@
 package com.example.circularplanner.ui.component
 
-import android.util.Log
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,10 +17,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.zIndex
 import com.example.circularplanner.data.Goal
+import com.example.circularplanner.ui.screen.DeleteScreen
 import com.example.circularplanner.ui.screen.GoalEditScreen
-import com.example.circularplanner.ui.screen.State
-import com.example.circularplanner.ui.screen.TaskEditScreen
 import com.example.circularplanner.ui.viewmodel.GoalUiState
+import com.example.circularplanner.ui.viewmodel.toGoal
 import kotlinx.coroutines.channels.Channel
 import java.util.UUID
 
@@ -33,7 +32,6 @@ fun DragItemListGoal(//TODO: Merge with DragItemListTask
 //    items: List<T>,
     items: List<Goal>,
     lastGoalPriority: Int?,
-//    onSwitch: (UUID, UUID) -> Unit,
     deleteGoal: (Goal) -> Unit,
     saveGoal: (Goal) -> Unit,
     saveGoalFromState: () -> Unit,
@@ -48,33 +46,13 @@ fun DragItemListGoal(//TODO: Merge with DragItemListTask
     val listState = rememberLazyListState()
     val scrollChannel = Channel<Float>()
 
-//    val itemsCopy = items.map { it.copy() }
-//    val itemsCopy = emptyList<Goal>()
-//    items.forEach { itemsCopy.toMutableList().add(it)}
     val itemsCopy = items.toMutableList()
 
     var showPopupWindow by remember { mutableStateOf(false) }
+    var isEditing by remember { mutableStateOf(true) }
 
     fun onSwap(fromIndex: Int, toIndex: Int) {
-//        Log.i("fromIndex", fromIndex.toString())
-//        Log.i("toIndex", toIndex.toString())
-//        val firstGoal = itemsCopy.get(fromIndex)
-//        val secondGoal = itemsCopy.get(toIndex)
-//        val firstGoalPriority = firstGoal.priority
-//        val secondGoalPriority = secondGoal.priority
-//        firstGoal.priority = secondGoalPriority
-//        secondGoal.priority = firstGoalPriority
-
-//        Log.i("firstGoal", firstGoal.toString())
-        Log.i("itemsCopy", "BEFORE " + itemsCopy.joinToString())
-//        itemsCopy.toMutableList().apply { add(toIndex, removeAt(fromIndex)) }
         itemsCopy.apply { add(toIndex, removeAt(fromIndex)) }
-
-        Log.i("itemsCopy", "AFTER " + itemsCopy.joinToString())
-//        Log.i("secondGoal", secondGoal.toString())
-
-//        saveGoal(firstGoal)
-//        saveGoal(secondGoal)
     }
 
     LaunchedEffect(listState) {
@@ -109,11 +87,6 @@ fun DragItemListGoal(//TODO: Merge with DragItemListTask
                         val targetItem = listState.layoutInfo.visibleItemsInfo.find { item -> middleOffset.toInt() in item.offset..item.offset + item.size && currentlyDraggedItemIndex != item.index && item.contentType is Draggable }
 
                         if (targetItem != null) {
-//                            val draggedItemId = (currentlyDraggedItem.contentType as Draggable).id
-//                            val targetItemId = (targetItem.contentType as Draggable).id
-//
-//                            onSwitch(draggedItemId, targetItemId)
-
                             val targetIndex = (targetItem.contentType as Draggable).index
                             onSwap(currentlyDraggedItemIndex, targetIndex)
                             draggedItem = targetItem
@@ -155,11 +128,8 @@ fun DragItemListGoal(//TODO: Merge with DragItemListTask
     ) {
         itemsIndexed(
             items = itemsCopy,
-//            contentType = { index, item -> Draggable(index = index, id = item.id) }
             contentType = { index, item -> Draggable(index = index, id = item.id) }
         ) { index, item ->
-            Log.i("draggedItemIndex", draggedItemIndex.toString())
-            Log.i("index", index.toString())
             val modifier = if (draggedItemIndex == index) {
                 Modifier
                     .zIndex(1f)
@@ -170,13 +140,15 @@ fun DragItemListGoal(//TODO: Merge with DragItemListTask
                 Modifier
             }
 
-//            listItem(modifier, item)
             ListItemGoal(
                 modifier,
                 item,
-//                onNavigateToGoalEdit = onNavigateToGoalEdit,
                 onNavigateToGoalEdit = { showPopupWindow = true },
-                deleteGoal = deleteGoal,
+                onDeleteGoal = { goal ->
+                    selectGoal(goal.id)
+                    isEditing = false
+                    showPopupWindow = true
+                },
                 selectGoal = selectGoal
             )
         }
@@ -188,16 +160,31 @@ fun DragItemListGoal(//TODO: Merge with DragItemListTask
                 showPopupWindow = false
             }
         ) {
-            GoalEditScreen(
-                goalUiState = goalUiState,
-                lastPriority = lastGoalPriority ?: 0,
-                onBack = {
-                    showPopupWindow = false
-                },
-                saveGoal = saveGoalFromState,
-                setGoalPriority = setGoalPriority,
-                setGoalTitle = setGoalTitle
-            )
+            if (isEditing) {
+                GoalEditScreen(
+                    goalUiState = goalUiState,
+                    lastPriority = lastGoalPriority ?: 0,
+                    onBack = {
+                        showPopupWindow = false
+                    },
+                    saveGoal = saveGoalFromState,
+                    setGoalPriority = setGoalPriority,
+                    setGoalTitle = setGoalTitle
+                )
+            }
+            else {
+                DeleteScreen(
+                    onBack = {
+                        isEditing = true
+                        showPopupWindow = false
+                    },
+                    onDelete = {
+                        deleteGoal(goalUiState.toGoal().copy(id = goalUiState.id!!))
+                        isEditing = true
+                        showPopupWindow = false
+                    }
+                )
+            }
         }
     }
 }

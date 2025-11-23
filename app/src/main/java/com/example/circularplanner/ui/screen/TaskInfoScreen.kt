@@ -28,16 +28,18 @@ import com.example.circularplanner.ui.component.TaskCardDisplayType
 import com.example.circularplanner.ui.component.DropDownItem
 import com.example.circularplanner.ui.component.TaskCard
 import com.example.circularplanner.ui.component.TaskDropdownMenu
+import com.example.circularplanner.ui.viewmodel.DayState
 import com.example.circularplanner.ui.viewmodel.TaskUiState
 
 @Composable
 fun TaskInfoScreen(
     modifier: Modifier = Modifier,
     displayType: TaskCardDisplayType,
+    dayState: DayState,
     taskUiState: TaskUiState,
-    deleteTask: () -> Unit,
+    onDeleteTask: () -> Unit,
     onBack: () -> Unit,
-    onNavigateToMoveToCalendar: () -> Unit,
+    onMoveToCalendar: () -> Unit,
     onMoveToToDoList: () -> Unit,
     onNavigateToTaskEdit: () -> Unit
 ) {
@@ -48,13 +50,6 @@ fun TaskInfoScreen(
             BottomAppBar (
                 containerColor = Color(BOTTOM_BAR_COLOR),
                 actions = {
-//                    // Leading icons should typically have a high content alpha
-//                    CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.high) {
-//                        IconButton(onClick = { /* doSomething() */ }) {
-//                            Icon(Icons.Filled.Menu, contentDescription = "Localized description")
-//                        }
-//                    }
-
                     // Close button
                     IconButton(onClick = {
                         // Navigate to previous stack entry
@@ -85,15 +80,14 @@ fun TaskInfoScreen(
                             text = "Delete",
                             iconId = R.drawable.delete_24dp_5f6368_fill0_wght400_grad0_opsz24,
                             onClick = {
-                                deleteTask()
-                                onBack()
+                                onDeleteTask()
                             }
                         ),
                         DropDownItem(
                             text = if (taskDetails.date == null) "Move to calendar" else "Move to TO-DO list",
                             iconId = if (taskDetails.date == null) R.drawable.calendar_month_24dp_5f6368_fill0_wght400_grad0_opsz24 else R.drawable.list_svgrepo_com,
                             onClick = {
-                                if (taskDetails.date == null) onNavigateToMoveToCalendar() else onMoveToToDoList()
+                                if (taskDetails.date == null) onMoveToCalendar() else onMoveToToDoList()
                                 onBack()
                             }
                         )
@@ -114,6 +108,7 @@ fun TaskInfoScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
                 date = taskDetails.date,
+                dayState = dayState,
                 displayType = displayType,
                 endTime = taskDetails.endTime,
                 startTime = taskDetails.startTime,

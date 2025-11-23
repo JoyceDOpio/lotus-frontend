@@ -1,6 +1,6 @@
 package com.example.circularplanner.ui.screen
 
-import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,13 +42,16 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.circularplanner.R
 import com.example.circularplanner.data.Time
 import com.example.circularplanner.ui.component.TimePickerDialog
+import com.example.circularplanner.ui.theme.Red
 import com.example.circularplanner.ui.viewmodel.DayState
 import com.example.circularplanner.ui.viewmodel.TaskUiState
+import com.example.circularplanner.utils.TouchGestureUtils
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,23 +69,62 @@ fun TaskEditScreen(
     setTaskPriority: (Int) -> Unit,
     setTaskTitle: (String) -> Unit
 ) {
+    // Texts
+    val createLabelText = "CREATE A TASK"// TODO: Read string from resource
+    val editLabelText = "EDIT TASK"// TODO: Read string from resource
+    val confirmButtonText = "OK"// TODO: Read string from resource
+    val dismissButtonText = "Cancel"// TODO: Read string from resource
+    val titlePlaceholderText = "Title"// TODO: Read string from resource
+    val descriptionPlaceholderText = "Description"// TODO: Read string from resource
+
     fun getLabel(taskId: UUID?): String {
         if (taskId == null) {
-            return "CREATE A TASK"
+            return createLabelText
         }
 
-        return "EDIT TASK"
+        return editLabelText
     }
 
     val label: String = getLabel(taskUiState.id)
     var showTimePicker by remember { mutableStateOf(false) }
     var showStartTimePicker by remember { mutableStateOf(false) }
     val taskDetails = taskUiState
-Log.i("taskUiState", taskUiState.toString())
     var startTimePickerState: TimePickerState? = null
     var endTimePickerState: TimePickerState? = null
 
+    // Validation:
+    // - title cannot be empty
+    var isTitle by remember { mutableStateOf(true) }
+    // - start time and end time must be within active time bounds
+    var isStartTimeWithinActiveTime by remember { mutableStateOf(true) }
+    var isEndTimeWithinActiveTime by remember { mutableStateOf(true) }
+    // - start time must be earlier than end time
+    var isStartTimeEarlierThanEndTime by remember { mutableStateOf(true) }
+    // - start time and end time cannot overlap with other tasks
+    var isStartTimeOverlappingAnotherTask by remember { mutableStateOf(false) }
+    var isEndTimeOverlappingAnotherTask by remember { mutableStateOf(false) }
+    var isAnotherTaskWithinStartAndEndTime by remember { mutableStateOf(false) }
+    // - minimal task duration between start time and end time should be 5 minutes
+    val minimalTaskDuration = 5
+    var isTaskOfMinimalDuration by remember { mutableStateOf(true) }
+
+    // Warning texts
+    val emptyTitleWarning = "The title cannot be empty"// TODO: Read string from resource
+    val startTimeLaterThanEndTimeWarning = "The start time must be earlier than the end time"// TODO: Read string from resource
+    val startTimeOutsideActiveTimeWarning = "The start time must be within active time: ${dayState.activeTimeStart} - ${dayState.activeTimeEnd}"// TODO: Read string from resource
+    val endTimeOutsideActiveTimeWarning = "The end time must be within active time: ${dayState.activeTimeStart} - ${dayState.activeTimeEnd}"// TODO: Read string from resource
+    val startTimeOverlappingTaskWarning = "The start time is overlapping another task"// TODO: Read string from resource
+    val endTimeOverlappingTaskWarning = "The end time is overlapping another task"// TODO: Read string from resource
+    val taskWithinStartAndEndTimeWarning = "Another task is within the start time and end time bounds"// TODO: Read string from resource
+    val minimalTaskDurationWarning = "A task must be at least $minimalTaskDuration minutes long" // TODO: Read string from resource
+
+    // If the task is a TO-DO task and it doesn't have a priority value, set the priority
+    if (taskDetails.date == null && taskDetails.priority == null) {
+        setTaskPriority(lastTaskPriority + 1)
+    }
+
     if (taskDetails.date != null) {
+        // Set the initial values for the time pickers
         startTimePickerState = rememberTimePickerState(
             initialHour = taskDetails.startTime?.hour ?: dayState.activeTimeStart.hour,
             initialMinute = taskDetails.startTime?.minute ?: dayState.activeTimeStart.minute
@@ -91,14 +133,20 @@ Log.i("taskUiState", taskUiState.toString())
             initialHour = taskDetails.endTime?.hour ?: dayState.activeTimeEnd.hour,
             initialMinute = taskDetails.endTime?.minute  ?: dayState.activeTimeEnd.minute
         )
-    }
 
-    val confirmButtonText = "OK"
-    val dismissButtonText = "Cancel"
+        val startTime = Time(startTimePickerState.hour, startTimePickerState.minute)
+        val endTime = Time(endTimePickerState.hour, endTimePickerState.minute)
 
-    // If the task is a TO-DO task and it doesn't have a priority value, set the priority
-    if (taskDetails.date == null && taskDetails.priority == null) {
-        setTaskPriority(lastTaskPriority + 1)
+        // Check whether the start- and end time don't overlap with another task
+        for (task in dayState.tasks) {
+            if (task.id != taskDetails.id) {
+                isStartTimeOverlappingAnotherTask = ((startTime.compareTo(task.startTime!!) == 0 || startTime.compareTo(task.startTime!!) == 1)
+                        && (startTime.compareTo(task.endTime!!) == -1 || startTime.compareTo(task.endTime!!) == 0))
+                isEndTimeOverlappingAnotherTask = ((endTime.compareTo(task.startTime!!) == 0 || endTime.compareTo(task.startTime!!) == 1)
+                        && (endTime.compareTo(task.endTime!!) == -1 || endTime.compareTo(task.endTime!!) == 0))
+                isAnotherTaskWithinStartAndEndTime = (task.startTime!!.compareTo(startTime) == 1 && task.startTime!!.compareTo(endTime) == -1)
+            }
+        }
     }
 
     fun onDismissCloseTimePicker() {
@@ -107,9 +155,31 @@ Log.i("taskUiState", taskUiState.toString())
     }
 
     fun onSaveCloseTimePicker() {
-        //TODO: Validate if task start- and end time are within active time bounds
-        setTaskStartTime(Time(startTimePickerState?.hour ?: 0, startTimePickerState?.minute ?: 0))
-        setTaskEndTime(Time(endTimePickerState?.hour ?: 0, endTimePickerState?.minute ?: 0))
+        val startTime = Time(startTimePickerState?.hour ?: 0, startTimePickerState?.minute ?: 0)
+        val endTime = Time(endTimePickerState?.hour ?: 0, endTimePickerState?.minute ?: 0)
+
+        // Check whether the start- and end time have correct values
+        isStartTimeEarlierThanEndTime = (startTime.compareTo(endTime) == -1)
+        isStartTimeWithinActiveTime = ((startTime.compareTo(dayState.activeTimeStart) == 0 || startTime.compareTo(dayState.activeTimeStart) == 1)
+                && startTime.compareTo(dayState.activeTimeEnd) == -1)
+        isEndTimeWithinActiveTime = (endTime.compareTo(dayState.activeTimeStart) == 1
+                && (endTime.compareTo(dayState.activeTimeEnd) == -1 || endTime.compareTo(dayState.activeTimeEnd) == 0))
+        isTaskOfMinimalDuration = TouchGestureUtils.calculateTotalNumberOfMinutes(startTime, endTime) >= minimalTaskDuration
+
+        // Check whether the start- and end time don't overlap with another task
+        for (task in dayState.tasks) {
+            if (task.id != taskDetails.id) {
+                isStartTimeOverlappingAnotherTask = ((startTime.compareTo(task.startTime!!) == 0 || startTime.compareTo(task.startTime!!) == 1)
+                        && (startTime.compareTo(task.endTime!!) == -1 || startTime.compareTo(task.endTime!!) == 0))
+                isEndTimeOverlappingAnotherTask = ((endTime.compareTo(task.startTime!!) == 0 || endTime.compareTo(task.startTime!!) == 1)
+                        && (endTime.compareTo(task.endTime!!) == -1 || endTime.compareTo(task.endTime!!) == 0))
+                isAnotherTaskWithinStartAndEndTime = (task.startTime!!.compareTo(startTime) == 1 && task.startTime!!.compareTo(endTime) == -1)
+            }
+        }
+
+        setTaskStartTime(startTime)
+        setTaskEndTime(endTime)
+
         showTimePicker = false
         showStartTimePicker = false
     }
@@ -123,13 +193,6 @@ Log.i("taskUiState", taskUiState.toString())
             BottomAppBar (
                 containerColor = Color(BOTTOM_BAR_COLOR),
                 actions = {
-//                    // Leading icons should typically have a high content alpha
-//                    CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.high) {
-//                        IconButton(onClick = { /* doSomething() */ }) {
-//                            Icon(Icons.Filled.Menu, contentDescription = "Localized description")
-//                        }
-//                    }
-
                     // Close button
                     IconButton(onClick = {
                         // Navigate to previous stack entry
@@ -149,11 +212,24 @@ Log.i("taskUiState", taskUiState.toString())
                     Spacer(Modifier.weight(1f, true))
 
                     // Save button
-                    IconButton(onClick = {
-                        //TODO: Validate start- and end-time input - the values should remain within the active time boundaries
-                        saveTask()
-                        onBack()
-                    }) {
+                    IconButton(
+                        onClick = {
+                            if (taskDetails.title == "") isTitle = false
+
+                            if (isTitle
+                                && isStartTimeWithinActiveTime
+                                && isEndTimeWithinActiveTime
+                                && isStartTimeEarlierThanEndTime
+                                && !isStartTimeOverlappingAnotherTask
+                                && !isEndTimeOverlappingAnotherTask
+                                && !isAnotherTaskWithinStartAndEndTime
+                                && isTaskOfMinimalDuration
+                            ) {
+                                saveTask()
+                                onBack()
+                            }
+                        }
+                    ) {
                         Icon(
                             imageVector = ImageVector.vectorResource(id = R.drawable.save_alt_svgrepo_com),
                             contentDescription = "Save task",
@@ -248,22 +324,143 @@ Log.i("taskUiState", taskUiState.toString())
                             )
                         }
                     }
+
+                    // Warnings
+                    AnimatedVisibility(
+                        visible = !isStartTimeEarlierThanEndTime
+                    ) {
+                        Text(
+                            modifier = Modifier
+                                .padding(start = 10.dp)
+                            ,
+                            text = startTimeLaterThanEndTimeWarning,
+                            fontSize = 13.sp,
+                            color = Red,
+                            textAlign = TextAlign.Start
+                        )
+                    }
+
+                    AnimatedVisibility(
+                        visible = !isStartTimeWithinActiveTime
+                    ) {
+                        Text(
+                            modifier = Modifier
+                                .padding(start = 10.dp)
+                            ,
+                            text = startTimeOutsideActiveTimeWarning,
+                            fontSize = 13.sp,
+                            color = Red,
+                            textAlign = TextAlign.Start
+                        )
+                    }
+
+                    AnimatedVisibility(
+                        visible = !isEndTimeWithinActiveTime
+                    ) {
+                        Text(
+                            modifier = Modifier
+                                .padding(start = 10.dp)
+                            ,
+                            text = endTimeOutsideActiveTimeWarning,
+                            fontSize = 13.sp,
+                            color = Red,
+                            textAlign = TextAlign.Start
+                        )
+                    }
+
+                    AnimatedVisibility(
+                        visible = isStartTimeOverlappingAnotherTask
+                    ) {
+                        Text(
+                            modifier = Modifier
+                                .padding(start = 10.dp)
+                            ,
+                            text = startTimeOverlappingTaskWarning,
+                            fontSize = 13.sp,
+                            color = Red,
+                            textAlign = TextAlign.Start
+                        )
+                    }
+
+                    AnimatedVisibility(
+                        visible = isEndTimeOverlappingAnotherTask
+                    ) {
+                        Text(
+                            modifier = Modifier
+                                .padding(start = 10.dp)
+                            ,
+                            text = endTimeOverlappingTaskWarning,
+                            fontSize = 13.sp,
+                            color = Red,
+                            textAlign = TextAlign.Start
+                        )
+                    }
+
+                    AnimatedVisibility(
+                        visible = isAnotherTaskWithinStartAndEndTime
+                    ) {
+                        Text(
+                            modifier = Modifier
+                                .padding(start = 10.dp)
+                            ,
+                            text = taskWithinStartAndEndTimeWarning,
+                            fontSize = 13.sp,
+                            color = Red,
+                            textAlign = TextAlign.Start
+                        )
+                    }
+
+                    AnimatedVisibility(
+                        visible = !isTaskOfMinimalDuration
+                    ) {
+                        Text(
+                            modifier = Modifier
+                                .padding(start = 10.dp)
+                            ,
+                            text = minimalTaskDurationWarning,
+                            fontSize = 13.sp,
+                            color = Red,
+                            textAlign = TextAlign.Start
+                        )
+                    }
                 }
             }
 
             // Title field
             OutlinedTextField(
                 value = taskDetails.title,
-                onValueChange = setTaskTitle,
+                onValueChange = { value ->
+                    setTaskTitle(value)
+                    if (value != "") isTitle = true
+                },
                 modifier = Modifier
                     .padding(vertical = 5.dp)
                     .fillMaxWidth(),
                 textStyle = TextStyle(fontSize = 20.sp),
-                label = { Text("Title") },
+                label = { Text(titlePlaceholderText) },
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 singleLine = true,
                 shape = RoundedCornerShape(15.dp)
             )
+
+            AnimatedVisibility(
+                visible = !isTitle
+            ) {
+                Row (
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    Text(
+                        modifier = Modifier
+                            .padding(start = 10.dp)
+                        ,
+                        text = emptyTitleWarning,
+                        fontSize = 13.sp,
+                        color = Red
+                    )
+                }
+            }
 
             // Description field
             OutlinedTextField(
@@ -274,7 +471,7 @@ Log.i("taskUiState", taskUiState.toString())
                     .fillMaxWidth()
                     .fillMaxHeight(0.5f),
                 textStyle = TextStyle(fontSize = 18.sp),
-                label = { Text("Description") },
+                label = { Text(descriptionPlaceholderText) },
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 singleLine = false,
                 shape = RoundedCornerShape(15.dp)

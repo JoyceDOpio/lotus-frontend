@@ -62,8 +62,9 @@ fun ComparisonDial(
     selectTask: (UUID?) -> Unit,
 ) {
     val textMeasurer = rememberTextMeasurer()
-    val activeTimeStart: Time = dayState.activeTimeStart
-    val activeTimeEnd: Time = dayState.activeTimeEnd
+    // The actual start and end time of the day are for the cases when the activities start or end before or after the planned active time, respectively
+    val activeTimeStart: Time = dayState.actualActiveTimeStart ?: dayState.activeTimeStart
+    val activeTimeEnd: Time = dayState.actualActiveTimeEnd?.let {TouchGestureUtils.addMinutesToTime(1, dayState.actualActiveTimeEnd)} ?: dayState.activeTimeEnd //FIXME: I need to add this one minute at the end of the actual active time end for the activity to draw correctly - otherwise, the activity's title isn't drawn
 
     val totalMinutes: Int = TouchGestureUtils.calculateTotalNumberOfMinutes(
         Time(
@@ -122,6 +123,7 @@ fun ComparisonDial(
             TouchGestureUtils.checkIfTouchWithinTaskArea(
                 angle,
                 clockStart = activeTimeStart,
+                clockEnd = activeTimeEnd,
                 minuteAngle = minuteAngle,
                 taskStart = task.startTime!!,
                 taskEnd = task.endTime!!
@@ -264,11 +266,13 @@ fun ComparisonDial(
                 // We have to offset these angles because startMinute * activityDialState.minuteAngle returns a biased angle
                 val activityStartAngle = TouchGestureUtils.calculateAngleFromTime (
                     activeTimeStart,
+                    activeTimeEnd,
                     activity.startTime,
                     minuteAngle
                 )
                 val activityEndAngle = TouchGestureUtils.calculateAngleFromTime (
                     activeTimeStart,
+                    activeTimeEnd,
                     activity.endTime ?: Time(LocalTime.now().hour, LocalTime.now().minute),//TODO: Test me
                     minuteAngle
                 )
@@ -307,11 +311,13 @@ fun ComparisonDial(
                 // We have to offset these angles because startMinute * taskDialState.minuteAngle returns a biased angle
                 val taskStartAngle = TouchGestureUtils.calculateAngleFromTime (
                     activeTimeStart,
+                    activeTimeEnd,
                     task.startTime!!,
                     minuteAngle
                 )
                 val taskEndAngle = TouchGestureUtils.calculateAngleFromTime (
                     activeTimeStart,
+                    activeTimeEnd,
                     task.endTime!!,
                     minuteAngle
                 )

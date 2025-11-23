@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -42,9 +43,14 @@ fun VoiceNoteListItem (
     isPlaying: Boolean,
     exoPlayer: ExoPlayer,
     voiceNote: VoiceNoteUiState,
+//    onDelete: (VoiceNoteUiState) -> Unit,
+    onDelete: () -> Unit,
     onPlayClick: () -> Unit
 ) {
-    var progress by remember { mutableStateOf(voiceNote.lastPlayedPosition) }
+    // Text
+    val deleteText = "Delete"//TODO: Read from string resource
+
+    var progress by remember { mutableLongStateOf(voiceNote.lastPlayedPosition) }
     val formatter = DateTimeFormatter.ofPattern("HH:mm")
 
     fun millisecondsToDuration(position: Long): String {
@@ -128,7 +134,7 @@ fun VoiceNoteListItem (
                         progress = exoPlayer.currentPosition
                     },
                     modifier = Modifier
-                        .fillMaxWidth(0.75f),
+                        .fillMaxWidth(0.65f),
                     valueRange = 0f..voiceNote.duration.toFloat(),// FIXME: Voice note duration is inaccurate (it's bigger than exoPlayer.contentDuration)
 //                    valueRange = 0f..exoPlayer.contentDuration.toFloat(),
                     colors = SliderDefaults.colors(
@@ -145,7 +151,21 @@ fun VoiceNoteListItem (
                         .padding(horizontal = 5.dp)
                 )
 
-                // TODO: Add option to delete
+                val dropdownItems = listOf(
+                    DropDownItem(
+                        text = deleteText,
+                        iconId = R.drawable.delete_24dp_5f6368_fill0_wght400_grad0_opsz24,
+//                        onClick = { onDelete(voiceNote) }
+//                        onClick = onDelete as () -> Unit
+                        onClick = onDelete
+                    )
+                )
+                TaskDropdownMenu(
+                    dropdownItems = dropdownItems,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxSize(0.7F)
+                )
             }
         }
     }
