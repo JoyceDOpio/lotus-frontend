@@ -1,5 +1,6 @@
 package com.example.circularplanner.ui.screen
 
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -64,7 +65,7 @@ fun MoveToCalendarScreen(
     setTaskDate: (LocalDate?) -> Unit,
     setTaskEndTime: (Time) -> Unit,
     setTaskPriority: (Int?) -> Unit,
-    setTaskStartTime: (Time) -> Unit
+    setTaskStartTime: (Time) -> Unit,
 ) {
     // The task that is being moved to calendar - if I save the taskUiState under the touchedTask it seems it is not updated in time after touching it. The dial tries to draw it before its value is updated.
     var taskToBeMovedToCalendar by remember { mutableStateOf<Task?>(null) }
@@ -87,11 +88,13 @@ fun MoveToCalendarScreen(
     val notEnoughTimeSpaceText = "THERE IS NOT ENOUGH TIME WITHIN THE SELECTED DAY TO MOVE THE TASK"// TODO: Read string from resource
 
     fun findFirstSlot() {
+        Log.i("MoveToCalendarScreen", "BEFORE taskUiState $taskUiState")
         if (taskUiState.id != null) {
             // Update the task to be moved to calendar with date and initial start- and end time values
             setTaskDate(dayState.date)
             setTaskPriority(null)
 
+            // If there are tasks planned for the day
             if (!dayState.tasks.isEmpty()) {
                 for (task in dayState.tasks) {
                     // If the slot start time is after the task's start time, omit that task
@@ -103,6 +106,7 @@ fun MoveToCalendarScreen(
                             slotStartTime = TouchGestureUtils.addMinutesToTime(1, task.endTime!!)
                         }
                     }
+                    // Else if the slot start time is before the task's start time
                     else {
                         // We're subtracting 1 minute from the task's start time, so that the tasks don't overlap
                         slotEndTime = TouchGestureUtils.addMinutesToTime(-1, task.startTime!!)
@@ -121,7 +125,9 @@ fun MoveToCalendarScreen(
                         }
                     }
                 }
-            } else {
+            }
+            // Else if there are no tasks
+            else {
                 movedTaskStartTime = slotStartTime
                 movedTaskEndTime = TouchGestureUtils.addMinutesToTime(optimalDuration,
                     movedTaskStartTime
@@ -137,6 +143,8 @@ fun MoveToCalendarScreen(
                 tasks = dayState.tasks.toList() + taskToBeMovedToCalendar!!
             }
         }
+        Log.i("MoveToCalendarScreen", "AFTER taskUiState $taskUiState")
+
     }
 
     findFirstSlot()
@@ -146,8 +154,7 @@ fun MoveToCalendarScreen(
             CenterAlignedTopAppBar(
                 title = { Text(
                     text = headerText,
-                    color = Color(TOP_BAR_TEXT_COLOR),
-//                    fontWeight = FontWeight.Light
+                    color = Color(TOP_BAR_TEXT_COLOR)
                 ) },
                 colors = TopAppBarDefaults.topAppBarColors(Color(TOP_BAR_COLOR))
             )

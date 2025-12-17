@@ -1,9 +1,14 @@
 package com.example.circularplanner.data
 
+import dagger.Binds
+import dagger.Module
+import dagger.hilt.InstallIn
+import dagger.hilt.android.components.ActivityComponent
+import jakarta.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 
-class RepositoryActivities(private val activityDao: DaoActivity): IActivitiesRepository {
+class RepositoryActivities @Inject constructor(private val activityDao: DaoActivity): IActivitiesRepository {
     override fun getMainActivitiesPerDayStream(date: String): Flow<List<Activity>> {
         return activityDao.getMainActivities(date)
     }
@@ -35,4 +40,11 @@ class RepositoryActivities(private val activityDao: DaoActivity): IActivitiesRep
     override suspend fun updateActivity(activity: Activity): Int {
         return activityDao.update(activity)
     }
+}
+
+@Module
+@InstallIn(ActivityComponent::class)
+abstract class ActivitiesRepositoryModule {
+    @Binds
+    abstract fun bindActivitiesRepository(activitiesRepository: RepositoryActivities): IActivitiesRepository
 }

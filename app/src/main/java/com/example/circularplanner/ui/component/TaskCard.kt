@@ -1,5 +1,6 @@
 package com.example.circularplanner.ui.component
 
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -58,10 +59,10 @@ fun TaskCard (
     val activeTimeEnd = dayState.actualActiveTimeEnd ?: dayState.activeTimeEnd
 
     // Time range
-    val timeRangeText = if (startTime != null && endTime != null) "%d:%02d - %d:%02d".format(startTime.hour, startTime.minute, endTime.hour, endTime.minute) else ""
+    val timeRangeText = if (startTime != null) "%d:%02d - %d:%02d".format(startTime.hour, startTime.minute, endTimeValue.hour, endTimeValue.minute) else ""
 
     // Time duration
-    var totalMinutes = if (startTime != null && endTime != null) TouchGestureUtils.calculateTotalNumberOfMinutes(startTime, endTimeValue) else 0
+    var totalMinutes = startTime?.let { TouchGestureUtils.calculateTotalNumberOfMinutes(startTime, endTimeValue) } ?: 0
 
     if (!subActivities.isEmpty()) {
         for (subActivity in subActivities) {

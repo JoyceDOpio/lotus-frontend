@@ -6,6 +6,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 // Database class with a singleton Instance object
 @Database(
@@ -46,13 +47,38 @@ abstract class OfflineDatabase : RoomDatabase() {
                 Room.databaseBuilder(
                     context = applicationContext,
                     klass = OfflineDatabase::class.java,
-                    name = "test_database"
+                    name = "test_database"//TODO: Read string from resource
                 )
                     // Normally, you would provide a migration object with a migration strategy for when the schema changes. A migration object is an object that defines how you take all rows with the old schema and convert them to rows in the new schema, so that no data is lost.
                     .fallbackToDestructiveMigration(false)
+                    .addCallback(DB_CALLBACK)
                     .build()
                     // Assign Instance = it to keep a reference to the recently created db instance
                     .also { Instance = it }
+            }
+        }
+
+        private val DB_CALLBACK = object : RoomDatabase.Callback() {
+            // This method did not add the triggers because the database was already created - apparently this method is not called anymore if the database already exists
+            override fun onCreate(db: SupportSQLiteDatabase) {
+                super.onCreate(db)
+                db.execSQL(
+                    "CREATE TRIGGER IF NOT EXISTS update_goal_priority_after_delete AFTER DELETE ON goals FOR EACH ROW BEGIN UPDATE goals SET priority = priority - 1 WHERE priority > OLD.priority; END"
+                )
+                db.execSQL(
+                    "CREATE TRIGGER IF NOT EXISTS update_task_priority_after_delete AFTER DELETE ON tasks FOR EACH ROW BEGIN UPDATE tasks SET priority = priority - 1 WHERE priority IS NOT NULL AND priority > OLD.priority; END"
+                )
+            }
+
+            // And this method on the other hand will probably keep trying to add the triggers everytime the database is opened
+            override fun onOpen(db: SupportSQLiteDatabase) {
+                super.onOpen(db)
+                db.execSQL(
+                    "CREATE TRIGGER IF NOT EXISTS update_goal_priority_after_delete AFTER DELETE ON goals FOR EACH ROW BEGIN UPDATE goals SET priority = priority - 1 WHERE priority > OLD.priority; END"
+                )
+                db.execSQL(
+                    "CREATE TRIGGER IF NOT EXISTS update_task_priority_after_delete AFTER DELETE ON tasks FOR EACH ROW BEGIN UPDATE tasks SET priority = priority - 1 WHERE priority IS NOT NULL AND priority > OLD.priority; END"
+                )
             }
         }
     }

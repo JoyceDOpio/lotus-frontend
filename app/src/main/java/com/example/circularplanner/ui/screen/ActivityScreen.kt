@@ -25,7 +25,7 @@ fun ActivityScreen(
     dayState: DayState,
     onNavigateToTaskActivityComparison: () -> Unit,
     selectActivity: (UUID?) -> Unit,
-    selectTask: (UUID?) -> Unit,
+    selectTask: (UUID?) -> Unit
 ) {
     Column(
         modifier = Modifier

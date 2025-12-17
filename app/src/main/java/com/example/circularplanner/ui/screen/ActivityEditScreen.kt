@@ -45,7 +45,7 @@ enum class ActivityEditMode {
 @Composable
 fun ActivityEditScreen(// TODO: Merge with DayNoteEditScreen
     modifier: Modifier = Modifier,
-    activityUiState: ActivityUiState,
+    activityEditState: ActivityUiState,
     mode: ActivityEditMode = ActivityEditMode.Notes,
     onBack: () -> Unit,
     saveActivity: () -> Unit,
@@ -57,7 +57,7 @@ fun ActivityEditScreen(// TODO: Merge with DayNoteEditScreen
     val titlePlaceholderText = "Title"// TODO: Read string from resource
     val notesPlaceholderText = "Notes"// TODO: Read string from resource
 
-    val activityDetails = activityUiState
+    val activityDetails = activityEditState
 
     // Validation:
     // - title cannot be empty

@@ -18,6 +18,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.zIndex
 import com.example.circularplanner.data.Goal
 import com.example.circularplanner.ui.screen.DeleteScreen
+import com.example.circularplanner.ui.screen.DeleteType
 import com.example.circularplanner.ui.screen.GoalEditScreen
 import com.example.circularplanner.ui.viewmodel.GoalUiState
 import com.example.circularplanner.ui.viewmodel.toGoal
@@ -182,7 +183,8 @@ fun DragItemListGoal(//TODO: Merge with DragItemListTask
                         deleteGoal(goalUiState.toGoal().copy(id = goalUiState.id!!))
                         isEditing = true
                         showPopupWindow = false
-                    }
+                    },
+                    deleteType= DeleteType.Goal
                 )
             }
         }

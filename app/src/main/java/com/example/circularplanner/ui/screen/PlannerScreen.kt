@@ -112,17 +112,18 @@ fun PlannerScreen(
     setDayNote: (String) -> Unit,
     setGoalPriority: (Int) -> Unit,
     setGoalTitle: (String) -> Unit,
-    setMainRecordedActivityEndTime: (Time) -> Unit,
-    setSubRecordedActivityEndTime: (Time) -> Unit,
-    setMainRecordedActivityId: (UUID) -> Unit,
-    setSubRecordedActivityId: (UUID) -> Unit,
+    setRecordedMainActivityDate: (LocalDate) -> Unit,
+    setRecordedMainActivityEndTime: (Time) -> Unit,
+    setRecordedMainActivityId: (UUID) -> Unit,
+    setRecordedMainActivityNote: (String) -> Unit,
+    setRecordedMainActivityStartTime: (Time) -> Unit,
+    setRecordedMainActivityTitle: (String) -> Unit,
+    setRecordedSubActivityEndTime: (Time) -> Unit,
+    setRecordedSubActivityId: (UUID) -> Unit,
     setRecordedSubActivityMainActivityId: (UUID) -> Unit,
-    setMainRecordedActivityNote: (String) -> Unit,
-    setSubRecordedActivityNote: (String) -> Unit,
-    setMainRecordedActivityStartTime: (Time) -> Unit,
-    setSubRecordedActivityStartTime: (Time) -> Unit,
-    setMainRecordedActivityTitle: (String) -> Unit,
-    setSubRecordedActivityTitle: (String) -> Unit,
+    setRecordedSubActivityNote: (String) -> Unit,
+    setRecordedSubActivityStartTime: (Time) -> Unit,
+    setRecordedSubActivityTitle: (String) -> Unit,
     setTaskDate: (LocalDate?) -> Unit,
     setTaskDescription: (String) -> Unit,
     setTaskEndTime: (Time) -> Unit,
@@ -130,7 +131,7 @@ fun PlannerScreen(
     setTaskStartTime: (Time) -> Unit,
     setTaskTitle: (String) -> Unit,
     startRecording: (String) -> Unit,
-    stopRecording: () -> Unit,
+    stopRecording: () -> Unit
 ) {
     val formatter = DateTimeFormatter.ofPattern("d. MMMM yyyy")
     val selectedDate = userInput.selectedDate
@@ -352,42 +353,82 @@ fun PlannerScreen(
                 val focusRequester = remember { FocusRequester() }
                 val focusManager = LocalFocusManager.current
 
-                Row (
-                    modifier = Modifier
-                        .weight(1.45f),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    ActivityGraph(
-                        dayState = dayState,
-                        onNavigateToTaskActivityComparison = onNavigateToTaskActivityComparison,
-                        selectActivity = selectActivity,
-                        selectTask = selectTask
-                    )
-                }
+//                if (windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)) {
+//                    Column (
+//
+//                    ) {
+//                        Row (
+//                            modifier = Modifier
+//                                .weight(1.45f),
+//                            verticalAlignment = Alignment.CenterVertically
+//                        ) {
+//                            ActivityGraph(
+//                                dayState = dayState,
+//                                onNavigateToTaskActivityComparison = onNavigateToTaskActivityComparison,
+//                                selectActivity = selectActivity,
+//                                selectTask = selectTask
+//                            )
+//                        }
+//
+//                    }
+//
+//                    Row (
+//                        modifier = Modifier
+//                            .weight(3.5f),
+//                        verticalAlignment = Alignment.CenterVertically
+//                    ) {
+//                        Calendar(
+//                            userInput = userInput,
+//                            onSetDate = onSetSelectedDate
+//                        )
+//
+//                        ComparisonDial(
+//                            dayState = dayState,
+//                            onNavigateToTaskActivityComparison = onNavigateToTaskActivityComparison,
+//                            selectActivity = selectActivity,
+//                            selectTask = selectTask
+//                        )
+//                    }
+//                }
+//                else {
+                    Row (
+                        modifier = Modifier
+                            .weight(1.45f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        ActivityGraph(
+                            dayState = dayState,
+                            onNavigateToTaskActivityComparison = onNavigateToTaskActivityComparison,
+                            selectActivity = selectActivity,
+                            selectTask = selectTask
+                        )
+                    }
 
-                Row (
-                    modifier = Modifier
-                        .weight(3.5f),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    ComparisonDial(
-                        dayState = dayState,
-                        onNavigateToTaskActivityComparison = onNavigateToTaskActivityComparison,
-                        selectActivity = selectActivity,
-                        selectTask = selectTask
-                    )
-                }
+                    Row (
+                        modifier = Modifier
+                            .weight(3.5f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        ComparisonDial(
+                            dayState = dayState,
+                            onNavigateToTaskActivityComparison = onNavigateToTaskActivityComparison,
+                            selectActivity = selectActivity,
+                            selectTask = selectTask
+                        )
+                    }
 
-                Row (
-                    modifier = Modifier
-                        .weight(1.05f),
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    Calendar(
-                        userInput = userInput,
-                        onSetDate = onSetSelectedDate
-                    )
-                }
+                    Row (
+                        modifier = Modifier
+                            .weight(1.05f),
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        Calendar(
+                            userInput = userInput,
+                            onSetDate = onSetSelectedDate
+                        )
+                    }
+//                }
+
             }
         }
 
@@ -431,7 +472,8 @@ fun PlannerScreen(
                     setTaskEndTime = setTaskEndTime,
                     setTaskPriority = setTaskPriority,
                     setTaskStartTime = setTaskStartTime,
-                    setTaskTitle = setTaskTitle
+                    setTaskTitle = setTaskTitle,
+//                    windowSizeClass = windowSizeClass
                 )
             }
 
@@ -444,7 +486,8 @@ fun PlannerScreen(
                     dayState = dayState,
                     onNavigateToTaskActivityComparison = onNavigateToTaskActivityComparison,
                     selectActivity = selectActivity,
-                    selectTask = selectTask
+                    selectTask = selectTask,
+//                    windowSizeClass = windowSizeClass
                 )
             }
         }
@@ -482,22 +525,23 @@ fun PlannerScreen(
                             saveVoiceNote = saveVoiceNote,
                             setActualActiveTimeEnd = setActualActiveTimeEnd,
                             setActualActiveTimeStart = setActualActiveTimeStart,
-                            setRecordedMainActivityId = setMainRecordedActivityId,
-                            setRecordedSubActivityId = setSubRecordedActivityId,
+                            setRecordedMainActivityDate = setRecordedMainActivityDate,
+                            setRecordedMainActivityEndTime = setRecordedMainActivityEndTime,
+                            setRecordedMainActivityId = setRecordedMainActivityId,
+                            setRecordedMainActivityStartTime = setRecordedMainActivityStartTime,
+                            setRecordedMainActivityTitle = setRecordedMainActivityTitle,
+                            setRecordedSubActivityEndTime = setRecordedSubActivityEndTime,
+                            setRecordedSubActivityId = setRecordedSubActivityId,
                             setRecordedSubActivityMainActivityId = setRecordedSubActivityMainActivityId,
-                            setRecordedMainActivityTitle = setMainRecordedActivityTitle,
-                            setRecordedSubActivityTitle = setSubRecordedActivityTitle,
-                            setRecordedMainActivityStartTime = setMainRecordedActivityStartTime,
-                            setRecordedSubActivityStartTime = setSubRecordedActivityStartTime,
-                            setRecordedMainActivityEndTime = setMainRecordedActivityEndTime,
-                            setRecordedSubActivityEndTime = setSubRecordedActivityEndTime,
+                            setRecordedSubActivityStartTime = setRecordedSubActivityStartTime,
+                            setRecordedSubActivityTitle = setRecordedSubActivityTitle,
                             startRecording = startRecording,
                             stopRecording = stopRecording,
                         )
                     }
                     ActivityPopupState.Notes -> {
                         ActivityEditScreen(
-                            activityUiState = if (isSubActivityTimerRunning) recordedSubActivityUiState else recordedMainActivityUiState,
+                            activityEditState = if (isSubActivityTimerRunning) recordedSubActivityUiState else recordedMainActivityUiState,
                             onBack = {
                                 activityPopupState = ActivityPopupState.ActivityRecorder
                             },
@@ -506,7 +550,7 @@ fun PlannerScreen(
                                 activityPopupState = ActivityPopupState.ActivityRecorder
                             },
                             setActivityNote = { value ->
-                                if (isSubActivityTimerRunning) setSubRecordedActivityNote(value) else setMainRecordedActivityNote(value)
+                                if (isSubActivityTimerRunning) setRecordedSubActivityNote(value) else setRecordedMainActivityNote(value)
                             }
                         )
                     }

@@ -90,6 +90,8 @@ dependencies {
     implementation(libs.androidx.compose.material)
     implementation(libs.androidx.room.compiler)
     implementation(libs.androidx.emoji2)
+//    implementation(libs.androidx.lifecycle.service)// This triggers the error: migrate the Indication implementation to implement IndicationNodeFactory
+//    implementation(libs.androidx.compose.adaptive)// This triggers the error: migrate the Indication implementation to implement IndicationNodeFactory
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

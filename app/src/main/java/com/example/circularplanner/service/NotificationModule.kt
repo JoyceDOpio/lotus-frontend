@@ -9,6 +9,7 @@ import com.example.circularplanner.R
 import com.example.circularplanner.data.Activity
 import com.example.circularplanner.data.OfflineDatabase
 import com.example.circularplanner.data.RepositoryActivities
+import com.example.circularplanner.service.Constants.GROUP_KEY
 import com.example.circularplanner.service.Constants.NOTIFICATION_CHANNEL_ID
 import dagger.Module
 import dagger.Provides
@@ -28,10 +29,14 @@ import kotlinx.coroutines.launch
 object NotificationModule {
     @ServiceScoped
     @Provides
-    fun provideNotificationBuilder(@ApplicationContext context: Context): NotificationCompat.Builder {
+    fun provideNotificationBuilder(
+        @ApplicationContext context: Context,
+//        title: String
+    ): NotificationCompat.Builder {
         return NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
 //            .setContentTitle(recordedActivity?.title ?: "Activity")//TODO: Set it to the activity's title
             .setContentTitle("Activity")//TODO: Set it to the activity's title
+//            .setContentTitle(title)//TODO: Set it to the activity's title
             // Default text of the notification
             .setContentText("00:00:00")
             .setSmallIcon(R.drawable.calendar_success_svgrepo_com)//TODO: Change to my logo
@@ -39,6 +44,7 @@ object NotificationModule {
             .setOngoing(true)
 //            .addAction(0, "Stop", ServiceHelper.stopPendingIntent(context))
 //            .addAction(0, "Cancel", ServiceHelper.cancelPendingIntent(context))
+            .setGroup(GROUP_KEY)
             .setContentIntent(ServiceHelper.clickPendingIntent(context))
     }
 

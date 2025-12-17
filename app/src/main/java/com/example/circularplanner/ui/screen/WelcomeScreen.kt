@@ -43,13 +43,19 @@ fun WelcomeScreen(
     modifier: Modifier = Modifier,
     onNext: () -> Unit
 ) {
-    val firstGoal: Goal? = try { goals.get(0) } catch (e: Exception) { null }
-    val secondGoal: Goal? = try { goals.get(1) } catch (e: Exception) { null }
-    val thirdGoal: Goal? = try { goals.get(2) } catch (e: Exception) { null }
-    var goalDelay = 2000L
-    var buttonDelay = 1800L
-    var goalDuration = 4000
-    var buttonDuration = 1500
+    val firstGoal: Goal? = try {
+        goals[0]
+    } catch (e: Exception) { null }
+    val secondGoal: Goal? = try {
+        goals[1]
+    } catch (e: Exception) { null }
+    val thirdGoal: Goal? = try {
+        goals[2]
+    } catch (e: Exception) { null }
+    val goalDelay = 2000L
+    val buttonDelay = 1800L
+    val goalDuration = 4000
+    val buttonDuration = 1500
 
     var showFirstGoal by remember { mutableStateOf(false) }
     var showSecondGoal by remember { mutableStateOf(false) }

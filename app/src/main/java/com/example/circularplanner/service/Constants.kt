@@ -11,7 +11,10 @@ object Constants {
 
     const val NOTIFICATION_CHANNEL_ID = "Stopwatch_Notifications"
     const val NOTIFICATION_CHANNEL_NAME = "STOPWATCH_NOTIFICATION"
-    const val NOTIFICATION_ID = 10
+    const val MAIN_ACTIVITY_NOTIFICATION_ID = 10
+    const val SUB_ACTIVITY_NOTIFICATION_ID = 11
+
+    const val GROUP_KEY = "activity"
 
     const val CLICK_REQUEST_CODE = 100
     const val CANCEL_REQUEST_CODE = 101

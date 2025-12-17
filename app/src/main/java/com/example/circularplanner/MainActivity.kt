@@ -1,9 +1,11 @@
 package com.example.circularplanner
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.ComponentName
 import android.content.Intent
 import android.content.ServiceConnection
+import android.content.pm.ActivityInfo
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
@@ -20,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import com.example.circularplanner.service.StopwatchService
 import com.example.circularplanner.ui.theme.CircularPlannerTheme
 
@@ -50,6 +53,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
+            val context = LocalContext.current
+
+            // Lock the screen in the portrait orientation
+            val activity = context as Activity
+            activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+
             CircularPlannerTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     if (isBound) {

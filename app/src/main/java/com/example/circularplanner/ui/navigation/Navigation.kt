@@ -33,10 +33,10 @@ fun Navigation(
 ) {
     val dayViewModel: DayViewModel = viewModel(factory = DayViewModel.Factory)
 
-    val activityUiState by dayViewModel.activityUiState.collectAsState()
+    val activityEditState by dayViewModel.activityEditState.collectAsState()
     val dayState by dayViewModel.dayState.collectAsState()
-    val mainRecordedActivityUiState by dayViewModel.mainRecordedActivityUiState.collectAsState()
-    val subRecordedActivityUiState by dayViewModel.subRecordedActivityUiState.collectAsState()
+    val mainRecordedActivityUiState by dayViewModel.recordedMainActivityUiState.collectAsState()
+    val subRecordedActivityUiState by dayViewModel.recordedSubActivityUiState.collectAsState()
     val dayUiState by dayViewModel.dayUiState.collectAsState()
     val lastTaskPriority by dayViewModel.lastTaskPriority.collectAsState(initial = 0)
     val taskUiState by dayViewModel.taskUiState.collectAsState()
@@ -50,6 +50,8 @@ fun Navigation(
     val goals by goalViewModel.goals.collectAsState()
     val goalUiState by goalViewModel.goalUiState.collectAsState()
     val lastGoalPriority by goalViewModel.lastPriority.collectAsState()
+
+    val activityUiState by dayViewModel.activityUiState.collectAsState()
 
     NavHost(
         navController = navController,
@@ -74,7 +76,7 @@ fun Navigation(
                 setTaskDate = dayViewModel::setTaskDate,
                 setTaskEndTime = dayViewModel::setTaskEndTime,
                 setTaskPriority = dayViewModel::setTaskPriority,
-                setTaskStartTime = dayViewModel::setTaskStartTime,
+                setTaskStartTime = dayViewModel::setTaskStartTime
             )
         }
 
@@ -134,7 +136,7 @@ fun Navigation(
                                 date = null,
                                 startTime = null,
                                 endTime = null,
-                                priority = lastTaskPriority
+                                priority = lastTaskPriority?.plus(1)
                             )
                         )
                     }
@@ -162,17 +164,18 @@ fun Navigation(
                 setDayNote = dayViewModel::setDayNote,
                 setGoalPriority = goalViewModel::setPriority,
                 setGoalTitle = goalViewModel::setTitle,
-                setMainRecordedActivityEndTime = dayViewModel::setMainRecordedActivityEndTime,
-                setSubRecordedActivityEndTime = dayViewModel::setSubRecordedActivityEndTime,
-                setMainRecordedActivityId = dayViewModel::setMainRecordedActivityId,
-                setSubRecordedActivityId = dayViewModel::setSubRecordedActivityId,
-                setRecordedSubActivityMainActivityId = dayViewModel::setSubRecordedActivityMainActivityId,
-                setMainRecordedActivityNote = dayViewModel::setMainRecordedActivityNote,
-                setSubRecordedActivityNote = dayViewModel::setSubRecordedActivityNote,
-                setMainRecordedActivityStartTime = dayViewModel::setMainRecordedActivityStartTime,
-                setSubRecordedActivityStartTime = dayViewModel::setSubRecordedActivityStartTime,
-                setMainRecordedActivityTitle = dayViewModel::setMainRecordedActivityTitle,
-                setSubRecordedActivityTitle = dayViewModel::setSubRecordedActivityTitle,
+                setRecordedMainActivityDate = dayViewModel::setRecordedMainActivityDate,
+                setRecordedMainActivityEndTime = dayViewModel::setRecordedMainActivityEndTime,
+                setRecordedMainActivityId = dayViewModel::setRecordedMainActivityId,
+                setRecordedMainActivityNote = dayViewModel::setRecordedMainActivityNote,
+                setRecordedMainActivityStartTime = dayViewModel::setRecordedMainActivityStartTime,
+                setRecordedMainActivityTitle = dayViewModel::setRecordedMainActivityTitle,
+                setRecordedSubActivityEndTime = dayViewModel::setRecordedSubActivityEndTime,
+                setRecordedSubActivityId = dayViewModel::setRecordedSubActivityId,
+                setRecordedSubActivityMainActivityId = dayViewModel::setRecordedSubActivityMainActivityId,
+                setRecordedSubActivityNote = dayViewModel::setRecordedSubActivityNote,
+                setRecordedSubActivityStartTime = dayViewModel::setRecordedSubActivityStartTime,
+                setRecordedSubActivityTitle = dayViewModel::setRecordedSubActivityTitle,
                 setTaskDate = dayViewModel::setTaskDate,
                 setTaskDescription = dayViewModel::setTaskDescription,
                 setTaskEndTime = dayViewModel::setTaskEndTime,
@@ -186,11 +189,12 @@ fun Navigation(
 
         composable<TaskActivityComparisonRoute> { backStackEntry ->
             TaskActivityComparisonScreen(
+                activityEditState = activityEditState,
                 activityUiState = activityUiState,
                 dayState = dayState,
                 taskUiState = taskUiState,
                 userInput = userInput,
-                deleteActivity = { dayViewModel.deleteActivity(dayViewModel.activityUiState.value.toActivity()) },
+                deleteActivity = { dayViewModel.deleteActivity(dayViewModel.activityEditState.value.toActivity()) },
                 deleteTask = { dayViewModel.deleteTask(dayViewModel.taskUiState.value.toTask().copy(
                     id = dayViewModel.taskUiState.value.id!!
                 )) },

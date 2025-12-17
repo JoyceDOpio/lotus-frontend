@@ -1,5 +1,6 @@
 package com.example.circularplanner.ui.screen
 
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -58,6 +59,7 @@ enum class TaskActivityComparisonModePopup {
 @Composable
 fun TaskActivityComparisonScreen (
     modifier: Modifier = Modifier,
+    activityEditState: ActivityUiState,
     activityUiState: ActivityUiState,
     dayState: DayState,
     taskUiState: TaskUiState,
@@ -77,9 +79,10 @@ fun TaskActivityComparisonScreen (
     setTaskPriority: (Int) -> Unit,
     setTaskStartTime: (Time) -> Unit,
     setTaskTitle: (String) -> Unit,
-    updateLastPlayedPosition: (Long, Int) -> Unit
+    updateLastPlayedPosition: (Long, Int) -> Unit,
 ) {
     val taskDetails = taskUiState
+//    val activityDetails = activityEditState
     val activityDetails = activityUiState
 
     val audioViewModel: AudioViewModel = viewModel(factory = AudioViewModel.Factory)
@@ -95,6 +98,9 @@ fun TaskActivityComparisonScreen (
     var showPopupWindow by remember { mutableStateOf(false) }
     var popupState by remember { mutableStateOf(TaskActivityComparisonModePopup.Task) }
     var isEditing by remember { mutableStateOf(true) }
+
+    Log.i("TaskActivityComparisonScreen", "activityUiState $activityUiState")
+    Log.i("TaskActivityComparisonScreen", "activityEditState $activityEditState")
 
     Scaffold (
         bottomBar = {
@@ -352,11 +358,11 @@ fun TaskActivityComparisonScreen (
                                 )
                             }
 
-                            if (!activityUiState.voiceNotesUiState.isEmpty()) {
+                            if (!activityDetails.voiceNotesUiState.isEmpty()) {
                                 Spacer(modifier = Modifier.height(10.dp))
 
                                 VoiceNoteList(
-                                    activityUiState = activityUiState,
+                                    activityUiState = activityDetails,
                                     audioViewModel = audioViewModel,
                                     onDeleteItem = { voiceNote ->
                                         popupState = TaskActivityComparisonModePopup.VoiceNote
@@ -367,11 +373,11 @@ fun TaskActivityComparisonScreen (
                                 )
                             }
 
-                            if (!activityUiState.subActivitiesUiState.isEmpty()) {
+                            if (!activityDetails.subActivitiesUiState.isEmpty()) {
                                 Spacer(modifier = Modifier.height(10.dp))
 
                                 SubActivityList(
-                                    mainActivityUiState = activityUiState,
+                                    mainActivityUiState = activityDetails,
                                     onDeleteItem = { subActivity ->
 //                                        selectActivity(subActivity.id)// FIXME: If I select the activity, it will disrupt the task comparison
 //                                        popupState = TaskActivityComparisonModePopup.Activity
@@ -416,7 +422,7 @@ fun TaskActivityComparisonScreen (
                 TaskActivityComparisonModePopup.Activity -> {
                     if (isEditing) {
                         ActivityEditScreen(
-                            activityUiState = activityUiState,
+                            activityEditState = activityEditState,
                             mode = ActivityEditMode.Full,
                             onBack = {
                                 showPopupWindow = false
@@ -477,9 +483,10 @@ fun TaskActivityComparisonScreen (
                             showPopupWindow = false
                         },
                         onDelete = {
+                            // FIXME
 //                            deleteVoiceNote(voiceNote)
 //                            selectActivity(null)
-//                            showPopupWindow = false
+                            showPopupWindow = false
                         },
                         deleteType = DeleteType.VoiceNote
                     )

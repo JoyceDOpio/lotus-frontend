@@ -111,14 +111,15 @@ fun ActivityRecorder(
     saveVoiceNote: (VoiceNote) -> Unit,
     setActualActiveTimeEnd: (Time) -> Unit,
     setActualActiveTimeStart: (Time) -> Unit,
+    setRecordedMainActivityDate: (LocalDate) -> Unit,
     setRecordedMainActivityEndTime: (Time) -> Unit,
-    setRecordedSubActivityEndTime: (Time) -> Unit,
     setRecordedMainActivityId: (UUID) -> Unit,
+    setRecordedMainActivityStartTime: (Time) -> Unit,
+    setRecordedMainActivityTitle: (String) -> Unit,
+    setRecordedSubActivityEndTime: (Time) -> Unit,
     setRecordedSubActivityId: (UUID) -> Unit,
     setRecordedSubActivityMainActivityId: (UUID) -> Unit,
-    setRecordedMainActivityStartTime: (Time) -> Unit,
     setRecordedSubActivityStartTime: (Time) -> Unit,
-    setRecordedMainActivityTitle: (String) -> Unit,
     setRecordedSubActivityTitle: (String) -> Unit,
     startRecording: (String) -> Unit,
     stopRecording: () -> Unit
@@ -173,7 +174,7 @@ fun ActivityRecorder(
     // Disable the start/stop button, if title value is empty
     // When I use isMainActivityButtonEnabled by remember { mutableStateOf(recordedMainActivityUiState.title != "") }, the value of isMainActivityButtonEnabled is not updated when the recordedMainActivityUiState.title changes
     val isMainActivityButtonEnabled  = recordedMainActivityUiState.title != ""
-    var isSubActivityButtonEnabled = recordedSubActivityUiState.title != ""
+    var isSubActivityButtonEnabled = if (isSubActivityTimerRunning) recordedSubActivityUiState.title != "" else isMainActivityTimerRunning
     var pauseButtonState = if (isSubActivityTimerRunning) ButtonState.Paused else ButtonState.Playing
 
     fun startSubActivity(mainActivityId: UUID) {
@@ -316,6 +317,8 @@ fun ActivityRecorder(
                                     )
 
                                     setRecordedMainActivityStartTime(activityStartTime)
+                                    // For some reason the first activity that is recorded on a given day might be assigned the date from the previous day - we're setting that date to today just in case
+                                    setRecordedMainActivityDate(LocalDate.now())
                                     // If the actual active time start is earlier than the planned active time start
                                     if (activityStartTime.compareTo(activeTimeStart) == -1) {
                                         setActualActiveTimeStart(activityStartTime)
@@ -579,12 +582,13 @@ fun ActivityRecorder(
                                                             )
 
                                                         if (externalStorageVolumes.size > 0) {
-                                                            val directory = externalStorageVolumes[0]
+                                                            val directory =
+                                                                externalStorageVolumes[0]
                                                             filePath =
                                                                 directory.absolutePath + "/$fileName" + ".mp3"// FIXME: Z jakiegoś powodu nie mogę stworzyć foldera
 
                                                             startRecording(filePath)
-                                                            isRecordingVoiceNote = !isRecordingVoiceNote
+                                                            isRecordingVoiceNote = true
                                                         }
 
                                                         val onPressCoroutineJob = scope.launch {
@@ -601,7 +605,7 @@ fun ActivityRecorder(
                                                             // Once the finger is lifted, stop recording, create a VoiceNote object and add it to the voice note list of the activity UI state
                                                             stopRecording()
                                                             // Set variable to false
-                                                            isRecordingVoiceNote = !isRecordingVoiceNote
+                                                            isRecordingVoiceNote = false
 
                                                             val duration =
                                                                 System.currentTimeMillis() - timestamp
@@ -871,7 +875,7 @@ fun ActivityRecorder(
                                                         directory.absolutePath + "/$fileName" + ".mp3"// FIXME: I can't create a folder
 
                                                     startRecording(filePath)
-                                                    isRecordingVoiceNote = !isRecordingVoiceNote
+                                                    isRecordingVoiceNote = true
                                                 }
 
                                                 val onPressCoroutineJob = scope.launch {
@@ -888,7 +892,7 @@ fun ActivityRecorder(
                                                     // Once the finger is lifted, stop recording, create a VoiceNote object and add it to the voice note list of the activity UI state
                                                     stopRecording()
                                                     // Set variable to false
-                                                    isRecordingVoiceNote = !isRecordingVoiceNote
+                                                    isRecordingVoiceNote = false
 
                                                     val duration =
                                                         System.currentTimeMillis() - timestamp
