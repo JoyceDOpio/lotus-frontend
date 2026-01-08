@@ -253,6 +253,7 @@ fun PlannerDial(
         }
     }
 
+    // Moves the task with given index by the specified angle change
     fun moveTaskBackward(index: Int, angleChange: Float) {
         val taskToBeMoved = tasks[index]
 
@@ -359,7 +360,7 @@ fun PlannerDial(
         }
     }
 
-    // The value of angleChange has to be negative
+    // Moves the task with given index by the specified angle change. The value of angleChange must be negative
     fun moveTaskForward(index: Int, angleChange: Float) {
         val taskToBeMoved = tasks[index]
 
@@ -1708,7 +1709,8 @@ fun PlannerDial(
                                                     || taskStartAngleTranslated in jumpToStartAngleTranslated..jumpToEndAngleTranslated
                                                     || taskEndAngleTranslated in jumpToStartAngleTranslated..jumpToEndAngleTranslated
                                                 ) {
-                                                    taskBeforeIndex == null
+                                                    // We need to nullify both the before and after tasks' indices because we might end up updating only one of them. We don't want any of them to hold a value from the previous looping iteration.
+                                                    taskBeforeIndex = null
                                                     taskAfterIndex = null
 
                                                     if (jumpToMiddleAngleTranslated > taskStartAngleTranslated) {
@@ -1788,6 +1790,7 @@ fun PlannerDial(
                                                         }
                                                     }
 
+                                                    // We're breaking the loop right after finding the first match
                                                     break
                                                 }
                                             }
@@ -1802,7 +1805,7 @@ fun PlannerDial(
                                         val taskBeforeEndAngle =
                                             TouchGestureUtils.calculateAngleFromTime(
                                                 activeTimeStart = activeTimeStart,
-                                                activeTimeEnd,
+                                                activeTimeEnd = activeTimeEnd,
                                                 time = taskBefore.endTime!!,
                                                 minuteAngle = minuteAngle
                                             )
@@ -1813,7 +1816,7 @@ fun PlannerDial(
                                         val taskAfterStartAngle =
                                             TouchGestureUtils.calculateAngleFromTime(
                                                 activeTimeStart = activeTimeStart,
-                                                activeTimeEnd,
+                                                activeTimeEnd = activeTimeEnd,
                                                 time = taskAfter.startTime!!,
                                                 minuteAngle = minuteAngle
                                             )

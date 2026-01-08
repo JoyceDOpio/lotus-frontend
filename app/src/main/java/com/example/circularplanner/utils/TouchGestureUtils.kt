@@ -63,8 +63,8 @@ object TouchGestureUtils {
 
     // Calculate the angle the given time corresponds to on the dial (not translated)
     fun calculateAngleFromTime (activeTimeStart: Time, activeTimeEnd: Time, time: Time, minuteAngle: Float): Float {
-        // It seems that calculating the angle might not return exactly 0 degrees for the start time and 360 degrees for the end time, so it's better to directly return 0f and 360f
-//        if (time.compareTo(activeTimeStart) == 0) return 0f
+//        // It seems that calculating the angle might not return exactly 0 degrees for the start time and 360 degrees for the end time, so it's better to directly return 0f and 360f
+//        if (time.compareTo(activeTimeStart) == 0) return 270f
 //        if (time.compareTo(activeTimeEnd) == 0) return 360f
 
         // Number of minutes the task time corresponds to counting from the active time start
@@ -74,8 +74,6 @@ object TouchGestureUtils {
         )
         // We have to offset these angles because startMinute * taskDialState.minuteAngle returns a biased angle
         val taskAngle = offsetAngle(minute * minuteAngle)// It seems that during this conversion around 0.33 is subtracted
-
-        Log.i("TouchGestureUtils", "taskAngle $taskAngle")
 
         return taskAngle
     }

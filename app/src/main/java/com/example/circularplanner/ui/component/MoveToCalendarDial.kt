@@ -1,6 +1,5 @@
 package com.example.circularplanner.ui.component
 
-import android.util.Log
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -156,7 +155,7 @@ fun MoveToCalendarDial(
 
     // DRAGGING
     // The duration of the dragged task in minutes
-    var taskToBeMovedDuration by remember { mutableIntStateOf(TouchGestureUtils.calculateTotalNumberOfMinutes(
+    var draggedTaskDuration by remember { mutableIntStateOf(TouchGestureUtils.calculateTotalNumberOfMinutes(
         TouchGestureUtils.calculateTimeFromAngle(tmpStartAngle, minuteAngle, activeTimeStart),
         TouchGestureUtils.calculateTimeFromAngle(tmpEndAngle, minuteAngle, activeTimeStart)
     )) }
@@ -166,6 +165,7 @@ fun MoveToCalendarDial(
     // The angles which the dragged task should "jump to" should the dragging end while the dragged task still overlaps another task
     var jumpToStartAngle: Float? by remember { mutableStateOf(null) }
     var jumpToEndAngle: Float? by remember { mutableStateOf(null) }
+    var overlappedTask by remember { mutableStateOf<Task?>(null) }
 
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
@@ -176,11 +176,6 @@ fun MoveToCalendarDial(
     )
     // ZOOMING ANG PANNING
     var transformMode by remember { mutableStateOf(false) }
-
-    Log.i("MoveToCalendarDial", "tmpStartAngle $tmpStartAngle")
-    Log.i("MoveToCalendarDial", "tmpEndAngle $tmpEndAngle")
-    Log.i("MoveToCalendarDial", "taskToBeMovedToCalendar.startTime!! ${taskToBeMovedToCalendar.startTime!!}")
-    Log.i("MoveToCalendarDial", "taskToBeMovedToCalendar.endTime!! ${taskToBeMovedToCalendar.endTime!!}")
 
     fun checkIfTouchWithinTask(angle: Float, task: Task): Boolean {
         // The task stores the appropriate angle values, i.e. values corresponding to how the circle is drawn (the 0 degree starts at the right-hand side (east) of the circle). We want to 'correct' these angles as if 0 degree starts at the top of the circle (north)
@@ -201,6 +196,118 @@ fun MoveToCalendarDial(
             TouchGestureUtils.checkIfTouchWithinAngleRange(angle, taskStartAngle, taskEndAngle)
 
         return isTouchWithinTask
+    }
+
+    // Decide whether the indices of the previous and next tasks should be changed
+    fun calculatePreviousAndNextTaskIndices(previousTaskIndex: Int?, nextTaskIndex: Int?, overlappedTaskIndex: Int?) {
+        previousTask = null
+        nextTask = null
+        overlappedTask = null
+
+        if (previousTaskIndex != null) previousTask = tasks[previousTaskIndex]
+        if (nextTaskIndex != null) nextTask = tasks[nextTaskIndex]
+        if (overlappedTaskIndex != null) overlappedTask = tasks[overlappedTaskIndex]
+
+        val slotStart = previousTask?.endTime ?: activeTimeStart
+        val slotEnd = nextTask?.startTime ?: activeTimeEnd
+
+        val slotStartAngle = TouchGestureUtils.calculateAngleFromTime(
+            activeTimeStart = activeTimeStart,
+            activeTimeEnd = activeTimeEnd,
+            time = slotStart,
+            minuteAngle = minuteAngle
+        )
+        val slotStartAngleTranslated =
+            TouchGestureUtils.translateAngle270To0(
+                slotStartAngle
+            )
+        val slotEndAngle = TouchGestureUtils.calculateAngleFromTime(
+            activeTimeStart = activeTimeStart,
+            activeTimeEnd = activeTimeEnd,
+            time = slotEnd,
+            minuteAngle = minuteAngle
+        )
+        var slotEndAngleTranslated =
+            TouchGestureUtils.translateAngle270To0(
+                slotEndAngle
+            )
+        if (slotEndAngleTranslated == 0f) slotEndAngleTranslated = 360f
+
+        // Space (in minutes) between the tasks
+        val capacity = (slotEndAngleTranslated - slotStartAngleTranslated) / minuteAngle
+
+        // If there is not enough space between the tasks to fit in the dragged task, move the dragged task. The 2 minutes is to separate the task to be moved from the neighbouring tasks: 1 minute from each side
+        if (capacity < (draggedTaskDuration + 2).toFloat()) {
+            var newPreviousTaskIndex: Int? = null
+            var newNextTaskIndex: Int? = null
+            var newOverlappedTaskIndex: Int? = null
+
+            // Move the index range of the previous and next tasks backwards (e.g. previous task index 1 to previous task index 0)
+            if (dragDirection == DragDirection.Forward) {
+                previousTaskIndex?.minus(1)?.let { newIndex ->
+                    // Do not assign a new previous index if that index belongs to the task that we are moving
+                    newPreviousTaskIndex = if (newIndex >= 0 && tasks[newIndex].id != taskToBeMovedToCalendar.id) newIndex else null
+                }
+                nextTaskIndex?.minus(1)?.let { newIndex ->
+                    newNextTaskIndex = if (newIndex >= 0 && tasks[newIndex].id != taskToBeMovedToCalendar.id) newIndex else nextTaskIndex
+                } ?: run {
+                    newNextTaskIndex = previousTaskIndex
+                }
+                // If we find that there is not enough space between the current previous and next tasks and we move the indices backwards, there will definitely be at least a new next task index
+                newOverlappedTaskIndex = newNextTaskIndex!!
+            }
+            else if (dragDirection == DragDirection.Backward) {
+                previousTaskIndex?.plus(1)?.let { newIndex ->
+                    newPreviousTaskIndex = if (newIndex < tasks.size && tasks[newIndex].id != taskToBeMovedToCalendar.id) newIndex else previousTaskIndex
+                } ?: run {
+                    newPreviousTaskIndex = nextTaskIndex
+                }
+                nextTaskIndex?.plus(1)?.let { newIndex ->
+                    newNextTaskIndex = if (newIndex < tasks.size && tasks[newIndex].id != taskToBeMovedToCalendar.id) newIndex else null
+                }
+                // If we find that there is not enough space between the current previous and next tasks and we move the indices forwards, there will definitely be at least a new previous task index
+                newOverlappedTaskIndex = newPreviousTaskIndex!!
+            }
+
+            calculatePreviousAndNextTaskIndices(newPreviousTaskIndex, newNextTaskIndex, newOverlappedTaskIndex)
+        }
+    }
+
+    // Calculates the jump-to position between the previous and next tasks
+    fun calculateJumpTo(previousTaskIndex: Int?, nextTaskIndex: Int?, overlappedTaskIndex: Int?) {
+        calculatePreviousAndNextTaskIndices(previousTaskIndex, nextTaskIndex, overlappedTaskIndex)
+
+        val slotStart = previousTask?.endTime ?: activeTimeStart
+        val slotEnd = nextTask?.startTime ?: activeTimeEnd
+
+        val slotStartAngle = TouchGestureUtils.calculateAngleFromTime(
+            activeTimeStart = activeTimeStart,
+            activeTimeEnd = activeTimeEnd,
+            time = slotStart,
+            minuteAngle = minuteAngle
+        )
+        val slotEndAngle = TouchGestureUtils.calculateAngleFromTime(
+            activeTimeStart = activeTimeStart,
+            activeTimeEnd = activeTimeEnd,
+            time = slotEnd,
+            minuteAngle = minuteAngle
+        )
+
+        // Place the task to be moved near the overlapped task
+        if (overlappedTask == nextTask) {
+            jumpToEndAngle = slotEndAngle - minuteAngle
+            jumpToStartAngle = jumpToEndAngle!! - draggedTaskDuration * minuteAngle
+
+            if (jumpToEndAngle!! < 0f) jumpToEndAngle = jumpToEndAngle!! + 360f
+            if (jumpToStartAngle!! < 0f) jumpToStartAngle = jumpToStartAngle!! + 360f
+        }
+        else if (overlappedTask == previousTask) {
+            jumpToStartAngle = slotStartAngle + minuteAngle
+            jumpToEndAngle = jumpToStartAngle!! + draggedTaskDuration * minuteAngle
+
+            if (jumpToStartAngle!! > 360f) jumpToStartAngle = jumpToStartAngle!! - 360f
+            if (jumpToEndAngle!! > 360f) jumpToEndAngle = jumpToEndAngle!! - 360f
+        }
     }
 
     fun resetDialParameters() {
@@ -355,9 +462,8 @@ fun MoveToCalendarDial(
                                         val rotationMotion = abs(rotation * PI.toFloat() / 180f)
                                         val panMotion = pan.getDistance()
 
-                                        pastTouchSlop = zoomMotion > viewConfig.touchSlop
-                                                || rotationMotion > viewConfig.touchSlop
-                                                || panMotion > viewConfig.touchSlop
+                                        pastTouchSlop =
+                                            zoomMotion > viewConfig.touchSlop || rotationMotion > viewConfig.touchSlop || panMotion > viewConfig.touchSlop
                                     }
 
                                     if (pastTouchSlop) {
@@ -373,77 +479,57 @@ fun MoveToCalendarDial(
                         }
                     }
                     .pointerInput(dayState, userInput, tasks) {
-                        detectTapGestures(
-                            onDoubleTap = { offset ->
-                                // On double tap switch mode to EditTimeRange
-                                val distance = TouchGestureUtils.distance(offset, center)
-                                touchInsideTheDial = TouchGestureUtils.checkIfTouchInsideDial(
-                                    distance,
-                                    centerRadius,
-                                    innerRadius,
-                                    touchStroke
+                        detectTapGestures(onDoubleTap = { offset ->
+                            // On double tap switch mode to EditTimeRange
+                            val distance = TouchGestureUtils.distance(offset, center)
+                            touchInsideTheDial = TouchGestureUtils.checkIfTouchInsideDial(
+                                distance, centerRadius, innerRadius, touchStroke
+                            )
+                            angle = TouchGestureUtils.angle(center, offset)
+
+                            if (touchInsideTheDial) {
+                                // Check if touch is within the task to be moved
+                                val touchWithinTaskToBeMoved = checkIfTouchWithinTask(
+                                    angle, taskToBeMovedToCalendar
                                 )
-                                angle = TouchGestureUtils.angle(center, offset)
 
-                                if (touchInsideTheDial) {
-                                    // Check if touch is within the task to be moved
-                                    val touchWithinTaskToBeMoved =
-                                        checkIfTouchWithinTask(
-                                            angle,
-                                            taskToBeMovedToCalendar
-                                        )
-
-                                    if (touchWithinTaskToBeMoved) {
-                                        taskMode = TaskMode.EditTimeRange
-                                    }
-                                } else {
-                                    // Cancel everything if the touch is outside the dial
-                                    reset()
+                                if (touchWithinTaskToBeMoved) {
+                                    taskMode = TaskMode.EditTimeRange
                                 }
-                            },
-                            onLongPress = { offset ->
-                                // On long press switch mode to EditStartTime
-                                val distance = TouchGestureUtils.distance(offset, center)
-                                touchInsideTheDial = TouchGestureUtils.checkIfTouchInsideDial(
-                                    distance,
-                                    centerRadius,
-                                    innerRadius,
-                                    touchStroke
+                            } else {
+                                // Cancel everything if the touch is outside the dial
+                                reset()
+                            }
+                        }, onLongPress = { offset ->
+                            // On long press switch mode to EditStartTime
+                            val distance = TouchGestureUtils.distance(offset, center)
+                            touchInsideTheDial = TouchGestureUtils.checkIfTouchInsideDial(
+                                distance, centerRadius, innerRadius, touchStroke
+                            )
+                            angle = TouchGestureUtils.angle(center, offset)
+
+                            if (touchInsideTheDial) {
+                                // Check if touch is within the task to be moved
+                                val touchWithinTaskToBeMoved = checkIfTouchWithinTask(
+                                    angle, taskToBeMovedToCalendar
                                 )
-                                angle = TouchGestureUtils.angle(center, offset)
 
-                                if (touchInsideTheDial) {
-                                    // Check if touch is within the task to be moved
-                                    val touchWithinTaskToBeMoved =
-                                        checkIfTouchWithinTask(
-                                            angle,
-                                            taskToBeMovedToCalendar
-                                        )
-
-                                    if (touchWithinTaskToBeMoved) {
-                                        taskMode = TaskMode.EditStartTime
-                                    }
+                                if (touchWithinTaskToBeMoved) {
+                                    taskMode = TaskMode.EditStartTime
                                 }
                             }
-                        )
+                        })
                     }
                     .pointerInput(dayState, userInput, tasks) {
                         detectDragGestures(
                             onDragStart = { offset ->
                                 // Get the starting coordinates and determine if the touch is within the dial
                                 val distance = TouchGestureUtils.distance(offset, center)
-                                touchNearTheDialEdge =
-                                    TouchGestureUtils.checkIfTouchNearDialEdge(
-                                        distance,
-                                        innerRadius,
-                                        outerRadius,
-                                        touchStroke
-                                    )
+                                touchNearTheDialEdge = TouchGestureUtils.checkIfTouchNearDialEdge(
+                                    distance, innerRadius, outerRadius, touchStroke
+                                )
                                 touchInsideTheDial = TouchGestureUtils.checkIfTouchInsideDial(
-                                    distance,
-                                    centerRadius,
-                                    innerRadius,
-                                    touchStroke
+                                    distance, centerRadius, innerRadius, touchStroke
                                 )
 
                                 if (touchNearTheDialEdge || touchInsideTheDial) {
@@ -452,28 +538,18 @@ fun MoveToCalendarDial(
                                 }
                             },
                             onDrag = { change, dragAmount ->
-                                Log.i("MoveToCalendarDial", "taskMode $taskMode")
                                 if (taskMode == TaskMode.EditTimeRange) {
                                     val offset = change.position
                                     val distance = TouchGestureUtils.distance(offset, center)
-                                    touchNearTheDialEdge =
-                                        TouchGestureUtils.checkIfTouchNearDialEdge(
-                                            distance,
-                                            innerRadius,
-                                            outerRadius,
-                                            touchStroke
-                                        )
-                                    touchInsideTheDial =
-                                        TouchGestureUtils.checkIfTouchInsideDial(
-                                            distance,
-                                            centerRadius,
-                                            innerRadius,
-                                            touchStroke
-                                        )
+                                    touchNearTheDialEdge = TouchGestureUtils.checkIfTouchNearDialEdge(
+                                        distance, innerRadius, outerRadius, touchStroke
+                                    )
+                                    touchInsideTheDial = TouchGestureUtils.checkIfTouchInsideDial(
+                                        distance, centerRadius, innerRadius, touchStroke
+                                    )
 
                                     if (touchNearTheDialEdge || touchInsideTheDial) {
-                                        val currentAngle =
-                                            TouchGestureUtils.angle(center, offset)
+                                        val currentAngle = TouchGestureUtils.angle(center, offset)
                                         angle = currentAngle
                                         val currentAngleTranslated =
                                             TouchGestureUtils.translateAngle270To0(currentAngle)
@@ -522,12 +598,11 @@ fun MoveToCalendarDial(
                                         // If we do know which time boundary of the given task we are setting
                                         else {
                                             // Show the clock time the angle corresponds to
-                                            taskClockTime =
-                                                TouchGestureUtils.calculateTimeFromAngle(
-                                                    angle = angle,
-                                                    clockStart = activeTimeStart,
-                                                    minuteAngle = minuteAngle
-                                                )
+                                            taskClockTime = TouchGestureUtils.calculateTimeFromAngle(
+                                                angle = angle,
+                                                clockStart = activeTimeStart,
+                                                minuteAngle = minuteAngle
+                                            )
 
                                             // If we are setting the start time of the given task
                                             if (angleMode == AngleMode.Start) {
@@ -611,43 +686,41 @@ fun MoveToCalendarDial(
                                                 }
                                             }
                                         }
-
                                     }
                                 }
                                 // This code is executed instead of the onDrag() in .detectDragGesturesAfterLongPress() - for some reason the finger has to be lifted after a long-press and the drag gestures are then detected by the .detectDragGestures()
                                 else if (taskMode == TaskMode.EditStartTime) {
-                                    val currentAngle =
-                                        TouchGestureUtils.angle(center, change.position)
+                                    val currentAngle = TouchGestureUtils.angle(center, change.position)
                                     val previousAngle =
                                         TouchGestureUtils.angle(center, change.previousPosition)
                                     // We're rounding the angle values because at the end of dragging the values get mixed: e.g. during dragging backwards the previous angle is calculated as smaller than current angle
-//                                    val currentAngleTranslated =
-//                                        roundToOneDecimal(
-//                                            TouchGestureUtils.translateAngle270To0(
-//                                                currentAngle
-//                                            )
-//                                        )
-//                                    val previousAngleTranslated =
-//                                        roundToOneDecimal(
-//                                            TouchGestureUtils.translateAngle270To0(
-//                                                previousAngle
-//                                            )
-//                                        )
+                                    val currentAngleTranslated = roundToOneDecimal(
+                                        TouchGestureUtils.translateAngle270To0(
+                                            currentAngle
+                                        )
+                                    )
+                                    val previousAngleTranslated = roundToOneDecimal(
+                                        TouchGestureUtils.translateAngle270To0(
+                                            previousAngle
+                                        )
+                                    )
 
-//                                    if (currentAngleTranslated > previousAngleTranslated) {
-//                                        dragDirection = DragDirection.Forward
-//                                    } else if (currentAngleTranslated < previousAngleTranslated) {
-//                                        dragDirection = DragDirection.Backward
-//                                    }
+                                    if (currentAngleTranslated > previousAngleTranslated) {
+                                        dragDirection = DragDirection.Forward
+                                    } else if (currentAngleTranslated < previousAngleTranslated) {
+                                        dragDirection = DragDirection.Backward
+                                    }
 
                                     var taskToBeMovedNewStartAngle =
                                         tmpStartAngle + (currentAngle - previousAngle)
                                     var taskToBeMovedNewEndAngle =
-                                        taskToBeMovedNewStartAngle + (taskToBeMovedDuration * minuteAngle)
+                                        taskToBeMovedNewStartAngle + (draggedTaskDuration * minuteAngle)
 
-                                    // Correct the angle if its value exceeds 360 degrees
+                                    // Correct the angle if its value exceeds 360 degrees or becomes negative
                                     if (taskToBeMovedNewStartAngle > 360f) taskToBeMovedNewStartAngle -= 360f
                                     if (taskToBeMovedNewEndAngle > 360f) taskToBeMovedNewEndAngle -= 360f
+                                    if (taskToBeMovedNewStartAngle < 0f) taskToBeMovedNewStartAngle += 360f
+                                    if (taskToBeMovedNewEndAngle < 0f) taskToBeMovedNewEndAngle += 360f
 
                                     val taskToBeMovedNewStartAngleTranslated =
                                         TouchGestureUtils.translateAngle270To0(
@@ -658,75 +731,26 @@ fun MoveToCalendarDial(
                                             taskToBeMovedNewEndAngle
                                         )
 
-
-
                                     // If the task's end time and start time don't pass the 0/360 degree mark, move the task
                                     if (taskToBeMovedNewEndAngleTranslated < 360f && taskToBeMovedNewStartAngleTranslated >= 0) {
-                                        // If the task's end time is greater then its start time
+                                        // If the task's end time is greater then its start time (which is correct)
                                         if (taskToBeMovedNewEndAngleTranslated > taskToBeMovedNewStartAngleTranslated) {
-                                            // Check if the task's new start and end time values don't overlap with another task
-                                            var isTaskOverlapping = false
+                                            tmpStartAngle = taskToBeMovedNewStartAngle
+                                            tmpEndAngle = taskToBeMovedNewEndAngle
+                                            jumpToStartAngle = tmpStartAngle
+                                            jumpToEndAngle = tmpEndAngle
 
-                                            for (task in tasks) {
-                                                // Omit the task that we are moving to the calendar
-                                                if (task.id != taskToBeMovedToCalendar.id) {
-                                                    val taskStartAngleTranslated =
-                                                        TouchGestureUtils.translateAngle270To0(
-                                                            TouchGestureUtils.calculateAngleFromTime(
-                                                                activeTimeStart,
-                                                                activeTimeEnd,
-                                                                task.startTime!!,
-                                                                minuteAngle
-                                                            )
+                                            // Update the selected task with new start- and end time - These values are not updated on time during task swapping but they are updated on time before onDragEnd()
+                                            tasks.find { task -> task.id == taskToBeMovedToCalendar.id }
+                                                ?.apply {
+                                                    startTime =
+                                                        TouchGestureUtils.calculateTimeFromAngle(
+                                                            tmpStartAngle, minuteAngle, activeTimeStart
                                                         )
-                                                    val taskEndAngleTranslated =
-                                                        TouchGestureUtils.translateAngle270To0(
-                                                            TouchGestureUtils.calculateAngleFromTime(
-                                                                activeTimeStart,
-                                                                activeTimeEnd,
-                                                                task.endTime!!,
-                                                                minuteAngle
-                                                            )
-                                                        )
-
-                                                    Log.i("MoveToCalendarDial", "taskToBeMovedNewStartAngleTranslated $taskToBeMovedNewStartAngleTranslated")
-                                                    Log.i("MoveToCalendarDial", "taskToBeMovedNewEndAngleTranslated $taskToBeMovedNewEndAngleTranslated")
-                                                    Log.i("MoveToCalendarDial", "taskStartAngleTranslated $taskStartAngleTranslated")
-                                                    Log.i("MoveToCalendarDial", "taskEndAngleTranslated $taskEndAngleTranslated")
-
-                                                    if (taskToBeMovedNewStartAngleTranslated in taskStartAngleTranslated..taskEndAngleTranslated
-                                                        || taskToBeMovedNewEndAngleTranslated in taskStartAngleTranslated..taskEndAngleTranslated
-                                                    ) {
-                                                        isTaskOverlapping = true
-                                                        break
-                                                    }
+                                                    endTime = TouchGestureUtils.calculateTimeFromAngle(
+                                                        tmpEndAngle, minuteAngle, activeTimeStart
+                                                    )
                                                 }
-                                            }
-
-                                            Log.i("MoveToCalendarDial", "isTaskOverlapping $isTaskOverlapping")
-
-                                            // If the task to be moved does not overlap any other task, move its position according to the dragging movement
-                                            if (!isTaskOverlapping) {
-                                                tmpStartAngle = taskToBeMovedNewStartAngle
-                                                tmpEndAngle = taskToBeMovedNewEndAngle
-
-                                                // Update the selected task with new start- and end time - These values are not updated on time during task swapping but they are updated on time before onDragEnd()
-                                                tasks.find { task -> task.id == taskToBeMovedToCalendar.id }
-                                                    ?.apply {
-                                                        startTime =
-                                                            TouchGestureUtils.calculateTimeFromAngle(
-                                                                tmpStartAngle,
-                                                                minuteAngle,
-                                                                activeTimeStart
-                                                            )
-                                                        endTime =
-                                                            TouchGestureUtils.calculateTimeFromAngle(
-                                                                tmpEndAngle,
-                                                                minuteAngle,
-                                                                activeTimeStart
-                                                            )
-                                                    }
-                                            }
                                         }
                                     }
 
@@ -753,12 +777,11 @@ fun MoveToCalendarDial(
                                                 startTime = clockTaskStartTime
                                             }
                                     } else if (angleMode == AngleMode.End) {
-                                        val clockTaskEndTime =
-                                            TouchGestureUtils.calculateTimeFromAngle(
-                                                angle = tmpEndAngle,
-                                                clockStart = activeTimeStart,
-                                                minuteAngle = minuteAngle
-                                            )
+                                        val clockTaskEndTime = TouchGestureUtils.calculateTimeFromAngle(
+                                            angle = tmpEndAngle,
+                                            clockStart = activeTimeStart,
+                                            minuteAngle = minuteAngle
+                                        )
 
                                         tasks.find { task -> task.id == taskToBeMovedToCalendar.id }
                                             ?.apply {
@@ -772,37 +795,128 @@ fun MoveToCalendarDial(
                                     startAngle = tmpStartAngle
                                     endAngle = tmpEndAngle
 
-                                    taskToBeMovedDuration =
-                                        TouchGestureUtils.calculateTotalNumberOfMinutes(
+                                    draggedTaskDuration = TouchGestureUtils.calculateTotalNumberOfMinutes(
                                             TouchGestureUtils.calculateTimeFromAngle(
-                                                tmpStartAngle,
-                                                minuteAngle,
-                                                activeTimeStart
-                                            ),
-                                            TouchGestureUtils.calculateTimeFromAngle(
-                                                tmpEndAngle,
-                                                minuteAngle,
-                                                activeTimeStart
+                                                tmpStartAngle, minuteAngle, activeTimeStart
+                                            ), TouchGestureUtils.calculateTimeFromAngle(
+                                                tmpEndAngle, minuteAngle, activeTimeStart
                                             )
                                         )
-                                } else if (taskMode == TaskMode.EditStartTime) {
-                                    Log.i("MoveToCalendarDial", "tmpStartAngle $tmpStartAngle")
-                                    Log.i("MoveToCalendarDial", "tmpEndAngle $tmpEndAngle")
+                                }
+                                else if (taskMode == TaskMode.EditStartTime) {
+                                    // The indices of the tasks between which the dragged task should be placed
+                                    var taskBeforeIndex: Int? = null
+                                    var taskAfterIndex: Int? = null
+                                    var overlappedTaskIndex: Int? = null
 
-                                    val taskNewStartTime =
-                                        TouchGestureUtils.calculateTimeFromAngle(
-//                                            jumpToStartAngle ?: tmpStartAngle,
-                                            tmpStartAngle,
-                                            minuteAngle,
-                                            activeTimeStart
+                                    var tmpMiddleAngle = tmpStartAngle + ((draggedTaskDuration * minuteAngle) * 0.5f)
+                                    // Correct the middle angle if due to constant addition its value exceeds 360 degrees
+                                    if (tmpMiddleAngle > 360f) tmpMiddleAngle -= 360f
+
+                                    val tmpMiddleAngleTranslated =
+                                        TouchGestureUtils.translateAngle270To0(
+                                            tmpMiddleAngle
                                         )
-                                    val taskNewEndTime =
-                                        TouchGestureUtils.calculateTimeFromAngle(
-//                                            jumpToEndAngle ?: tmpEndAngle,
-                                            tmpEndAngle,
-                                            minuteAngle,
-                                            activeTimeStart
+
+                                    val tmpStartAngleTranslated =
+                                        TouchGestureUtils.translateAngle270To0(
+                                            tmpStartAngle
                                         )
+                                    val tmpEndAngleTranslated = TouchGestureUtils.translateAngle270To0(
+                                        tmpEndAngle
+                                    )
+
+                                    // Check if the task's new start and end time values overlap with another task.
+                                    for ((index, task) in tasks.withIndex()) {
+                                        // Omit the task that we are moving to the calendar
+                                        if (task.id != taskToBeMovedToCalendar.id) {
+                                            val taskStartAngle = TouchGestureUtils.calculateAngleFromTime(
+                                                activeTimeStart,
+                                                activeTimeEnd,
+                                                task.startTime!!,
+                                                minuteAngle
+                                            )
+                                            val taskStartAngleTranslated = TouchGestureUtils.translateAngle270To0(taskStartAngle)
+                                            val taskEndAngleTranslated =
+                                                TouchGestureUtils.translateAngle270To0(
+                                                    TouchGestureUtils.calculateAngleFromTime(
+                                                        activeTimeStart,
+                                                        activeTimeEnd,
+                                                        task.endTime!!,
+                                                        minuteAngle
+                                                    )
+                                                )
+                                            val taskDuration = TouchGestureUtils.calculateTotalNumberOfMinutes(
+                                                task.startTime!!,
+                                                task.endTime!!
+                                            )
+                                            var taskMiddleAngle = taskStartAngle + ((taskDuration * minuteAngle) * 0.5f)
+                                            // Correct the middle angle if due to constant addition its value exceeds 360 degrees
+                                            if (taskMiddleAngle > 360f) taskMiddleAngle -= 360f
+                                            val taskMiddleAngleTranslated = TouchGestureUtils.translateAngle270To0(taskMiddleAngle)
+
+                                            // Check if the task is overlapped by the task to be moved
+                                            if (tmpStartAngleTranslated in taskStartAngleTranslated..taskEndAngleTranslated
+                                                || tmpEndAngleTranslated in taskStartAngleTranslated..taskEndAngleTranslated
+                                                || taskStartAngleTranslated in tmpStartAngleTranslated..tmpEndAngleTranslated
+                                                || taskEndAngleTranslated in tmpStartAngleTranslated..tmpEndAngleTranslated) {
+                                                // Save the index of the overlapped task
+                                                overlappedTaskIndex = index
+
+                                                // Find the previous and next tasks: the previous task is the LAST task whose start angle is smaller than the middle angle of the task to be moved; the next task is the FIRST task whose end angle is greater than the middle angle of the task to be moved.
+                                                if (tmpMiddleAngleTranslated > taskMiddleAngleTranslated) {
+                                                    taskBeforeIndex = index
+
+                                                    // If possible, assign the next index as the index of the next task
+                                                    if (taskBeforeIndex + 1 < tasks.size && tasks[taskBeforeIndex + 1].id != taskToBeMovedToCalendar.id) {
+                                                        taskAfterIndex = taskBeforeIndex + 1
+                                                    }
+                                                    else {
+                                                        taskAfterIndex = null
+                                                    }
+
+                                                    break
+                                                }
+                                                else if (tmpMiddleAngleTranslated < taskMiddleAngleTranslated) {
+                                                    taskAfterIndex = index
+
+                                                    // If possible, assign the previous index as the index of the previous task
+                                                    if (taskAfterIndex - 1 >= 0 && tasks[taskAfterIndex - 1].id != taskToBeMovedToCalendar.id) {
+                                                        taskBeforeIndex = taskAfterIndex - 1
+                                                    }
+                                                    else {
+                                                        taskBeforeIndex = null
+                                                    }
+
+                                                    break
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // If there is a taskBeforeIndex or taskAfterIndex, it means that the current position of the task to be moved is overlapping with another task
+                                    if (taskBeforeIndex != null || taskAfterIndex != null) {
+                                        // Therefore, we're going to calculate the new position into which the task to be moved will have to jump into
+                                        calculateJumpTo(taskBeforeIndex, taskAfterIndex, overlappedTaskIndex)
+                                    }
+
+                                    jumpToStartAngle?.let { value ->
+                                        tmpStartAngle = jumpToStartAngle!!
+                                    }
+                                    jumpToEndAngle?.let { value ->
+                                        tmpEndAngle = jumpToEndAngle!!
+                                    }
+
+                                    val taskNewStartTime = TouchGestureUtils.calculateTimeFromAngle(
+                                        tmpStartAngle,
+                                        minuteAngle,
+                                        activeTimeStart
+                                    )
+                                    val taskNewEndTime = TouchGestureUtils.calculateTimeFromAngle(
+                                        tmpEndAngle,
+                                        minuteAngle,
+                                        activeTimeStart
+                                    )
 
                                     tasks.find { task -> task.id == taskToBeMovedToCalendar.id }
                                         ?.apply {
