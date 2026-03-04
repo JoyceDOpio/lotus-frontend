@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 12,
-    "identityHash": "fc6c53ca71bd8dc7c53a5ca37c6fc711",
+    "identityHash": "7ac27b602cd230fc9d596cca4ab25560",
     "entities": [
       {
         "tableName": "days",
@@ -56,7 +56,7 @@
       },
       {
         "tableName": "tasks",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`title` TEXT NOT NULL, `description` TEXT NOT NULL, `date` TEXT, `start_time` TEXT, `end_time` TEXT, `priority` INTEGER, `id` BLOB NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`title` TEXT NOT NULL, `description` TEXT NOT NULL, `date` TEXT, `start_time` TEXT, `end_time` TEXT, `priority` INTEGER, `id` BLOB NOT NULL, `pinned` INTEGER NOT NULL DEFAULT false, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "title",
@@ -99,6 +99,13 @@
             "columnName": "id",
             "affinity": "BLOB",
             "notNull": true
+          },
+          {
+            "fieldPath": "pinned",
+            "columnName": "pinned",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "false"
           }
         ],
         "primaryKey": {
@@ -163,7 +170,17 @@
             "id"
           ]
         },
-        "indices": [],
+        "indices": [
+          {
+            "name": "index_activities_main_activity_id",
+            "unique": false,
+            "columnNames": [
+              "main_activity_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_activities_main_activity_id` ON `${TABLE_NAME}` (`main_activity_id`)"
+          }
+        ],
         "foreignKeys": [
           {
             "table": "activities",
@@ -219,7 +236,17 @@
             "id"
           ]
         },
-        "indices": [],
+        "indices": [
+          {
+            "name": "index_voice_notes_activity_id",
+            "unique": false,
+            "columnNames": [
+              "activity_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_voice_notes_activity_id` ON `${TABLE_NAME}` (`activity_id`)"
+          }
+        ],
         "foreignKeys": [
           {
             "table": "activities",
@@ -270,7 +297,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'fc6c53ca71bd8dc7c53a5ca37c6fc711')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7ac27b602cd230fc9d596cca4ab25560')"
     ]
   }
 }

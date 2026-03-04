@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Circular Planner"
+rootProject.name = "Time Aware"
 include(":app")
