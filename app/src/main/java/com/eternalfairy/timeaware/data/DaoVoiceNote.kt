@@ -22,4 +22,5 @@ interface DaoVoiceNote {
 
     @Query("SELECT * FROM voice_notes WHERE id = :id")
     fun getVoiceNote(id: UUID): Flow<VoiceNote>
+//    fun getVoiceNote(id: UUID): Flow<VoiceNote?>
 }

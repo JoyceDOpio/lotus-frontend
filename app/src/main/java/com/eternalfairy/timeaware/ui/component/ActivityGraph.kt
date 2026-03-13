@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.magnifier
@@ -54,22 +55,24 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.eternalfairy.timeaware.R
 import com.eternalfairy.timeaware.data.Time
+import com.eternalfairy.timeaware.ui.component.calendar.conditional
+import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
+import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
+import com.eternalfairy.timeaware.ui.theme.MINUTE_LABEL_COLOR
 import com.eternalfairy.timeaware.ui.viewmodel.DayState
 import com.eternalfairy.timeaware.utils.TouchGestureUtils
 import com.eternalfairy.timeaware.utils.TouchGestureUtils.TOUCH_STROKE
 import kotlinx.coroutines.delay
 import java.time.LocalTime
 import java.util.UUID
-import kotlin.Int
 import kotlin.math.ceil
 import kotlin.math.sqrt
-
-const val ACTIVITY_MINUTE_STEP_COLOR = 0xffb4acbd
 
 enum class ActivityGraphDisplayType {
     Activity,
@@ -83,6 +86,12 @@ enum class TextAboveTaskAreaType {
 
 @Composable
 fun ActivityGraph (
+    componentHeight: Dp = 180.dp,
+    componentWidth: Dp = 400.dp,
+    paddingStart: Dp = 10.dp,
+    paddingTop: Dp = 5.dp,
+    paddingEnd: Dp = 10.dp,
+    paddingBottom: Dp = 5.dp,
     dayState: DayState,
     drawClockHand: Boolean = false,
 //    height: Dp = 320.dp,// Minimum height is 300.dp - at 280.dp there is a problem with index out of bounds
@@ -223,12 +232,19 @@ fun ActivityGraph (
     // Graph
     Box (
         modifier = Modifier
-//            .height(height)
-            .fillMaxWidth()
+            .height(componentHeight)
+            .width(componentWidth)
+            .padding(
+                start = paddingStart,
+                top = paddingTop,
+                end = paddingEnd,
+                bottom = paddingBottom
+            )
+            .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
             .onSizeChanged {
                 graphBoxSize = it
             }
-            .background(Color(0xffffffff))
+            .background(COMPONENT_BACKGROUND_COLOR)
             .onGloballyPositioned { layoutCoordinates ->
                 val topLeft = layoutCoordinates.boundsInRoot().topLeft
                 magnifierSourceCenter = layoutCoordinates.boundsInRoot().center
@@ -408,7 +424,6 @@ fun ActivityGraph (
                 // If I place the offset modifier at the end of the modifiers' chain, it is ignored
                 // TODO: The offset should dependent on canvas height
                 .align(Alignment.TopStart)
-                .clip(shape = RoundedCornerShape(0.dp, 5.dp, 5.dp, 0.dp))
                 // TODO: This width should have a specific value in px or something
                 .fillMaxWidth(0.1f)
                 // TODO: The height could cover the upper and lower axis completely
@@ -443,7 +458,7 @@ fun ActivityGraph (
 
                 // Draw background
                 drawRect(
-                    color = Color(CLOCK_LABEL_COLOR),
+                    color = HEADER_TEXT_COLOR,
                     topLeft = Offset(
                         x = 0f,
                         y = 0f
@@ -469,7 +484,6 @@ fun ActivityGraph (
                 }
 
                 // Activities
-//                    color = Color(0xff00c0de)// TODO: Add to the theme
                 text = "ACTUAL"//TODO: Read from string resource
                 measuredText = textMeasurer.measure(text = text)
                 path = Path()
@@ -503,7 +517,7 @@ fun ActivityGraph (
         // Magnifier button
         Box (
             modifier = Modifier
-                // If I place the offset modifier at the end of the modifiers' chain, it is ignored
+                // INFO: If I place the offset modifier at the end of the modifiers' chain, it is ignored
                 // TODO: The offset should dependent on canvas height
 //                    .align(Alignment.TopEnd)
 //                    .clip(shape = RoundedCornerShape(0.dp, 5.dp, 5.dp, 0.dp))
@@ -511,7 +525,6 @@ fun ActivityGraph (
                 .fillMaxWidth()
                 // TODO: The height could cover the upper and lower axis completely
                 .fillMaxHeight()
-//                .background(Color(0xffd4567))
             ,
             contentAlignment = Alignment.TopEnd
         ) {
@@ -522,7 +535,7 @@ fun ActivityGraph (
                 modifier = Modifier
                     .padding(5.dp)
                     .clip(CircleShape)
-                    .background(Color(CLOCK_LABEL_COLOR))
+                    .background(HEADER_TEXT_COLOR)
             ) {
                 Icon(
                     imageVector = if (showMagnifier) ImageVector.vectorResource(id = R.drawable.cross_small_svgrepo_com) else ImageVector.vectorResource(id = R.drawable.loupe_search_svgrepo_com),
@@ -571,7 +584,7 @@ fun DrawScope.drawClockHand(
     )
     drawPath(
         path,
-        color = Color(CLOCK_LABEL_COLOR),
+        color = HEADER_TEXT_COLOR,
         alpha = 0.35f,
         style = Stroke(
             width = 8f
@@ -660,7 +673,7 @@ fun DrawScope.drawHourLabels(
 ) {
     val textStyle = TextStyle(
         textAlign = TextAlign.Center,
-        color = Color(HOUR_LABEL_COLOR)
+        color = HEADER_TEXT_COLOR
     )
 
     // Draw grid - hour steps
@@ -693,7 +706,7 @@ fun DrawScope.drawHourLabels(
             hourOffset.y - hourStepLabelTextLayout.size.height * 0.5f
         )
 
-        // If it is refers to the second or second last hour label
+        // If it refers to the second or second last hour label
         if (i == 1 || i == (minutesBetweenHoursAccumulated.size - 2)) {
             // If the interval between the two consecutive hour labels is less than 30 minutes, don't draw it the second/second last label
             if ((i == 1 && minutesBetweenHoursAccumulated[i] - minutesBetweenHoursAccumulated[0] >= 30)
@@ -728,7 +741,7 @@ fun DrawScope.drawHourSteps(
 ) {
     for (i in 0..(minutesBetweenHoursAccumulated.size - 1)) {
         drawCircle(
-            color = Color(HOUR_LABEL_COLOR),
+            color = HEADER_TEXT_COLOR,
             radius = 10f,
             center = Offset(
                 x = (axisHorizontalPadding + (minutesBetweenHoursAccumulated[i] + xOffsetInMinutes) * minuteWidth),
@@ -753,7 +766,7 @@ fun DrawScope.drawMinuteSteps(
     for (i in 0..totalMinutes) {
         if (i % minuteStep == 0 && !(i in minutesBetweenHoursAccumulated)) {
             drawCircle(
-                color = Color(ACTIVITY_MINUTE_STEP_COLOR),
+                color = MINUTE_LABEL_COLOR,
                 radius = 5f,
                 center = Offset(
                     x = (axisHorizontalPadding + ((i + xOffsetInMinutes) * minuteWidth)),
@@ -1202,7 +1215,7 @@ fun truncateTextToPath(textToBeTruncated: String, textMeasurer: TextMeasurer, pa
     }
 
     // If the text to be displayed would consist of 4 characters or less, just return an empty string
-    if (textChars.size <= 4) {// In actuality it's 3 characters
+    if (textChars.size <= 4) {// In actuality, it's 3 characters
         return ""
     }
 

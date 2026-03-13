@@ -14,6 +14,12 @@ enum class AngleMode {
     End
 }
 
+enum class GoalModePopup {
+    Delete,
+    Edit,
+    Info
+}
+
 enum class NoteModePopup {
     Activity,
     Day

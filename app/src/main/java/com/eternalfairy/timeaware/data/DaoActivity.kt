@@ -31,7 +31,8 @@ interface DaoActivity {
     suspend fun delete(activity: Activity)
 
     @Query("SELECT * FROM activities WHERE id = :id")
-    fun getActivity(id: UUID): Flow<Activity>
+//    fun getActivity(id: UUID): Flow<Activity>
+    fun getActivity(id: UUID): Flow<Activity?>
 
 //    @Query("SELECT * FROM activities WHERE id = :id")
 //    fun getActivity(id: UUID): Flow<ActivityUiState>
@@ -40,10 +41,12 @@ interface DaoActivity {
     fun getMainActivities(date: String): Flow<List<Activity>>
 
     @Query("SELECT * FROM activities WHERE end_time IS NULL AND main_activity_id IS NULL")
-    fun getMainRecordedActivity(): Flow<Activity>
+//    fun getMainRecordedActivity(): Flow<Activity>
+    fun getMainRecordedActivity(): Flow<Activity?>
 
     @Query("SELECT * FROM activities WHERE end_time IS NULL AND main_activity_id IS NOT NULL")
-    fun getSubRecordedActivity(): Flow<Activity>
+//    fun getSubRecordedActivity(): Flow<Activity>
+    fun getSubRecordedActivity(): Flow<Activity?>
 
     @Query("SELECT * FROM activities WHERE main_activity_id = :mainActivityId")
     fun getSubActivities(mainActivityId: UUID): Flow<List<Activity>>

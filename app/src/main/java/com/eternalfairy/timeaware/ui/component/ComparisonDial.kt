@@ -7,12 +7,15 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
@@ -29,17 +32,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eternalfairy.timeaware.R
 import com.eternalfairy.timeaware.data.Time
+import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
+import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.viewmodel.DayState
 import com.eternalfairy.timeaware.utils.DrawScopeUtils.drawClockCenter
 import com.eternalfairy.timeaware.utils.DrawScopeUtils.drawClockHand
@@ -55,6 +60,8 @@ import kotlin.math.min
 
 @Composable
 fun ComparisonDial(
+    componentHeight: Dp = 450.dp,
+    componentWidth: Dp = 400.dp,
     dayState: DayState,
     drawClockHand: Boolean = false,
     onNavigateToTaskActivityComparison: () -> Unit,
@@ -161,226 +168,238 @@ fun ComparisonDial(
         selectTask(null)// TODO: This should clear the task UI state after coming back from the TaskInfoScreen, but it will not do anything when the user drags task along the dial, since then the component is not drawn for the first time (instead, it's redrawn). This could be solved if for example I cleared the task UI state based on the component's state
     }
 
-    Box (
+    Column(
         modifier = Modifier
-//            .background(Color(0xffffffff))
-            .width(380.dp)
-            .height(440.dp),
-        contentAlignment = Alignment.TopEnd
+            .height(componentHeight)
+            .width(componentWidth)
+            .padding(horizontal = 10.dp, vertical = 5.dp)
+            .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
+            .background(COMPONENT_BACKGROUND_COLOR)
+        ,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Canvas (
+        Box (
             modifier = Modifier
-                .fillMaxSize()
-                .onGloballyPositioned {
-                    width = it.size.width
-                    height = it.size.height
-                    center = Offset(width / 2f, height / 2f)
-                    // The radius of the dial
-                    outerRadius = min(width.toFloat(), height.toFloat()) / 2f * 0.9f
-                    // The radius from the center to the clock steps
-                    innerRadius = outerRadius * 0.8f
-                    // The radius of the clock center (the one that displays time)
-                    centerRadius = outerRadius * 0.3f
-                }
-                .clipToBounds()
-                .graphicsLayer(
-                    scaleX = scale,
-                    scaleY = scale,
-                    translationX = offset.x * scale,
-                    translationY = offset.y * scale
-                )
-                .pointerInput(dayState) {
-                    detectTransformGestures(
-                        onGesture = { centroid, pan, zoom, _ ->
-                            Log.i("TaskDial", "onGesture")
-                            if (scale > 1f) {
-                                offset += pan
-                            }
-                            scale = (scale * zoom).coerceIn(1f, 10f)
-                        }
+            ,
+            contentAlignment = Alignment.TopEnd
+        ) {
+            Canvas (
+                modifier = Modifier
+                    .fillMaxSize()
+                    .onGloballyPositioned {
+                        width = it.size.width
+                        height = it.size.height
+                        center = Offset(width / 2f, height / 2f)
+                        // The radius of the dial
+                        outerRadius = min(width.toFloat(), height.toFloat()) / 2f * 0.9f
+                        // The radius from the center to the clock steps
+                        innerRadius = outerRadius * 0.8f
+                        // The radius of the clock center (the one that displays time)
+                        centerRadius = outerRadius * 0.3f
+                    }
+                    .clipToBounds()
+                    .graphicsLayer(
+                        scaleX = scale,
+                        scaleY = scale,
+                        translationX = offset.x * scale,
+                        translationY = offset.y * scale
                     )
-                }
-                .pointerInput(dayState) {
-                    detectTapGestures(
-                        onTap = { offset ->
-                            // Clear the task- and activity UI states
-                            selectTask(null)
-                            selectActivity(null)
+                    .pointerInput(dayState) {
+                        detectTransformGestures(
+                            onGesture = { centroid, pan, zoom, _ ->
+                                Log.i("TaskDial", "onGesture")
+                                if (scale > 1f) {
+                                    offset += pan
+                                }
+                                scale = (scale * zoom).coerceIn(1f, 10f)
+                            }
+                        )
+                    }
+                    .pointerInput(dayState) {
+                        detectTapGestures(
+                            onTap = { offset ->
+                                // Clear the task- and activity UI states
+                                selectTask(null)
+                                selectActivity(null)
 
-                            Log.i("TaskDial", "detectTapGestures onTap")
-                            val distance = TouchGestureUtils.distance(offset, center)
-                            touchInsideTheDial = TouchGestureUtils.checkIfTouchInsideDial(
-                                distance,
-                                centerRadius,
-                                innerRadius,
-                                touchStroke
-                            )
-                            // Check if touch is near the dial edge
-                            touchNearTheDialEdge =
-                                TouchGestureUtils.checkIfTouchNearDialEdge(
+                                Log.i("TaskDial", "detectTapGestures onTap")
+                                val distance = TouchGestureUtils.distance(offset, center)
+                                touchInsideTheDial = TouchGestureUtils.checkIfTouchInsideDial(
                                     distance,
+                                    centerRadius,
                                     innerRadius,
-                                    outerRadius,
                                     touchStroke
                                 )
-                            angle = TouchGestureUtils.angle(center, offset)
+                                // Check if touch is near the dial edge
+                                touchNearTheDialEdge =
+                                    TouchGestureUtils.checkIfTouchNearDialEdge(
+                                        distance,
+                                        innerRadius,
+                                        outerRadius,
+                                        touchStroke
+                                    )
+                                angle = TouchGestureUtils.angle(center, offset)
 
-                            if (touchInsideTheDial || touchNearTheDialEdge) {
-                                // Determine what time the touch offset corresponds to
-                                val time = TouchGestureUtils.calculateTimeFromAngle(
-                                    angle = angle,
-                                    minuteAngle = minuteAngle,
-                                    clockStart = activeTimeStart
-                                )
-                                // Select task and activity
-                                selectTaskAndActivity(time)
+                                if (touchInsideTheDial || touchNearTheDialEdge) {
+                                    // Determine what time the touch offset corresponds to
+                                    val time = TouchGestureUtils.calculateTimeFromAngle(
+                                        angle = angle,
+                                        minuteAngle = minuteAngle,
+                                        clockStart = activeTimeStart
+                                    )
+                                    // Select task and activity
+                                    selectTaskAndActivity(time)
 
-                                // Navigate to the task and activity comparison screen
-                                onNavigateToTaskActivityComparison()
+                                    // Navigate to the task and activity comparison screen
+                                    onNavigateToTaskActivityComparison()
+                                }
                             }
-                        }
+                        )
+                    }
+            ) {
+                if (drawClockHand && TouchGestureUtils.checkIfTimeInRange(clockTime, activeTimeStart, activeTimeEnd)) {
+                    drawClockHand(
+                        activeTimeStart = activeTimeStart,
+                        clockTime = clockTime,
+                        minuteAngle = minuteAngle,
+                        startRadius = outerRadius - clockHandPadding,
+                        endRadius = centerRadius
                     )
                 }
-        ) {
-            if (drawClockHand && TouchGestureUtils.checkIfTimeInRange(clockTime, activeTimeStart, activeTimeEnd)) {
-                drawClockHand(
-                    activeTimeStart = activeTimeStart,
-                    clockTime = clockTime,
-                    minuteAngle = minuteAngle,
-                    startRadius = outerRadius - clockHandPadding,
-                    endRadius = centerRadius
-                )
-            }
 
-            val minutesBetweenHoursAccumulated: Array<Int> =
-                TouchGestureUtils.calculateMinutesBetweenHoursAccumulated(
+                val minutesBetweenHoursAccumulated: Array<Int> =
+                    TouchGestureUtils.calculateMinutesBetweenHoursAccumulated(
+                        activeTimeStart,
+                        activeTimeEnd
+                    )
+                val activeTimeHourSteps: Array<Time> = TouchGestureUtils.createClockHoursArray(
                     activeTimeStart,
                     activeTimeEnd
                 )
-            val activeTimeHourSteps: Array<Time> = TouchGestureUtils.createClockHoursArray(
-                activeTimeStart,
-                activeTimeEnd
-            )
 
-            for (activity in activities) {
-                // We have to offset these angles because startMinute * activityDialState.minuteAngle returns a biased angle
-                val activityStartAngle = TouchGestureUtils.calculateAngleFromTime (
-                    activeTimeStart,
-                    activeTimeEnd,
-                    activity.startTime,
-                    minuteAngle
-                )
-                val activityEndAngle = TouchGestureUtils.calculateAngleFromTime (
-                    activeTimeStart,
-                    activeTimeEnd,
-                    activity.endTime ?: Time(LocalTime.now().hour, LocalTime.now().minute),//TODO: Test me
-                    minuteAngle
-                )
-                val activityDuration = TouchGestureUtils.calculateTotalNumberOfMinutes(
-                    activity.startTime,
-                    activity.endTime ?: Time(LocalTime.now().hour, LocalTime.now().minute)//TODO: Test me
+                for (activity in activities) {
+                    // We have to offset these angles because startMinute * activityDialState.minuteAngle returns a biased angle
+                    val activityStartAngle = TouchGestureUtils.calculateAngleFromTime (
+                        activeTimeStart,
+                        activeTimeEnd,
+                        activity.startTime,
+                        minuteAngle
+                    )
+                    val activityEndAngle = TouchGestureUtils.calculateAngleFromTime (
+                        activeTimeStart,
+                        activeTimeEnd,
+                        activity.endTime ?: Time(LocalTime.now().hour, LocalTime.now().minute),//TODO: Test me
+                        minuteAngle
+                    )
+                    val activityDuration = TouchGestureUtils.calculateTotalNumberOfMinutes(
+                        activity.startTime,
+                        activity.endTime ?: Time(LocalTime.now().hour, LocalTime.now().minute)//TODO: Test me
+                    )
+
+                    drawTask(
+                        taskEndAngle = activityEndAngle,
+                        taskStartAngle = activityStartAngle,
+                        minuteAngle = minuteAngle,
+                        innerRadius = outerRadius * 0.5f + taskPadding * 1.35f,
+                        outerRadius = outerRadius - taskPadding,
+                        taskDurationInMinutes = activityDuration,
+                        taskTitle = activity.title,
+                        textMeasurer = textMeasurer,
+                        canvasWidth = width,
+                        canvasHeight = height
+                    )
+                }
+
+                // A background arc to visually separate the activities from tasks - the arcs are drawn one on top of the other in the order: activity, background, task
+                val whiteArcOuterRadius = outerRadius * 0.5f + taskPadding * 1.35f
+                drawArc(
+                    color = COMPONENT_BACKGROUND_COLOR,
+                    startAngle = 0f,
+                    sweepAngle = 360f,
+                    useCenter = true,
+                    topLeft = Offset(size.width / 2 - whiteArcOuterRadius, size.height / 2 - whiteArcOuterRadius),
+                    size = Size(whiteArcOuterRadius * 2, whiteArcOuterRadius * 2),
+                    alpha = 1f
                 )
 
-                drawTask(
-                    taskEndAngle = activityEndAngle,
-                    taskStartAngle = activityStartAngle,
+                for (task in tasks) {
+                    // We have to offset these angles because startMinute * taskDialState.minuteAngle returns a biased angle
+                    val taskStartAngle = TouchGestureUtils.calculateAngleFromTime (
+                        activeTimeStart,
+                        activeTimeEnd,
+                        task.startTime!!,
+                        minuteAngle
+                    )
+                    val taskEndAngle = TouchGestureUtils.calculateAngleFromTime (
+                        activeTimeStart,
+                        activeTimeEnd,
+                        task.endTime!!,
+                        minuteAngle
+                    )
+                    val taskDuration = TouchGestureUtils.calculateTotalNumberOfMinutes(
+                        task.startTime!!,
+                        task.endTime!!
+                    )
+
+                    drawTask(
+                        taskEndAngle = taskEndAngle,
+                        taskStartAngle = taskStartAngle,
+                        minuteAngle = minuteAngle,
+                        innerRadius = centerRadius,
+                        outerRadius = outerRadius * 0.5f + taskPadding * 1.15f,
+                        taskDurationInMinutes = taskDuration,
+                        taskTitle = task.title,
+                        textMeasurer = textMeasurer,
+                        canvasWidth = width,
+                        canvasHeight = height
+                    )
+                }
+
+                drawHourStepsAndLabels(
+                    minutesBetweenHoursAccumulated = minutesBetweenHoursAccumulated,
                     minuteAngle = minuteAngle,
-                    innerRadius = outerRadius * 0.5f + taskPadding * 1.35f,
-                    outerRadius = outerRadius - taskPadding,
-                    taskDurationInMinutes = activityDuration,
-                    taskTitle = activity.title,
+                    outerRadius = outerRadius,
+                    activeTimeHourSteps = activeTimeHourSteps,
                     textMeasurer = textMeasurer,
-                    canvasWidth = width,
-                    canvasHeight = height
+                )
+
+                // TODO: To be corrected
+                drawMinuteSteps(
+                    minuteAngle,
+                    totalMinutes,
+                    minutesBetweenHoursAccumulated,
+                    outerRadius
+                )
+
+                drawClockCenter(
+                    textMeasurer = textMeasurer,
+                    radius = centerRadius,
+                    fontSize = 32.sp,
+                    label = clockTime
                 )
             }
 
-            // A background arc to visually separate the activities from tasks - the arcs are drawn one on top of the other in the order: activity, background, task
-            val whiteArcOuterRadius = outerRadius * 0.5f + taskPadding * 1.35f
-            drawArc(
-                color = Color(0xffffffff),
-                startAngle = 0f,
-                sweepAngle = 360f,
-                useCenter = true,
-                topLeft = Offset(size.width / 2 - whiteArcOuterRadius, size.height / 2 - whiteArcOuterRadius),
-                size = Size(whiteArcOuterRadius * 2, whiteArcOuterRadius * 2),
-                alpha = 1f
-            )
-
-            for (task in tasks) {
-                // We have to offset these angles because startMinute * taskDialState.minuteAngle returns a biased angle
-                val taskStartAngle = TouchGestureUtils.calculateAngleFromTime (
-                    activeTimeStart,
-                    activeTimeEnd,
-                    task.startTime!!,
-                    minuteAngle
-                )
-                val taskEndAngle = TouchGestureUtils.calculateAngleFromTime (
-                    activeTimeStart,
-                    activeTimeEnd,
-                    task.endTime!!,
-                    minuteAngle
-                )
-                val taskDuration = TouchGestureUtils.calculateTotalNumberOfMinutes(
-                    task.startTime!!,
-                    task.endTime!!
-                )
-
-                drawTask(
-                    taskEndAngle = taskEndAngle,
-                    taskStartAngle = taskStartAngle,
-                    minuteAngle = minuteAngle,
-                    innerRadius = centerRadius,
-                    outerRadius = outerRadius * 0.5f + taskPadding * 1.15f,
-                    taskDurationInMinutes = taskDuration,
-                    taskTitle = task.title,
-                    textMeasurer = textMeasurer,
-                    canvasWidth = width,
-                    canvasHeight = height
+            IconButton(
+                onClick = {
+                    scale = 1f
+                    offset = Offset.Zero
+                },
+                modifier = Modifier
+                    .alpha(scaleDownButtonAlpha)
+                    .padding(5.dp)
+                    .clip(CircleShape)
+                    .background(COMPONENT_BACKGROUND_COLOR)
+            ) {
+                Icon(
+                    imageVector = ImageVector.vectorResource(id = R.drawable.scale_down_svgrepo_com),
+                    contentDescription = "Scale down",
+                    modifier = Modifier.fillMaxSize(1F),
+                    tint = HEADER_TEXT_COLOR
                 )
             }
-
-            drawHourStepsAndLabels(
-                minutesBetweenHoursAccumulated = minutesBetweenHoursAccumulated,
-                minuteAngle = minuteAngle,
-                outerRadius = outerRadius,
-                activeTimeHourSteps = activeTimeHourSteps,
-                textMeasurer = textMeasurer,
-            )
-
-            // TODO: To be corrected
-            drawMinuteSteps(
-                minuteAngle,
-                totalMinutes,
-                minutesBetweenHoursAccumulated,
-                outerRadius
-            )
-
-            drawClockCenter(
-                textMeasurer = textMeasurer,
-                radius = centerRadius,
-                fontSize = 32.sp,
-                label = clockTime
-            )
-        }
-
-        IconButton(
-            onClick = {
-                scale = 1f
-                offset = Offset.Zero
-            },
-            modifier = Modifier
-                .alpha(scaleDownButtonAlpha)
-                .padding(5.dp)
-                .clip(CircleShape)
-                .background(Color(CLOCK_LABEL_COLOR))
-        ) {
-            Icon(
-                imageVector = ImageVector.vectorResource(id = R.drawable.scale_down_svgrepo_com),
-                contentDescription = "Scale down",
-                modifier = Modifier.fillMaxSize(1F),
-                tint = Color(0xffffffff)
-            )
         }
     }
+
+
 }

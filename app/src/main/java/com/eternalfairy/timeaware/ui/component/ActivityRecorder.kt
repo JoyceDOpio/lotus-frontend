@@ -31,7 +31,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -63,14 +62,18 @@ import androidx.core.content.ContextCompat
 import com.eternalfairy.timeaware.R
 import com.eternalfairy.timeaware.data.Time
 import com.eternalfairy.timeaware.data.VoiceNote
+import com.eternalfairy.timeaware.service.ServiceHelper
+import com.eternalfairy.timeaware.service.StopwatchService
+import com.eternalfairy.timeaware.service.StopwatchService.Companion.MAIN_ACTIVITY_NOTIFICATION_ID
 import com.eternalfairy.timeaware.service.StopwatchService.Companion.PAUSE
 import com.eternalfairy.timeaware.service.StopwatchService.Companion.RESUME
 import com.eternalfairy.timeaware.service.StopwatchService.Companion.START
 import com.eternalfairy.timeaware.service.StopwatchService.Companion.STOP
-import com.eternalfairy.timeaware.service.ServiceHelper
-import com.eternalfairy.timeaware.service.StopwatchService
-import com.eternalfairy.timeaware.service.StopwatchService.Companion.MAIN_ACTIVITY_NOTIFICATION_ID
 import com.eternalfairy.timeaware.service.StopwatchService.Companion.SUB_ACTIVITY_NOTIFICATION_ID
+import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
+import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
+import com.eternalfairy.timeaware.ui.theme.MINUTE_LABEL_COLOR
+import com.eternalfairy.timeaware.ui.theme.SECONDARY_HEADER_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.viewmodel.ActivityUiState
 import com.eternalfairy.timeaware.ui.viewmodel.DayState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -253,7 +256,7 @@ fun ActivityRecorder(
                 modifier = Modifier
                     .clip(shape = RoundedCornerShape(13.dp, 13.dp, 0.dp, 0.dp))
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.primary)
+                    .background(HEADER_TEXT_COLOR)
                 ,
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -263,7 +266,7 @@ fun ActivityRecorder(
                     modifier = Modifier
                         .padding(horizontal = 10.dp)
                     ,
-                    color = Color(0xffffffff),
+                    color = COMPONENT_BACKGROUND_COLOR,
                     fontWeight = FontWeight.Normal
                 )
 
@@ -300,7 +303,7 @@ fun ActivityRecorder(
                                     ButtonState.Paused -> "Resume activity"
                                 },
                                 modifier = Modifier.fillMaxSize(0.65F),
-                                tint = if (pauseButtonState == ButtonState.Playing) Color(0xffffffff) else (if (isSubActivityButtonEnabled) Color(0xffffffff) else Color(0xff9A89C7))
+                                tint = if (pauseButtonState == ButtonState.Playing) Color(0xffffffff) else (if (isSubActivityButtonEnabled) COMPONENT_BACKGROUND_COLOR else SECONDARY_HEADER_TEXT_COLOR)
                             )
                         }
                     }
@@ -391,7 +394,7 @@ fun ActivityRecorder(
                                     ActivityState.Idle -> 0.8f
                                 }
                             ),
-                            tint = if (isMainActivityButtonEnabled) Color(0xffffffff) else Color(0xff9A89C7)
+                            tint = if (isMainActivityButtonEnabled) COMPONENT_BACKGROUND_COLOR else SECONDARY_HEADER_TEXT_COLOR
                         )
                     }
                 }
@@ -404,7 +407,7 @@ fun ActivityRecorder(
                     )
                     .fillMaxWidth()
                     .leftBorder(
-                        color = MaterialTheme.colorScheme.primary,
+                        color = HEADER_TEXT_COLOR,
                         width = 5f
                     )
                 ,
@@ -429,72 +432,29 @@ fun ActivityRecorder(
                         modifier = Modifier
                             .fillMaxWidth()
                             .focusRequester(focusRequester)
+                            .background(COMPONENT_BACKGROUND_COLOR)
                         ,
                         placeholder = { Text("Title") },//TODO: Read string from resource
                         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                         singleLine = true,
                         shape = RoundedCornerShape(6.dp),
-//                        colors = TextFieldDefaults.textFieldColors(
-//                            containerColor = Color.Transparent,
-//                            unfocusedPlaceholderColor = Color(0xFF928BA2),
-//                            focusedPlaceholderColor = Color(0xFF928BA2),
-//                            focusedIndicatorColor = Color.Transparent,
-//                            unfocusedIndicatorColor = Color.Transparent
-//                        )
                         colors = TextFieldDefaults.colors(
-//                                focusedTextColor = FilledTextFieldTokens.FocusInputColor.value,
-//                                unfocusedTextColor = FilledTextFieldTokens.InputColor.value,
-//                                disabledTextColor = FilledTextFieldTokens.DisabledInputColor.value
-//                                    .copy(alpha = FilledTextFieldTokens.DisabledInputOpacity),
-//                                errorTextColor = FilledTextFieldTokens.ErrorInputColor.value,
-                                focusedContainerColor = Color.Transparent,
-//                                unfocusedContainerColor = Color.Transparent,
-//                                disabledContainerColor = Color.Transparent,
-//                                errorContainerColor = FilledTextFieldTokens.ContainerColor.value,
-//                                cursorColor = FilledTextFieldTokens.CaretColor.value,
-//                                errorCursorColor = FilledTextFieldTokens.ErrorFocusCaretColor.value,
-//                                selectionColors = LocalTextSelectionColors.current,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
-//                                disabledIndicatorColor = FilledTextFieldTokens.DisabledActiveIndicatorColor.value
-//                                    .copy(alpha = FilledTextFieldTokens.DisabledActiveIndicatorOpacity),
-//                                errorIndicatorColor = FilledTextFieldTokens.ErrorActiveIndicatorColor.value,
-//                                focusedLeadingIconColor = FilledTextFieldTokens.FocusLeadingIconColor.value,
-//                                unfocusedLeadingIconColor = FilledTextFieldTokens.LeadingIconColor.value,
-//                                disabledLeadingIconColor = FilledTextFieldTokens.DisabledLeadingIconColor.value
-//                                    .copy(alpha = FilledTextFieldTokens.DisabledLeadingIconOpacity),
-//                                errorLeadingIconColor = FilledTextFieldTokens.ErrorLeadingIconColor.value,
-//                                focusedTrailingIconColor = FilledTextFieldTokens.FocusTrailingIconColor.value,
-//                                unfocusedTrailingIconColor = FilledTextFieldTokens.TrailingIconColor.value,
-//                                disabledTrailingIconColor = FilledTextFieldTokens.DisabledTrailingIconColor.value
-//                                    .copy(alpha = FilledTextFieldTokens.DisabledTrailingIconOpacity),
-//                                errorTrailingIconColor = FilledTextFieldTokens.ErrorTrailingIconColor.value,
-//                                focusedLabelColor = FilledTextFieldTokens.FocusLabelColor.value,
-//                                unfocusedLabelColor = FilledTextFieldTokens.LabelColor.value,
-//                                disabledLabelColor = FilledTextFieldTokens.DisabledLabelColor.value
-//                                    .copy(alpha = FilledTextFieldTokens.DisabledLabelOpacity),
-//                                errorLabelColor = FilledTextFieldTokens.ErrorLabelColor.value,
-                                focusedPlaceholderColor = Color(0xFF928BA2),
-                                unfocusedPlaceholderColor = Color(0xFF928BA2),
-//                                disabledPlaceholderColor = FilledTextFieldTokens.DisabledInputColor.value
-//                                    .copy(alpha = FilledTextFieldTokens.DisabledInputOpacity),
-//                                errorPlaceholderColor = FilledTextFieldTokens.InputPlaceholderColor.value,
-//                                focusedSupportingTextColor = FilledTextFieldTokens.FocusSupportingColor.value,
-//                                unfocusedSupportingTextColor = FilledTextFieldTokens.SupportingColor.value,
-//                                disabledSupportingTextColor = FilledTextFieldTokens.DisabledSupportingColor.value
-//                                    .copy(alpha = FilledTextFieldTokens.DisabledSupportingOpacity),
-//                                errorSupportingTextColor = FilledTextFieldTokens.ErrorSupportingColor.value,
-//                                focusedPrefixColor = FilledTextFieldTokens.InputPrefixColor.value,
-//                                unfocusedPrefixColor = FilledTextFieldTokens.InputPrefixColor.value,
-//                                disabledPrefixColor = FilledTextFieldTokens.InputPrefixColor.value
-//                                    .copy(alpha = FilledTextFieldTokens.DisabledInputOpacity),
-//                                errorPrefixColor = FilledTextFieldTokens.InputPrefixColor.value,
-//                                focusedSuffixColor = FilledTextFieldTokens.InputSuffixColor.value,
-//                                unfocusedSuffixColor = FilledTextFieldTokens.InputSuffixColor.value,
-//                                disabledSuffixColor = FilledTextFieldTokens.InputSuffixColor.value
-//                                    .copy(alpha = FilledTextFieldTokens.DisabledInputOpacity),
-//                                errorSuffixColor = FilledTextFieldTokens.InputSuffixColor.value,
-                            )
+                            focusedContainerColor = COMPONENT_BACKGROUND_COLOR,
+                            unfocusedContainerColor = COMPONENT_BACKGROUND_COLOR,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            focusedPlaceholderColor = MINUTE_LABEL_COLOR,
+                            unfocusedPlaceholderColor = MINUTE_LABEL_COLOR,
+                            focusedLeadingIconColor = HEADER_TEXT_COLOR,
+                            cursorColor = HEADER_TEXT_COLOR,
+//                            cursorColor = HEADER_TEXT_COLOR,
+//                            focusedIndicatorColor = HEADER_TEXT_COLOR,
+//                            focusedLabelColor = HEADER_TEXT_COLOR,
+//                            textSelectionColors = TextSelectionColors(
+//                                handleColor = HEADER_TEXT_COLOR,
+//                                backgroundColor = SELECTION_COLOR
+//                            )
+                        )
                     )
                 }
 
@@ -524,7 +484,7 @@ fun ActivityRecorder(
                                 text = text,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 18.sp,
-                                color = MaterialTheme.colorScheme.primary
+                                color = HEADER_TEXT_COLOR
                             )
 
                             Spacer(Modifier.width(15.dp))
@@ -537,7 +497,7 @@ fun ActivityRecorder(
                                 text = text,
                                 fontWeight = FontWeight.Normal,
                                 fontSize = 18.sp,
-                                color = MaterialTheme.colorScheme.primary
+                                color = HEADER_TEXT_COLOR
                             )
                         }
 
@@ -558,7 +518,7 @@ fun ActivityRecorder(
                                     imageVector = ImageVector.vectorResource(id = R.drawable.notes_svgrepo_com),
                                     contentDescription = "Edit main activity notes",
                                     modifier = Modifier.fillMaxSize(0.7F),
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = HEADER_TEXT_COLOR
                                 )
                             }
 
@@ -585,7 +545,7 @@ fun ActivityRecorder(
                                             ,
                                             imageVectorResource = R.drawable.recording_02_svgrepo_com,
                                             contentDescription = "Voice recorder",
-                                            tint = MaterialTheme.colorScheme.primary
+                                            tint = HEADER_TEXT_COLOR
                                         )
 
                                         val text =
@@ -599,7 +559,7 @@ fun ActivityRecorder(
                                             text = text,
                                             fontWeight = FontWeight.Normal,
                                             fontSize = 18.sp,
-                                            color = MaterialTheme.colorScheme.primary
+                                            color = HEADER_TEXT_COLOR
                                         )
                                     }
 
@@ -699,7 +659,7 @@ fun ActivityRecorder(
                                             imageVector = ImageVector.vectorResource(id = R.drawable.user_speak_svgrepo_com),
                                             contentDescription = "Voice recorder",
                                             modifier = Modifier.fillMaxSize(),
-                                            tint = MaterialTheme.colorScheme.primary
+                                            tint = HEADER_TEXT_COLOR
                                         )
                                     }
                                 }
@@ -723,7 +683,7 @@ fun ActivityRecorder(
                     modifier = Modifier
                         .clip(shape = RoundedCornerShape(13.dp, 13.dp, 0.dp, 0.dp))
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.primary)
+                        .background(HEADER_TEXT_COLOR)
                     ,
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
@@ -733,7 +693,7 @@ fun ActivityRecorder(
                         modifier = Modifier
                             .padding(horizontal = 10.dp)
                         ,
-                        color = Color(0xffffffff),
+                        color = COMPONENT_BACKGROUND_COLOR,
                         fontWeight = FontWeight.Light,
                     )
 
@@ -749,7 +709,7 @@ fun ActivityRecorder(
                             imageVector = ImageVector.vectorResource(id = R.drawable.stop_svgrepo_com),
                             contentDescription = "Stop sub-activity", //TODO: Read string from resource
                             modifier = Modifier.fillMaxSize(0.7F),
-                            tint = if (isSubActivityButtonEnabled) Color(0xffffffff) else Color(0xff9A89C7)
+                            tint = if (isSubActivityButtonEnabled) COMPONENT_BACKGROUND_COLOR else SECONDARY_HEADER_TEXT_COLOR
                         )
                     }
                 }
@@ -761,7 +721,7 @@ fun ActivityRecorder(
                         )
                         .fillMaxWidth()
                         .leftBorder(
-                            color = MaterialTheme.colorScheme.primary,
+                            color = HEADER_TEXT_COLOR,
                             width = 5f
                         )
                     ,
@@ -786,17 +746,27 @@ fun ActivityRecorder(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .focusRequester(focusRequester),
+                                .focusRequester(focusRequester)
+                                .background(COMPONENT_BACKGROUND_COLOR),
                             placeholder = { Text("Title") },//TODO: Read string from resource
                             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                             singleLine = true,
                             shape = RoundedCornerShape(6.dp),
-                            colors = TextFieldDefaults.textFieldColors(
-                                containerColor = Color.Transparent,
-                                unfocusedPlaceholderColor = Color(0xFF928BA2),
-                                focusedPlaceholderColor = Color(0xFF928BA2),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = COMPONENT_BACKGROUND_COLOR,
+                                unfocusedContainerColor = COMPONENT_BACKGROUND_COLOR,
                                 focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent
+                                unfocusedIndicatorColor = Color.Transparent,
+                                focusedPlaceholderColor = MINUTE_LABEL_COLOR,
+                                unfocusedPlaceholderColor = MINUTE_LABEL_COLOR,
+                                focusedLeadingIconColor = HEADER_TEXT_COLOR,
+//                                cursorColor = HEADER_TEXT_COLOR,
+//                                focusedIndicatorColor = HEADER_TEXT_COLOR,
+//                                focusedLabelColor = HEADER_TEXT_COLOR,
+//                                textSelectionColors = TextSelectionColors(
+//                                    handleColor = HEADER_TEXT_COLOR,
+//                                    backgroundColor = SELECTION_COLOR
+//                                )
                             )
                         )
                     }
@@ -822,7 +792,7 @@ fun ActivityRecorder(
                             text = text,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 18.sp,
-                            color = MaterialTheme.colorScheme.primary
+                            color = HEADER_TEXT_COLOR
                         )
 
                         Spacer(Modifier.width(15.dp))
@@ -835,7 +805,7 @@ fun ActivityRecorder(
                             text = text,
                             fontWeight = FontWeight.Normal,
                             fontSize = 18.sp,
-                            color = MaterialTheme.colorScheme.primary
+                            color = HEADER_TEXT_COLOR
                         )
                     }
 
@@ -856,7 +826,7 @@ fun ActivityRecorder(
                                 imageVector = ImageVector.vectorResource(id = R.drawable.notes_svgrepo_com),
                                 contentDescription = "Edit sub-activity notes",
                                 modifier = Modifier.fillMaxSize(0.7F),
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = HEADER_TEXT_COLOR
                             )
                         }
 
@@ -875,7 +845,7 @@ fun ActivityRecorder(
                                         .width(35.dp),
                                     imageVectorResource = R.drawable.recording_02_svgrepo_com,
                                     contentDescription = "Voice recorder",
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = HEADER_TEXT_COLOR
                                 )
 
                                 val text =
@@ -889,7 +859,7 @@ fun ActivityRecorder(
                                     text = text,
                                     fontWeight = FontWeight.Normal,
                                     fontSize = 18.sp,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = HEADER_TEXT_COLOR
                                 )
                             }
 
@@ -988,7 +958,7 @@ fun ActivityRecorder(
                                     imageVector = ImageVector.vectorResource(id = R.drawable.user_speak_svgrepo_com),
                                     contentDescription = "Voice recorder",
                                     modifier = Modifier.fillMaxSize(),
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = HEADER_TEXT_COLOR
                                 )
                             }
                         }

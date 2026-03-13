@@ -1,23 +1,21 @@
 package com.eternalfairy.timeaware.ui.screen
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,10 +24,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -42,24 +38,32 @@ import com.eternalfairy.timeaware.data.Time
 import com.eternalfairy.timeaware.ui.component.ActiveTimeHeader
 import com.eternalfairy.timeaware.ui.component.ActivityGraph
 import com.eternalfairy.timeaware.ui.component.BottomBar
-import com.eternalfairy.timeaware.ui.component.Calendar
 import com.eternalfairy.timeaware.ui.component.ComparisonDial
 import com.eternalfairy.timeaware.ui.component.DragItemListGoal
 import com.eternalfairy.timeaware.ui.component.DragItemListTask
 import com.eternalfairy.timeaware.ui.component.DropDownItem
+import com.eternalfairy.timeaware.ui.component.MoveToCalendarDial
 import com.eternalfairy.timeaware.ui.component.PlannerDial
 import com.eternalfairy.timeaware.ui.component.SubActivityList
 import com.eternalfairy.timeaware.ui.component.TaskCard
 import com.eternalfairy.timeaware.ui.component.TaskDropdownMenu
 import com.eternalfairy.timeaware.ui.component.TopBar
 import com.eternalfairy.timeaware.ui.component.VoiceNoteList
+import com.eternalfairy.timeaware.ui.component.calendar.CalendarWeek
+import com.eternalfairy.timeaware.ui.theme.BACKGROUND_COLOR
+import com.eternalfairy.timeaware.ui.theme.COMMENT_TEXT_COLOR
+import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
+import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.viewmodel.ActivityUiState
 import com.eternalfairy.timeaware.ui.viewmodel.AudioViewModel
 import com.eternalfairy.timeaware.ui.viewmodel.DayState
 import com.eternalfairy.timeaware.ui.viewmodel.GoalUiState
 import com.eternalfairy.timeaware.ui.viewmodel.TaskUiState
 import com.eternalfairy.timeaware.ui.viewmodel.UserInput
+import com.eternalfairy.timeaware.ui.viewmodel.toTask
+import com.eternalfairy.timeaware.utils.TouchGestureUtils
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
@@ -83,7 +87,6 @@ fun SmallScreenPortrait (
     onDeleteTask: () -> Unit,
     onEditTask: () -> Unit,
     onDeleteVoiceNote: (UUID?) -> Unit,
-    onMoveToCalendar: () -> Unit,
     onMoveToToDoList: () -> Unit,
     onPinTask: (Boolean) -> Unit,
     onPressActiveTime: () -> Unit,
@@ -102,7 +105,7 @@ fun SmallScreenPortrait (
     setTaskDate: (LocalDate?) -> Unit,
     setTaskDescription: (String) -> Unit,
     setTaskEndTime: (Time) -> Unit,
-    setTaskPriority: (Int) -> Unit,
+    setTaskPriority: (Int?) -> Unit,
     setTaskStartTime: (Time) -> Unit,
     setTaskTitle: (String) -> Unit,
     updateLastPlayedPosition: (Long, Int) -> Unit
@@ -130,9 +133,87 @@ fun SmallScreenPortrait (
     val taskDetails = taskUiState
     val activityDetails = activityUiState
 
+    // Move to calendar
+    // The task that is being moved to calendar - if I save the taskUiState under the touchedTask it seems it is not updated in time after touching it. The dial tries to draw it before its value is updated.
+    var taskToBeMovedToCalendar by remember { mutableStateOf<Task?>(null) }
+    // The optimal duration of the task will be 30 minutes and minimum will be 5 minutes
+    val optimalDuration = 30
+    val minimalDuration = 5
+    var movedTaskStartTime: Time? = null
+    var movedTaskEndTime: Time? = null
+    // Find a slot between tasks to fit in the moved task
+    var slotStartTime = if (!userInput.selectedDate.isBefore(LocalDate.now()) && !userInput.selectedDate.isAfter(LocalDate.now())) Time(
+        LocalDateTime.now().hour, LocalDateTime.now().minute) else dayState.activeTimeStart
+    var slotEndTime: Time
+    var tasks: List<Task> = dayState.tasks.toList()
+    val moveToCalendarHeaderText = "Move To Calendar"// TODO: Read string from resource
+    val notEnoughTimeSpaceText = "THERE IS NOT ENOUGH TIME WITHIN THE SELECTED DAY TO MOVE THE TASK"// TODO: Read string from resource
+
+    // TODO: DUPLICATE - Move to utils
+    fun findFirstSlot() {
+        if (taskUiState.id != null) {
+            // Update the task to be moved to calendar with date and initial start- and end time values
+            setTaskDate(dayState.date)
+            setTaskPriority(null)
+
+            // If there are tasks planned for the day
+            if (!dayState.tasks.isEmpty()) {
+                for (task in dayState.tasks) {
+                    // If the slot start time is after the task's start time, omit that task
+                    if (slotStartTime.compareTo(task.startTime!!) == 1) {
+                        // If the slot start time is within the task
+                        if (slotStartTime.compareTo(task.endTime!!) == -1
+                            || slotStartTime.compareTo(task.endTime!!) == 0) {
+                            // We're adding 1 minute from the task's end time, so that the tasks don't overlap
+                            slotStartTime = TouchGestureUtils.addMinutesToTime(1, task.endTime!!)
+                        }
+                    }
+                    // Else if the slot start time is before the task's start time
+                    else {
+                        // We're subtracting 1 minute from the task's start time, so that the tasks don't overlap
+                        slotEndTime = TouchGestureUtils.addMinutesToTime(-1, task.startTime!!)
+                        val availableTime = TouchGestureUtils.calculateTotalNumberOfMinutes(slotStartTime, slotEndTime)
+
+                        if (availableTime >= optimalDuration) {
+                            movedTaskStartTime = slotStartTime
+                            movedTaskEndTime = TouchGestureUtils.addMinutesToTime(optimalDuration,
+                                movedTaskStartTime!!
+                            )
+                            break
+                        }
+                        else {
+                            // We're adding 1 minute from the task's end time, so that the tasks don't overlap
+                            slotStartTime = TouchGestureUtils.addMinutesToTime(1, task.endTime!!)
+                        }
+                    }
+                }
+            }
+            // Else if there are no tasks
+            else {
+                movedTaskStartTime = slotStartTime
+                movedTaskEndTime = TouchGestureUtils.addMinutesToTime(optimalDuration,
+                    movedTaskStartTime
+                )
+            }
+
+            if (movedTaskStartTime != null && movedTaskEndTime != null) {
+                setTaskStartTime(movedTaskStartTime)
+                setTaskEndTime(movedTaskEndTime)
+                taskToBeMovedToCalendar = taskUiState.toTask().copy(
+                    id = taskUiState.id
+                )
+                tasks = dayState.tasks.toList() + taskToBeMovedToCalendar!!
+            }
+        }
+    }
+
     Column (
         modifier = Modifier
             .fillMaxSize()
+            .background(BACKGROUND_COLOR)
+        ,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
         TopBar(
             title = when (screenState) {
@@ -142,451 +223,464 @@ fun SmallScreenPortrait (
             }
         )
 
-        // Show the active time header in the day overview of tasks and only today
+        // If we are not showing the task-activity comparison
         AnimatedVisibility(
-            visible = screenState == SmallScreenState.DayTask && selectedDate.isEqual(LocalDate.now())
+            visible = screenState != SmallScreenState.Comparison
         ) {
-            ActiveTimeHeader(
-                dayState = dayState,
-                userInput = userInput
-            )
-        }
-
-        // If the selected date is in the past, show a comparison of the planned tasks and actual activities
-        AnimatedVisibility(
-            visible = selectedDate.isBefore(LocalDate.now())
-        ) {// FIXME: This can be removed (cause it's a double)
-            Column(
-                modifier = Modifier
-//                        .padding(innerPadding)
-                    .fillMaxSize(),
+            Column (
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                val focusRequester = remember { FocusRequester() }
-                val focusManager = LocalFocusManager.current
-
-                Row (
-                    modifier = Modifier
-                        .weight(1.45f),
-                    verticalAlignment = Alignment.CenterVertically
+                AnimatedVisibility(
+                    visible = screenState == SmallScreenState.MoveToCalendar
                 ) {
-                    ActivityGraph(
-                        dayState = dayState,
-                        onNavigateToTaskActivityComparison = {
-                            screenState = SmallScreenState.Comparison
-                        },
-                        selectActivity = selectActivity,
-                        selectTask = selectTask
+                    TopBar(
+                        title = moveToCalendarHeaderText
                     )
                 }
 
-                Row (
-                    modifier = Modifier
-                        .weight(3.5f),
-                    verticalAlignment = Alignment.CenterVertically
+                // Show the active time header in the day overview of tasks and only today
+                AnimatedVisibility(
+                    visible = screenState == SmallScreenState.DayTask && selectedDate.isEqual(LocalDate.now())
                 ) {
-                    ComparisonDial(
+                    ActiveTimeHeader(
                         dayState = dayState,
-                        onNavigateToTaskActivityComparison = {
-                            screenState = SmallScreenState.Comparison
-                        },
-                        selectActivity = selectActivity,
-                        selectTask = selectTask
+                        userInput = userInput
                     )
+                }
+
+                // If the selected date is in the past, show a comparison of the planned tasks and actual activities or if we are to show the activities
+                AnimatedVisibility(
+                    visible = selectedDate.isBefore(LocalDate.now())
+                            || screenState == SmallScreenState.DayActivity
+                ) {
+                    // INFO: If I don't add this Column here, the ActivityGraph and Comparison components overlap
+                    Column (
+                        modifier = Modifier
+                        ,
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        ActivityGraph(
+                            dayState = dayState,
+                            drawClockHand = screenState == SmallScreenState.DayActivity,
+                            onNavigateToTaskActivityComparison = {
+                                screenState = SmallScreenState.Comparison
+                            },
+                            selectActivity = selectActivity,
+                            selectTask = selectTask
+                        )
+
+                        ComparisonDial(
+                            dayState = dayState,
+                            drawClockHand = screenState == SmallScreenState.DayActivity,
+                            onNavigateToTaskActivityComparison = {
+                                screenState = SmallScreenState.Comparison
+                            },
+                            selectActivity = selectActivity,
+                            selectTask = selectTask
+                        )
+                    }
+                }
+
+                // If the selected date is in the future, show a spacer
+                AnimatedVisibility(
+                    visible = selectedDate.isAfter(LocalDate.now())
+                            && screenState == SmallScreenState.DayTask
+                ) {
+                    Spacer(modifier = Modifier.height(80.dp))
+                }
+
+                // If the selected date is today or in the future, show the planning screen
+                AnimatedVisibility(
+                    visible = !selectedDate.isBefore(LocalDate.now())
+                ) {
+                    // Show the day planner
+                    AnimatedVisibility(
+                        visible = screenState == SmallScreenState.DayTask
+                    ) {
+                        PlannerDial(
+                            dayState = dayState,
+                            drawClockHand = userInput.selectedDate.isEqual(LocalDate.now()),
+                            lastTaskPriority = lastTaskPriority,
+                            taskUiState = taskUiState,
+                            userInput = userInput,
+                            deleteTask = deleteTask,
+                            onMoveToToDoList = onMoveToToDoList,
+                            onPressActiveTime = onPressActiveTime,
+                            onPinTask = onPinTask,
+                            saveTask = saveTask,
+                            saveTaskFromState = saveTaskFromState,
+                            selectTask = selectTask,
+                            setTaskEndTime = setTaskEndTime,
+                            setTaskStartTime = setTaskStartTime,
+                            setTaskDate = setTaskDate,
+                            setTaskDescription = setTaskDescription,
+                            setTaskPriority = setTaskPriority,
+                            setTaskTitle = setTaskTitle
+                        )
+                    }
+
+                    // Show the TO-DO list (list of tasks without specific date and time)
+                    AnimatedVisibility(
+                        visible = screenState == SmallScreenState.ToDo
+                    ) {
+                        DragItemListTask (
+                            dayState = dayState,
+                            items = toDoTasks,
+                            lastTaskPriority = lastTaskPriority,
+                            taskUiState = taskUiState,
+                            deleteTask = deleteTask,
+                            onMoveToCalendar = {
+                                screenState = SmallScreenState.MoveToCalendar
+
+                                if (button1State == SmallScreenButtonState.Day) {
+                                    button1State = SmallScreenButtonState.ToDo
+                                }
+                                else if (button2State == SmallScreenButtonState.Day) {
+                                    button2State = SmallScreenButtonState.ToDo
+                                }
+                            },
+                            onMoveToToDoList = onMoveToToDoList,
+                            onPinTask = onPinTask,
+                            saveTask = saveTask,
+                            saveTaskFromState = saveTaskFromState,
+                            selectTask = selectTask,
+                            setTaskDescription = setTaskDescription,
+                            setTaskEndTime = setTaskEndTime,
+                            setTaskStartTime = setTaskStartTime,
+                            setTaskPriority = setTaskPriority,
+                            setTaskTitle = setTaskTitle
+                        )
+                    }
+
+                    // Show the goals
+                    AnimatedVisibility(
+                        visible = screenState == SmallScreenState.Goal
+                    ) {
+                        DragItemListGoal(
+                            items = goals,
+                            goalUiState = goalUiState,
+                            lastGoalPriority = lastGoalPriority,
+                            deleteGoal = deleteGoal,
+                            saveGoal = saveGoal,
+                            saveGoalFromState = saveGoalFromState,
+                            selectGoal = selectGoal,
+                            setGoalPriority = setGoalPriority,
+                            setGoalTitle = setGoalTitle
+                        )
+                    }
+                }
+
+                AnimatedVisibility(
+                    visible = screenState == SmallScreenState.MoveToCalendar
+                ) {
+                    findFirstSlot()
+
+                    // Handle exception in case taskToBeMoved is null
+                    taskToBeMovedToCalendar?.also {
+                        if (it.startTime != null && it.endTime != null) {
+                            MoveToCalendarDial(
+                                dayState = dayState,
+                                userInput = userInput,
+                                onPressActiveTime = onPressActiveTime,
+                                minimalDuration = minimalDuration,
+                                tasks = tasks,
+                                taskToBeMovedToCalendar = it
+                            )
+                        }
+                    }
+                        ?:run {
+                            Spacer(modifier = Modifier.weight(1f))
+
+                            Column (
+                                modifier = Modifier
+                                    .height(450.dp)
+                                    .width(400.dp)
+                                    .padding(horizontal = 10.dp, vertical = 5.dp)
+                                    .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
+                                    .background(COMPONENT_BACKGROUND_COLOR)
+                                ,
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = notEnoughTimeSpaceText,
+                                    color = COMMENT_TEXT_COLOR,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
                 }
             }
         }
 
-        // If the selected date is today or in the future, show the planning screen
+        // Show the comparison of a given task and an activity
         AnimatedVisibility(
-            visible = !selectedDate.isBefore(LocalDate.now())
+            visible = screenState == SmallScreenState.Comparison
         ) {
-            // Show the day planner
-            AnimatedVisibility(
-                visible = screenState == SmallScreenState.DayTask,
-                enter = fadeIn(),
-                exit = fadeOut(),
+            Column (
+                modifier = Modifier
+                ,
+                verticalArrangement = Arrangement.SpaceBetween,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.SpaceBetween
-                ) {
-                    PlannerDial(
-                        dayState = dayState,
-                        drawClockHand = userInput.selectedDate.isEqual(LocalDate.now()),
-                        lastTaskPriority = lastTaskPriority,
-                        taskUiState = taskUiState,
-                        userInput = userInput,
-                        deleteTask = deleteTask,
-                        onMoveToToDoList = onMoveToToDoList,
-                        onPressActiveTime = onPressActiveTime,
-                        onPinTask = onPinTask,
-                        saveTask = saveTask,
-                        saveTaskFromState = saveTaskFromState,
-                        selectTask = selectTask,
-                        setTaskEndTime = setTaskEndTime,
-                        setTaskStartTime = setTaskStartTime,
-                        setTaskDate = setTaskDate,
-                        setTaskDescription = setTaskDescription,
-                        setTaskPriority = setTaskPriority,
-                        setTaskTitle = setTaskTitle
-                    )
-                }
-            }
-
-            // Show the TO-DO list (list of tasks without specific date and time)
-            AnimatedVisibility(
-                visible = screenState == SmallScreenState.ToDo,
-                enter = fadeIn(),
-                exit = fadeOut(),
-            ) {
-                DragItemListTask (
-                    dayState = dayState,
-                    items = toDoTasks,
-                    lastTaskPriority = lastTaskPriority,
-                    taskUiState = taskUiState,
-                    deleteTask = deleteTask,
-                    onMoveToCalendar = onMoveToCalendar,
-                    onMoveToToDoList = onMoveToToDoList,
-                    onPinTask = onPinTask,
-                    saveTask = saveTask,
-                    saveTaskFromState = saveTaskFromState,
-                    selectTask = selectTask,
-                    setTaskDescription = setTaskDescription,
-                    setTaskEndTime = setTaskEndTime,
-                    setTaskStartTime = setTaskStartTime,
-                    setTaskPriority = setTaskPriority,
-                    setTaskTitle = setTaskTitle
-                )
-            }
-
-            // Show the goals
-            AnimatedVisibility(
-                visible = screenState == SmallScreenState.Goal,
-                enter = fadeIn(),
-                exit = fadeOut(),
-            ) {
-                DragItemListGoal(
-                    items = goals,
-                    goalUiState = goalUiState,
-                    lastGoalPriority = lastGoalPriority,
-                    deleteGoal = deleteGoal,
-                    saveGoal = saveGoal,
-                    saveGoalFromState = saveGoalFromState,
-                    selectGoal = selectGoal,
-                    setGoalPriority = setGoalPriority,
-                    setGoalTitle = setGoalTitle
-                )
-            }
-
-            // Show the activities
-            AnimatedVisibility(
-                visible = screenState == SmallScreenState.DayActivity
-            ) {
-                Row (
-                    modifier = Modifier
-                        .weight(1.5f),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    ActivityGraph(
-                        dayState = dayState,
-                        drawClockHand = true,
-                        onNavigateToTaskActivityComparison = {
-                            screenState = SmallScreenState.Comparison
-                        },
-                        selectActivity = selectActivity,
-                        selectTask = selectTask
-                    )
-                }
-
-                Row (
-                    modifier = Modifier
-                        .weight(3.5f),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    ComparisonDial(
-                        dayState = dayState,
-                        drawClockHand = true,
-                        onNavigateToTaskActivityComparison = {
-                            screenState = SmallScreenState.Comparison
-                        },
-                        selectActivity = selectActivity,
-                        selectTask = selectTask
-                    )
-                }
-            }
-
-            // Show the comparison of a given task and an activity
-            AnimatedVisibility(
-                visible = screenState == SmallScreenState.Comparison
-            ) {
+                // Task
                 Column (
                     modifier = Modifier
-//                                .padding(innerPadding)
-                        .fillMaxWidth()
-                        .fillMaxHeight(),
-                    verticalArrangement = Arrangement.SpaceBetween,
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                        .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
+                        .width(400.dp)
+                        .height(330.dp)
+                        .background(COMPONENT_BACKGROUND_COLOR)
+                    ,
+                    verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Task
-                    Column (
-                        modifier = Modifier
-                            .fillMaxHeight(0.5f),
-                        verticalArrangement = Arrangement.Top,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        // Show task details if there is a task to be shown
-                        if (taskDetails.id != null) {
+                    // Show task details if there is a task to be shown
+                    if (taskDetails.id != null) {
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
                             Row (
+                                modifier = Modifier
+                                    .weight(1f)
+                            ) {
+                                Spacer(Modifier.weight(1f))
+                            }
+
+                            Row (
+                                modifier = Modifier
+                                    .weight(1f)
+                                ,
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
-                                Row (
+                                Text(
                                     modifier = Modifier
-                                        .weight(1f)
-                                ) {
-                                    Spacer(Modifier.weight(1f))
-                                }
-
-                                Row (
-                                    modifier = Modifier
+                                        .padding(vertical = 15.dp)
                                         .weight(1f)
                                     ,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center
-                                ) {
-                                    Text(
-                                        modifier = Modifier
-                                            .padding(vertical = 15.dp)
-                                            .weight(1f)
-                                        ,
-                                        text = taskLabel,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-
-                                Row (
-                                    modifier = Modifier
-                                        .weight(1f)
-                                    ,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.End
-                                ) {
-
-                                    val dropdownItems = listOf(
-                                        DropDownItem(
-                                            text = editText,
-                                            iconId = R.drawable.edit_24dp_5f6368_fill0_wght400_grad0_opsz24,
-                                            onClick = onEditTask
-                                        ),
-                                        DropDownItem(
-                                            text = deleteText,
-                                            iconId = R.drawable.delete_24dp_5f6368_fill0_wght400_grad0_opsz24,
-                                            onClick = onDeleteTask
-                                        )
-                                    )
-                                    TaskDropdownMenu(
-                                        dropdownItems = dropdownItems,
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .fillMaxSize(0.7F)
-                                    )
-                                }
+                                    text = taskLabel,
+                                    color = HEADER_TEXT_COLOR,
+                                    textAlign = TextAlign.Center
+                                )
                             }
 
-                            TaskCard (
-                                date = userInput.selectedDate,
-                                dayState = dayState,
-                                endTime = taskDetails.endTime,
-                                startTime = taskDetails.startTime,
-                                title = taskDetails.title,
-                                pinned = taskDetails.pinned
+                            Row (
+                                modifier = Modifier
+                                    .weight(1f)
+                                ,
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.End
                             ) {
-                                // Description
-                                Text(
-                                    text = taskDetails.description,
+
+                                val dropdownItems = listOf(
+                                    DropDownItem(
+                                        text = editText,
+                                        iconId = R.drawable.edit_24dp_5f6368_fill0_wght400_grad0_opsz24,
+                                        onClick = onEditTask
+                                    ),
+                                    DropDownItem(
+                                        text = deleteText,
+                                        iconId = R.drawable.delete_24dp_5f6368_fill0_wght400_grad0_opsz24,
+                                        onClick = onDeleteTask
+                                    )
+                                )
+                                TaskDropdownMenu(
+                                    dropdownItems = dropdownItems,
                                     modifier = Modifier
-                                        .fillMaxSize()
-                                        .verticalScroll(rememberScrollState())
-                                    ,
-                                    fontWeight = FontWeight.Normal,
-                                    fontSize = 18.sp
+                                        .weight(1f)
+                                        .fillMaxSize(0.7F)
                                 )
                             }
                         }
-                        // Otherwise, show a statement that there is no task planned for the select time
-                        else {
-                            Column (
+
+                        TaskCard (
+                            date = userInput.selectedDate,
+                            dayState = dayState,
+                            endTime = taskDetails.endTime,
+                            startTime = taskDetails.startTime,
+                            title = taskDetails.title,
+                            pinned = taskDetails.pinned
+                        ) {
+                            // Description
+                            Text(
+                                text = taskDetails.description,
                                 modifier = Modifier
-                                    .fillMaxHeight(),
-                                verticalArrangement = Arrangement.Center,
-                                horizontalAlignment = Alignment.CenterHorizontally
+                                    .fillMaxSize()
+                                    .verticalScroll(rememberScrollState())
+                                ,
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 18.sp
+                            )
+                        }
+                    }
+                    // Otherwise, show a statement that there is no task planned for the select time
+                    else {
+                        Column (
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = noTaskText,
+                                color = COMMENT_TEXT_COLOR,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+
+                // Activity
+                Column (
+                    modifier = Modifier
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                        .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
+                        .width(400.dp)
+                        .height(330.dp)
+                        .background(COMPONENT_BACKGROUND_COLOR)
+                    ,
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    if (activityDetails.id != null) {
+                        Row (
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Row (
+                                modifier = Modifier
+                                    .weight(1f)
+                            ) {
+                                Spacer(Modifier
+                                    .weight(1f)
+                                )
+                            }
+
+                            Row (
+                                modifier = Modifier
+                                    .weight(1f)
+                                ,
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
                             ) {
                                 Text(
-                                    text = noTaskText,
-                                    color = Color.LightGray
+                                    modifier = Modifier
+                                        .padding(vertical = 15.dp)
+                                        .weight(1f)
+                                    ,
+                                    text = activityLabel,
+                                    color = HEADER_TEXT_COLOR,
+                                    textAlign = TextAlign.Center
                                 )
+                            }
+
+                            Row (
+                                modifier = Modifier
+                                    .weight(1f)
+                                ,
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                val dropdownItems = listOf(
+                                    DropDownItem(
+                                        text = editText,
+                                        iconId = R.drawable.edit_24dp_5f6368_fill0_wght400_grad0_opsz24,
+                                        onClick = {
+                                            onEditActivity(activityDetails.id)
+                                        }
+                                    ),
+                                    DropDownItem(
+                                        text = deleteText,
+                                        iconId = R.drawable.delete_24dp_5f6368_fill0_wght400_grad0_opsz24,
+                                        onClick = {
+                                            onDeleteActivity(activityDetails.id)
+                                        }
+                                    )
+                                )
+                                TaskDropdownMenu(
+                                    dropdownItems = dropdownItems,
+                                    modifier = Modifier
+                                        .fillMaxSize(0.7F)
+                                        .weight(1f)
+                                )
+                            }
+                        }
+
+                        TaskCard (
+                            date = userInput.selectedDate,
+                            dayState = dayState,
+                            endTime = activityDetails.endTime,
+                            startTime = activityDetails.startTime,
+                            title = activityDetails.title,
+                            subActivities = activityDetails.subActivitiesUiState
+                        ) {
+                            Column (
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .verticalScroll(rememberScrollState())
+                                ,
+                            ) {
+                                if (activityDetails.note != "") {
+                                    // Notes
+                                    Text(
+                                        text = activityDetails.note,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                        ,
+                                        fontWeight = FontWeight.Normal,
+                                        fontSize = 18.sp
+                                    )
+                                }
+
+                                if (!activityDetails.voiceNotesUiState.isEmpty()) {
+                                    Spacer(modifier = Modifier.height(10.dp))
+
+                                    VoiceNoteList(
+                                        activityUiState = activityDetails,
+                                        audioViewModel = audioViewModel,
+                                        onDeleteItem = { voiceNote ->
+                                            onDeleteVoiceNote(voiceNote.id)
+                                        },
+                                        updateLastPlayedPosition = updateLastPlayedPosition
+                                    )
+                                }
+
+                                if (!activityDetails.subActivitiesUiState.isEmpty()) {
+                                    Spacer(modifier = Modifier.height(10.dp))
+
+                                    SubActivityList(
+                                        mainActivityUiState = activityDetails,
+                                        onDeleteItem = { subActivityId ->
+                                            onDeleteActivity(subActivityId)
+                                        },
+                                        onEditItem = { subActivity ->
+                                            onEditActivity(subActivity.id)
+                                        },
+                                        removeVoiceNote = { voiceNote ->
+                                            selectVoiceNoteToBeDeleted(voiceNote.id)
+                                            deleteVoiceNote()
+                                        },
+                                        updateLastPlayedPosition = updateLastPlayedPosition
+                                    )
+                                }
                             }
                         }
                     }
-
-                    HorizontalDivider(
-                        modifier = Modifier
-                            .padding(
-                                horizontal = 15.dp, vertical = 5.dp
+                    // Otherwise, show a statement that there was no activity carried out during the selected time
+                    else {
+                        Column (
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = noActivityText,
+                                color = COMMENT_TEXT_COLOR,
+                                textAlign = TextAlign.Center
                             )
-                            .fillMaxWidth(),
-                        thickness = 1.dp,
-                    )
-
-                    // Activity
-                    Column (
-                        modifier = Modifier
-                            .fillMaxHeight(),
-                        verticalArrangement = Arrangement.Top,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        if (activityDetails.id != null) {
-                            Row (
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Row (
-                                    modifier = Modifier
-                                        .weight(1f)
-                                ) {
-                                    Spacer(Modifier
-                                        .weight(1f)
-                                    )
-                                }
-
-                                Row (
-                                    modifier = Modifier
-                                        .weight(1f)
-                                    ,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center
-                                ) {
-                                    Text(
-                                        modifier = Modifier
-                                            .padding(vertical = 15.dp)
-                                            .weight(1f)
-                                        ,
-                                        text = activityLabel,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-
-                                Row (
-                                    modifier = Modifier
-                                        .weight(1f)
-                                    ,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.End
-                                ) {
-                                    val dropdownItems = listOf(
-                                        DropDownItem(
-                                            text = editText,
-                                            iconId = R.drawable.edit_24dp_5f6368_fill0_wght400_grad0_opsz24,
-                                            onClick = {
-                                                onEditActivity(activityDetails.id)
-                                            }
-                                        ),
-                                        DropDownItem(
-                                            text = deleteText,
-                                            iconId = R.drawable.delete_24dp_5f6368_fill0_wght400_grad0_opsz24,
-                                            onClick = {
-                                                onDeleteActivity(activityDetails.id)
-                                            }
-                                        )
-                                    )
-                                    TaskDropdownMenu(
-                                        dropdownItems = dropdownItems,
-                                        modifier = Modifier
-                                            .fillMaxSize(0.7F)
-                                            .weight(1f)
-                                    )
-                                }
-                            }
-
-                            TaskCard (
-                                date = userInput.selectedDate,
-                                dayState = dayState,
-                                endTime = activityDetails.endTime,
-                                startTime = activityDetails.startTime,
-                                title = activityDetails.title,
-                                subActivities = activityDetails.subActivitiesUiState
-                            ) {
-                                Column (
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .verticalScroll(rememberScrollState())
-                                    ,
-                                ) {
-                                    if (activityDetails.note != "") {
-                                        // Notes
-                                        Text(
-                                            text = activityDetails.note,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                            ,
-                                            fontWeight = FontWeight.Normal,
-                                            fontSize = 18.sp
-                                        )
-                                    }
-
-                                    if (!activityDetails.voiceNotesUiState.isEmpty()) {
-                                        Spacer(modifier = Modifier.height(10.dp))
-
-                                        VoiceNoteList(
-                                            activityUiState = activityDetails,
-                                            audioViewModel = audioViewModel,
-                                            onDeleteItem = { voiceNote ->
-                                                onDeleteVoiceNote(voiceNote.id)
-                                            },
-                                            updateLastPlayedPosition = updateLastPlayedPosition
-                                        )
-                                    }
-
-                                    if (!activityDetails.subActivitiesUiState.isEmpty()) {
-                                        Spacer(modifier = Modifier.height(10.dp))
-
-                                        SubActivityList(
-                                            mainActivityUiState = activityDetails,
-                                            onDeleteItem = { subActivityId ->
-                                                onDeleteActivity(subActivityId)
-                                            },
-                                            onEditItem = { subActivity ->
-                                                onEditActivity(subActivity.id)
-                                            },
-                                            removeVoiceNote = { voiceNote ->
-                                                selectVoiceNoteToBeDeleted(voiceNote.id)
-                                                deleteVoiceNote()
-                                            },
-                                            updateLastPlayedPosition = updateLastPlayedPosition
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        // Otherwise, show a statement that there was no activity carried out during the selected time
-                        else {
-                            Column (
-                                modifier = Modifier
-                                    .fillMaxHeight(),
-                                verticalArrangement = Arrangement.Center,
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    text = noActivityText,
-                                    color = Color.LightGray
-                                )
-                            }
                         }
                     }
                 }
@@ -594,204 +688,290 @@ fun SmallScreenPortrait (
         }
 
 
-        // Show calendar in the day overview of tasks
+
+        // Show calendar in the day overview of tasks or when we're moving a task to the calendar
         AnimatedVisibility(
             visible = screenState == SmallScreenState.DayTask
+                    || screenState == SmallScreenState.MoveToCalendar
         ) {
-            Row (
-                modifier = Modifier
-                    .weight(1.05f),
-                verticalAlignment = Alignment.Bottom
-            ) {
-                Calendar(
-                    userInput = userInput,
-                    onSetDate = onSetSelectedDate
-                )
-            }
+            CalendarWeek(
+                paddingBottom = if (selectedDate.isBefore(LocalDate.now())) 20.dp else 5.dp,
+                userInput = userInput,
+                onSetDate = onSetSelectedDate
+            )
         }
 
-        BottomBar(
-            content = {
-                if (screenState == SmallScreenState.DayActivity
-                    || screenState == SmallScreenState.Comparison) {
+        // Main bottom bar
+        AnimatedVisibility(
+            visible = !selectedDate.isBefore(LocalDate.now())
+                    && (screenState == SmallScreenState.DayTask
+                    || screenState == SmallScreenState.Goal
+                    || screenState == SmallScreenState.ToDo)
+        ) {
+            BottomBar(
+                content = {
+                    // Add button
                     IconButton(
                         onClick = {
-                            // If the task-activity comparison is displayed, switch to the activity display
-                            if (screenState == SmallScreenState.Comparison) screenState =
-                                SmallScreenState.DayActivity
-                            // If the activities are displayed, switch to the task display
-                            if (screenState == SmallScreenState.DayActivity) screenState =
-                                SmallScreenState.DayTask
+                            var popupState = PopupState.EditTask
+
+                            if (screenState == SmallScreenState.DayTask) {
+                                selectTask(null)
+                                setTaskDate(userInput.selectedDate)
+                            }
+                            else if (screenState == SmallScreenState.Goal) {
+                                selectGoal(null)
+                                popupState = PopupState.EditGoal
+                            }
+                            else if (screenState == SmallScreenState.ToDo) {
+                                selectTask(null)
+                                setTaskDate(null)
+                            }
+
+                            onShowPopupWindow(popupState)
+                        }
+                    ) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(id = R.drawable.add_square_svgrepo_com),
+                            contentDescription = "Add",
+                            modifier = Modifier.fillMaxSize(0.8F),
+                            tint = HEADER_TEXT_COLOR
+                        )
+                    }
+
+                    // The Spacer pushes the other icons to the end of the app bar
+                    Spacer(Modifier.weight(1f, true))
+
+                    // Button 1
+                    IconButton(
+                        onClick = {
+                            when (button1State) {
+                                SmallScreenButtonState.Goal -> {
+                                    button1State = if (button2State == SmallScreenButtonState.ToDo) SmallScreenButtonState.Day else SmallScreenButtonState.ToDo
+                                    screenState = SmallScreenState.Goal
+                                }
+                                SmallScreenButtonState.Day -> {
+                                    button1State = if (button2State == SmallScreenButtonState.ToDo) SmallScreenButtonState.Goal else SmallScreenButtonState.ToDo
+                                    screenState = SmallScreenState.DayTask
+                                }
+                                SmallScreenButtonState.ToDo -> {
+                                    button1State = if (button2State == SmallScreenButtonState.Day) SmallScreenButtonState.Goal else SmallScreenButtonState.Day
+                                    screenState = SmallScreenState.ToDo
+                                }
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = when (button1State) {
+                                SmallScreenButtonState.Goal -> {
+                                    ImageVector.vectorResource(id = R.drawable.target_love_svgrepo_com)
+                                }
+                                SmallScreenButtonState.Day -> {
+                                    ImageVector.vectorResource(id = R.drawable.pie_chart_svgrepo_com)
+                                }
+                                SmallScreenButtonState.ToDo -> {
+                                    ImageVector.vectorResource(id = R.drawable.list_svgrepo_com)
+                                }
+                            },
+                            contentDescription = when (button1State) {
+                                SmallScreenButtonState.Goal -> {
+                                    goalsTitle
+                                }
+                                SmallScreenButtonState.Day -> {
+                                    dayTitle
+                                }
+                                SmallScreenButtonState.ToDo -> {
+                                    toDoTitle
+                                }
+                            },
+                            modifier = Modifier.fillMaxSize(if (button1State == SmallScreenButtonState.Day) 0.75f else 0.8f),
+                            tint = HEADER_TEXT_COLOR
+                        )
+                    }
+
+                    Spacer(Modifier.weight(1f, true))
+
+                    // Button 2
+                    IconButton(
+                        onClick = {
+                            when (button2State) {
+                                SmallScreenButtonState.Goal -> {
+                                    button2State = if (button1State == SmallScreenButtonState.ToDo) SmallScreenButtonState.Day else SmallScreenButtonState.ToDo
+                                    screenState = SmallScreenState.Goal
+                                }
+                                SmallScreenButtonState.Day -> {
+                                    button2State = if (button1State == SmallScreenButtonState.ToDo) SmallScreenButtonState.Goal else SmallScreenButtonState.ToDo
+                                    screenState = SmallScreenState.DayTask
+                                }
+                                SmallScreenButtonState.ToDo -> {
+                                    button2State = if (button1State == SmallScreenButtonState.Day) SmallScreenButtonState.Goal else SmallScreenButtonState.Day
+                                    screenState = SmallScreenState.ToDo
+                                }
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = when (button2State) {
+                                SmallScreenButtonState.Goal -> {
+                                    ImageVector.vectorResource(id = R.drawable.target_love_svgrepo_com)
+                                }
+                                SmallScreenButtonState.Day -> {
+                                    ImageVector.vectorResource(id = R.drawable.pie_chart_svgrepo_com)
+                                }
+                                SmallScreenButtonState.ToDo -> {
+                                    ImageVector.vectorResource(id = R.drawable.list_svgrepo_com)
+                                }
+                            },
+                            contentDescription = when (button2State) {
+                                SmallScreenButtonState.Goal -> {
+                                    goalsTitle
+                                }
+                                SmallScreenButtonState.Day -> {
+                                    dayTitle
+                                }
+                                SmallScreenButtonState.ToDo -> {
+                                    toDoTitle
+                                }
+                            },
+                            modifier = Modifier.fillMaxSize(if (button2State == SmallScreenButtonState.Day) 0.75f else 0.8f),
+                            tint = HEADER_TEXT_COLOR
+                        )
+                    }
+
+                    // Show the activity button only on today
+                    if (selectedDate.isEqual(LocalDate.now())) {
+                        Spacer(Modifier.weight(1f, true))
+
+                        IconButton(onClick = {
+                            // Show the activity screen
+                            screenState = SmallScreenState.DayActivity
+                        }) {
+                            Icon(
+                                imageVector = ImageVector.vectorResource(id = R.drawable.graph_infographic_data_element_2_svgrepo_com),
+                                contentDescription = "Activity recorder",
+                                modifier = Modifier.fillMaxSize(0.75f),
+                                tint = HEADER_TEXT_COLOR
+                            )
+                        }
+                    }
+                }
+            )
+        }
+
+        // Activity bottom bar
+        AnimatedVisibility(
+            visible = screenState == SmallScreenState.DayActivity
+        ) {
+            BottomBar(
+                content = {
+                    IconButton(
+                        onClick = {
+                            screenState = SmallScreenState.DayTask
                         }
                     ) {
                         Icon(
                             imageVector = ImageVector.vectorResource(id = R.drawable.cancel_svgrepo_com),
                             contentDescription = "Back",// TODO: Read from resource
                             modifier = Modifier.fillMaxSize(0.8F),
-                            tint = Color(BOTTOM_BAR_TEXT_COLOR)
+                            tint = HEADER_TEXT_COLOR
+                        )
+                    }
+
+                    Spacer(Modifier.weight(1f, true))
+
+
+                    IconButton(onClick = {
+                        val popupState = PopupState.ActivityRecorder
+                        onShowPopupWindow(popupState)
+                    }) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(id = R.drawable.timer_svgrepo_com),
+                            contentDescription = "Activity recorder",
+                            modifier = Modifier.fillMaxSize(0.75f),
+                            tint = HEADER_TEXT_COLOR
                         )
                     }
                 }
+            )
+        }
 
-                // If the selected date is today or in the future
-                if (!selectedDate.isBefore(LocalDate.now())) {
-                    // If we are not showing the activity screen
-                    if (screenState != SmallScreenState.DayActivity) {
-                        // Add button
-                        IconButton(
-                            onClick = {
-                                var popupState = PopupState.EditTask
+        // Move-to-calendar bottom bar
+        AnimatedVisibility(
+            visible = screenState == SmallScreenState.MoveToCalendar
+        ) {
 
-                                if (screenState == SmallScreenState.DayTask) {
-                                    selectTask(null)
-                                    setTaskDate(userInput.selectedDate)
-                                }
-                                else if (screenState == SmallScreenState.Goal) {
-                                    selectGoal(null)
-                                    popupState = PopupState.EditGoal
-                                }
-                                else if (screenState == SmallScreenState.ToDo) {
-                                    selectTask(null)
-                                    setTaskDate(null)
-                                }
-
-                                onShowPopupWindow(popupState)
-                            }
-                        ) {
-                            Icon(
-                                imageVector = ImageVector.vectorResource(id = R.drawable.add_square_svgrepo_com),
-                                contentDescription = "Add",
-                                modifier = Modifier.fillMaxSize(0.8F),
-                                tint = Color(BOTTOM_BAR_TEXT_COLOR)
-                            )
+            BottomBar(
+                content = {
+                    IconButton(
+                        onClick = {
+                            screenState = SmallScreenState.DayTask
                         }
-
-                        // The Spacer pushes the other icons to the end of the app bar
-                        Spacer(Modifier.weight(1f, true))
-
-                        // Button 1
-                        IconButton(
-                            onClick = {
-                                when (button1State) {
-                                    SmallScreenButtonState.Goal -> {
-                                        button1State = if (button2State == SmallScreenButtonState.ToDo) SmallScreenButtonState.Day else SmallScreenButtonState.ToDo
-                                        screenState = SmallScreenState.Goal
-                                    }
-                                    SmallScreenButtonState.Day -> {
-                                        button1State = if (button2State == SmallScreenButtonState.ToDo) SmallScreenButtonState.Goal else SmallScreenButtonState.ToDo
-                                        screenState = SmallScreenState.DayTask
-                                    }
-                                    SmallScreenButtonState.ToDo -> {
-                                        button1State = if (button2State == SmallScreenButtonState.Day) SmallScreenButtonState.Goal else SmallScreenButtonState.Day
-                                        screenState = SmallScreenState.ToDo
-                                    }
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = when (button1State) {
-                                    SmallScreenButtonState.Goal -> {
-                                        ImageVector.vectorResource(id = R.drawable.target_love_svgrepo_com)
-                                    }
-                                    SmallScreenButtonState.Day -> {
-                                        ImageVector.vectorResource(id = R.drawable.pie_chart_svgrepo_com)
-                                    }
-                                    SmallScreenButtonState.ToDo -> {
-                                        ImageVector.vectorResource(id = R.drawable.list_svgrepo_com)
-                                    }
-                                },
-                                contentDescription = when (button1State) {
-                                    SmallScreenButtonState.Goal -> {
-                                        goalsTitle
-                                    }
-                                    SmallScreenButtonState.Day -> {
-                                        dayTitle
-                                    }
-                                    SmallScreenButtonState.ToDo -> {
-                                        toDoTitle
-                                    }
-                                },
-                                modifier = Modifier.fillMaxSize(if (button1State == SmallScreenButtonState.Day) 0.75f else 0.8f),
-                                tint = Color(BOTTOM_BAR_TEXT_COLOR)
-                            )
-                        }
-
-                        Spacer(Modifier.weight(1f, true))
-
-                        // Button 2
-                        IconButton(
-                            onClick = {
-                                when (button2State) {
-                                    SmallScreenButtonState.Goal -> {
-                                        button2State = if (button1State == SmallScreenButtonState.ToDo) SmallScreenButtonState.Day else SmallScreenButtonState.ToDo
-                                        screenState = SmallScreenState.Goal
-                                    }
-                                    SmallScreenButtonState.Day -> {
-                                        button2State = if (button1State == SmallScreenButtonState.ToDo) SmallScreenButtonState.Goal else SmallScreenButtonState.ToDo
-                                        screenState = SmallScreenState.DayTask
-                                    }
-                                    SmallScreenButtonState.ToDo -> {
-                                        button2State = if (button1State == SmallScreenButtonState.Day) SmallScreenButtonState.Goal else SmallScreenButtonState.Day
-                                        screenState = SmallScreenState.ToDo
-                                    }
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = when (button2State) {
-                                    SmallScreenButtonState.Goal -> {
-                                        ImageVector.vectorResource(id = R.drawable.target_love_svgrepo_com)
-                                    }
-                                    SmallScreenButtonState.Day -> {
-                                        ImageVector.vectorResource(id = R.drawable.pie_chart_svgrepo_com)
-                                    }
-                                    SmallScreenButtonState.ToDo -> {
-                                        ImageVector.vectorResource(id = R.drawable.list_svgrepo_com)
-                                    }
-                                },
-                                contentDescription = when (button2State) {
-                                    SmallScreenButtonState.Goal -> {
-                                        goalsTitle
-                                    }
-                                    SmallScreenButtonState.Day -> {
-                                        dayTitle
-                                    }
-                                    SmallScreenButtonState.ToDo -> {
-                                        toDoTitle
-                                    }
-                                },
-                                modifier = Modifier.fillMaxSize(if (button2State == SmallScreenButtonState.Day) 0.75f else 0.8f),
-                                tint = Color(BOTTOM_BAR_TEXT_COLOR)
-                            )
-                        }
+                    ) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(id = R.drawable.cancel_svgrepo_com),
+                            contentDescription = "Back",// TODO: Read from resource
+                            modifier = Modifier.fillMaxSize(0.8F),
+                            tint = HEADER_TEXT_COLOR
+                        )
                     }
 
-                    // If the selected date is in the future, don't show the activities. The activity recording should be reserved only for today.
-                    if (!selectedDate.isAfter(LocalDate.now())) {
-                        Spacer(Modifier.weight(1f, true))
+                    Spacer(Modifier.weight(1f, true))
 
+                    if (taskToBeMovedToCalendar != null) {// FIXME: Optimize null handling
+                        // Save button
                         IconButton(onClick = {
-                            if (screenState == SmallScreenState.DayActivity) {
-                                // Show the activity recorder in a pop-up dialog
-                                val popupState = PopupState.ActivityRecorder
-                                onShowPopupWindow(popupState)
+                            // Update the task's start- and end times
+                            for (task in tasks) {
+                                if (task.id == taskToBeMovedToCalendar!!.id) {
+                                    // If the task to be moved to the calendar is pinned, we don't want to actually move this task but to copy it to the calendar so that the original task stays in the TO-DO list for further references (i.e. so that the task can be copied over and over again to the calendar)
+                                    if (task.pinned) {
+                                        saveTask(task.copy(id = UUID.randomUUID(), pinned = false))
+                                    }
+                                    else saveTask(task)
+                                }
+                                else saveTask(task)
                             }
-                            else {
-                                // Show the activity screen
-                                screenState = SmallScreenState.DayActivity
-                            }
+                            screenState = SmallScreenState.DayTask
                         }) {
                             Icon(
-                                imageVector = if (screenState == SmallScreenState.DayActivity) ImageVector.vectorResource(id = R.drawable.timer_svgrepo_com) else ImageVector.vectorResource(id = R.drawable.graph_infographic_data_element_2_svgrepo_com),
-                                contentDescription = "Activity recorder",
-//                                    modifier = Modifier.fillMaxSize((if (showActivityScreen) 0.8f else 0.7f)),
-                                modifier = Modifier.fillMaxSize(0.75f),
-                                tint = Color(BOTTOM_BAR_TEXT_COLOR)
+                                imageVector = ImageVector.vectorResource(id = R.drawable.save_alt_svgrepo_com),
+                                contentDescription = "Save",
+                                modifier = Modifier.fillMaxSize(0.6F),
+                                tint = HEADER_TEXT_COLOR
                             )
                         }
                     }
                 }
-            }
-        )
+            )
+        }
+
+        // Task-activity comparison bottom bar
+        AnimatedVisibility(
+            visible = screenState == SmallScreenState.Comparison
+        ) {
+            BottomBar(
+                content = {
+                    IconButton(
+                        onClick = {
+                            if (selectedDate.isBefore(LocalDate.now())) {
+                                screenState = SmallScreenState.DayTask
+                            }
+                            else if (selectedDate.isEqual(LocalDate.now())) {
+                                screenState = SmallScreenState.DayActivity
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(id = R.drawable.cancel_svgrepo_com),
+                            contentDescription = "Back",// TODO: Read from resource
+                            modifier = Modifier.fillMaxSize(0.8F),
+                            tint = HEADER_TEXT_COLOR
+                        )
+                    }
+
+                    Spacer(Modifier.weight(1f, true))
+                }
+            )
+        }
     }
 }

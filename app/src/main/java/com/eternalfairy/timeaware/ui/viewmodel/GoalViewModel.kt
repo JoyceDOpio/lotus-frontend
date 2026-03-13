@@ -3,12 +3,7 @@ package com.eternalfairy.timeaware.ui.viewmodel
 import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
-import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.CreationExtras
-import com.eternalfairy.timeaware.PlannerApplication
 import com.eternalfairy.timeaware.data.Goal
 import com.eternalfairy.timeaware.data.IGoalsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel

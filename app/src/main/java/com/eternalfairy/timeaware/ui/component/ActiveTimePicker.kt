@@ -17,7 +17,7 @@ fun ActiveTimePicker(
     timePicker: TimePickerState,
     activeTime: ActiveTime
 ) {
-    Column {
+    Column () {
         var title = "Active Time"
         val value: String
 

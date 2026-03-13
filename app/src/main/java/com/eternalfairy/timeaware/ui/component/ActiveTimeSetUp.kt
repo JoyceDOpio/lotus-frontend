@@ -1,26 +1,25 @@
 package com.eternalfairy.timeaware.ui.component
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerDefaults
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,7 +29,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
@@ -39,9 +37,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eternalfairy.timeaware.R
 import com.eternalfairy.timeaware.data.Time
-import com.eternalfairy.timeaware.ui.screen.BOTTOM_BAR_COLOR
-import com.eternalfairy.timeaware.ui.screen.BOTTOM_BAR_TEXT_COLOR
-import com.eternalfairy.timeaware.ui.theme.Red
+import com.eternalfairy.timeaware.ui.theme.BACKGROUND_COLOR
+import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
+import com.eternalfairy.timeaware.ui.theme.ERROR_TEXT_COLOR
+import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
+import com.eternalfairy.timeaware.ui.theme.SECONDARY_HEADER_TEXT_COLOR
+import com.eternalfairy.timeaware.ui.theme.SECONDARY_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.viewmodel.DayState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -116,7 +117,7 @@ fun ActiveTimeSetUp (
     Scaffold (
         bottomBar = {
             BottomAppBar (
-                containerColor = Color(BOTTOM_BAR_COLOR),
+                containerColor = COMPONENT_BACKGROUND_COLOR,
                 actions = {
                     // Close button
                     IconButton(onClick = {
@@ -127,7 +128,7 @@ fun ActiveTimeSetUp (
                             imageVector = ImageVector.vectorResource(id = R.drawable.cancel_svgrepo_com),
                             contentDescription = "Cancel",
                             modifier = Modifier.fillMaxSize(0.8F),
-                            tint = Color(BOTTOM_BAR_TEXT_COLOR)
+                            tint = HEADER_TEXT_COLOR
                         )
                     }
 
@@ -150,7 +151,7 @@ fun ActiveTimeSetUp (
                             imageVector = ImageVector.vectorResource(id = R.drawable.save_alt_svgrepo_com),
                             contentDescription = "Save task",
                             modifier = Modifier.fillMaxSize(0.6F),
-                            tint = Color(BOTTOM_BAR_TEXT_COLOR)
+                            tint = HEADER_TEXT_COLOR
                         )
                     }
                 }
@@ -159,10 +160,10 @@ fun ActiveTimeSetUp (
     ) { innerPadding ->
         Column(
             modifier = modifier
+                .background(COMPONENT_BACKGROUND_COLOR)
                 .padding(horizontal = 15.dp)
                 .padding(innerPadding)
-                .fillMaxWidth()
-                .fillMaxHeight()
+                .fillMaxSize()
             ,
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
@@ -172,7 +173,7 @@ fun ActiveTimeSetUp (
                     .padding(bottom = 10.dp),
                 text = headerText,
                 fontSize = 20.sp,
-                color = MaterialTheme.colorScheme.primary
+                color = HEADER_TEXT_COLOR
             )
 
             Row (
@@ -200,14 +201,14 @@ fun ActiveTimeSetUp (
                         ),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = HEADER_TEXT_COLOR
                     )
                 }
 
                 Text(
                     " - ",
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = HEADER_TEXT_COLOR
                 )
 
                 // Active time end
@@ -229,7 +230,7 @@ fun ActiveTimeSetUp (
                         ),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = HEADER_TEXT_COLOR
                     )
                 }
             }
@@ -244,7 +245,7 @@ fun ActiveTimeSetUp (
                     ,
                     text = startTimeLaterThanEndTimeWarning,
                     fontSize = 13.sp,
-                    color = Red,
+                    color = ERROR_TEXT_COLOR,
                     textAlign = TextAlign.Start
                 )
             }
@@ -259,7 +260,7 @@ fun ActiveTimeSetUp (
                     ,
                     text = activeTimeStartLaterThanFirstTaskWarning,
                     fontSize = 13.sp,
-                    color = Red,
+                    color = ERROR_TEXT_COLOR,
                     textAlign = TextAlign.Start
                 )
             }
@@ -274,7 +275,7 @@ fun ActiveTimeSetUp (
                     ,
                     text = activeTimeEndEarlierThanLastTaskWarning,
                     fontSize = 13.sp,
-                    color = Red,
+                    color = ERROR_TEXT_COLOR,
                     textAlign = TextAlign.Start
                 )
             }
@@ -292,21 +293,52 @@ fun ActiveTimeSetUp (
                     onClick = {
                         onSaveCloseTimePicker()
                     }
-                ) { Text(okText) }
+                ) {
+                    Text(
+                        text = okText,
+                        color = HEADER_TEXT_COLOR
+                    )
+                }
             },
             dismissButton = {
                 TextButton(
                     onClick = {
                         onCancelCloseTimePicker()
                     }
-                ) { Text(cancelText) }
-            }
+                ) {
+                    Text(
+                        text = cancelText,
+                        color = HEADER_TEXT_COLOR
+                    )
+                }
+            },
+            containerColor = COMPONENT_BACKGROUND_COLOR
         )
         {
             if (showStartActiveTimePicker) {
-                TimePicker(state = startActiveTimePickerState)
+                TimePicker(
+                    state = startActiveTimePickerState,
+                    colors = TimePickerDefaults.colors().copy(
+                        clockDialColor = BACKGROUND_COLOR,
+                        selectorColor = HEADER_TEXT_COLOR,
+                        timeSelectorSelectedContainerColor = HEADER_TEXT_COLOR,
+                        timeSelectorUnselectedContainerColor = SECONDARY_HEADER_TEXT_COLOR,
+                        timeSelectorSelectedContentColor = COMPONENT_BACKGROUND_COLOR,
+                        timeSelectorUnselectedContentColor = SECONDARY_TEXT_COLOR
+                    )
+                )
             } else {
-                TimePicker(state = endActiveTimePickerState)
+                TimePicker(
+                    state = endActiveTimePickerState,
+                    colors = TimePickerDefaults.colors().copy(
+                        clockDialColor = BACKGROUND_COLOR,
+                        selectorColor = HEADER_TEXT_COLOR,
+                        timeSelectorSelectedContainerColor = HEADER_TEXT_COLOR,
+                        timeSelectorUnselectedContainerColor = SECONDARY_HEADER_TEXT_COLOR,
+                        timeSelectorSelectedContentColor = COMPONENT_BACKGROUND_COLOR,
+                        timeSelectorUnselectedContentColor = SECONDARY_TEXT_COLOR
+                    )
+                )
             }
         }
     }

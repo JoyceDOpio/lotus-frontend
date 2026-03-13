@@ -1,6 +1,7 @@
 package com.eternalfairy.timeaware.ui.screen
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,17 +16,19 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerDefaults
 import androidx.compose.material3.TimePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -34,9 +37,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
@@ -48,7 +50,13 @@ import androidx.compose.ui.unit.sp
 import com.eternalfairy.timeaware.R
 import com.eternalfairy.timeaware.data.Time
 import com.eternalfairy.timeaware.ui.component.TimePickerDialog
-import com.eternalfairy.timeaware.ui.theme.Red
+import com.eternalfairy.timeaware.ui.theme.BACKGROUND_COLOR
+import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
+import com.eternalfairy.timeaware.ui.theme.ERROR_TEXT_COLOR
+import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
+import com.eternalfairy.timeaware.ui.theme.SECONDARY_HEADER_TEXT_COLOR
+import com.eternalfairy.timeaware.ui.theme.SECONDARY_TEXT_COLOR
+import com.eternalfairy.timeaware.ui.theme.SELECTION_COLOR
 import com.eternalfairy.timeaware.ui.viewmodel.DayState
 import com.eternalfairy.timeaware.ui.viewmodel.TaskUiState
 import com.eternalfairy.timeaware.utils.TouchGestureUtils
@@ -118,7 +126,7 @@ fun TaskEditScreen(
     val taskWithinStartAndEndTimeWarning = "Another task is within the start time and end time bounds"// TODO: Read string from resource
     val minimalTaskDurationWarning = "A task must be at least $minimalTaskDuration minutes long" // TODO: Read string from resource
 
-    // If the task is a TO-DO task and it doesn't have a priority value, set the priority
+    // If the task is a TO-DO task, and it doesn't have a priority value, set the priority
     if (taskDetails.date == null && taskDetails.priority == null) {
         setTaskPriority(lastTaskPriority + 1)
     }
@@ -191,7 +199,7 @@ fun TaskEditScreen(
     Scaffold (
         bottomBar = {
             BottomAppBar (
-                containerColor = Color(BOTTOM_BAR_COLOR),
+                containerColor = COMPONENT_BACKGROUND_COLOR,
                 actions = {
                     // Close button
                     IconButton(onClick = {
@@ -202,7 +210,7 @@ fun TaskEditScreen(
                             imageVector = ImageVector.vectorResource(id = R.drawable.cancel_svgrepo_com),
                             contentDescription = "Cancel",
                             modifier = Modifier.fillMaxSize(0.8F),
-                            tint = Color(BOTTOM_BAR_TEXT_COLOR)
+                            tint = HEADER_TEXT_COLOR
                         )
                     }
 
@@ -234,7 +242,7 @@ fun TaskEditScreen(
                             imageVector = ImageVector.vectorResource(id = R.drawable.save_alt_svgrepo_com),
                             contentDescription = "Save task",
                             modifier = Modifier.fillMaxSize(0.6F),
-                            tint = Color(BOTTOM_BAR_TEXT_COLOR)
+                            tint = HEADER_TEXT_COLOR
                         )
                     }
                 }
@@ -243,13 +251,16 @@ fun TaskEditScreen(
     ) { innerPadding ->
         Column(
             modifier = modifier
+                // INFO: First background, then padding, then fillMax
+                .background(COMPONENT_BACKGROUND_COLOR)
                 .padding(
                     horizontal = 15.dp
                 )
                 .padding(innerPadding)
                 .fillMaxWidth()
                 .fillMaxHeight()
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+            ,
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -259,7 +270,7 @@ fun TaskEditScreen(
                     .padding(vertical = 15.dp),
                 text = label,
                 fontSize = 20.sp,
-                color = MaterialTheme.colorScheme.primary
+                color = HEADER_TEXT_COLOR
             )
 
             if (taskDetails.date != null) {
@@ -291,14 +302,14 @@ fun TaskEditScreen(
                                 ),
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = HEADER_TEXT_COLOR
                             )
                         }
 
                         Text(
                             " - ",
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = HEADER_TEXT_COLOR
                         )
 
                         // End time
@@ -320,7 +331,7 @@ fun TaskEditScreen(
                                 ),
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = HEADER_TEXT_COLOR
                             )
                         }
                     }
@@ -335,7 +346,7 @@ fun TaskEditScreen(
                             ,
                             text = startTimeLaterThanEndTimeWarning,
                             fontSize = 13.sp,
-                            color = Red,
+                            color = ERROR_TEXT_COLOR,
                             textAlign = TextAlign.Start
                         )
                     }
@@ -349,7 +360,7 @@ fun TaskEditScreen(
                             ,
                             text = startTimeOutsideActiveTimeWarning,
                             fontSize = 13.sp,
-                            color = Red,
+                            color = ERROR_TEXT_COLOR,
                             textAlign = TextAlign.Start
                         )
                     }
@@ -363,7 +374,7 @@ fun TaskEditScreen(
                             ,
                             text = endTimeOutsideActiveTimeWarning,
                             fontSize = 13.sp,
-                            color = Red,
+                            color = ERROR_TEXT_COLOR,
                             textAlign = TextAlign.Start
                         )
                     }
@@ -377,7 +388,7 @@ fun TaskEditScreen(
                             ,
                             text = startTimeOverlappingTaskWarning,
                             fontSize = 13.sp,
-                            color = Red,
+                            color = ERROR_TEXT_COLOR,
                             textAlign = TextAlign.Start
                         )
                     }
@@ -391,7 +402,7 @@ fun TaskEditScreen(
                             ,
                             text = endTimeOverlappingTaskWarning,
                             fontSize = 13.sp,
-                            color = Red,
+                            color = ERROR_TEXT_COLOR,
                             textAlign = TextAlign.Start
                         )
                     }
@@ -405,7 +416,7 @@ fun TaskEditScreen(
                             ,
                             text = taskWithinStartAndEndTimeWarning,
                             fontSize = 13.sp,
-                            color = Red,
+                            color = ERROR_TEXT_COLOR,
                             textAlign = TextAlign.Start
                         )
                     }
@@ -419,7 +430,7 @@ fun TaskEditScreen(
                             ,
                             text = minimalTaskDurationWarning,
                             fontSize = 13.sp,
-                            color = Red,
+                            color = ERROR_TEXT_COLOR,
                             textAlign = TextAlign.Start
                         )
                     }
@@ -440,7 +451,17 @@ fun TaskEditScreen(
                 label = { Text(titlePlaceholderText) },
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 singleLine = true,
-                shape = RoundedCornerShape(15.dp)
+                shape = RoundedCornerShape(15.dp),
+                // TODO: BOILERPLATE - create custom OutlinedTextField
+                colors = OutlinedTextFieldDefaults.colors().copy(
+                    cursorColor = HEADER_TEXT_COLOR,
+                    focusedIndicatorColor = HEADER_TEXT_COLOR,
+                    focusedLabelColor = HEADER_TEXT_COLOR,
+                    textSelectionColors = TextSelectionColors(
+                        handleColor = HEADER_TEXT_COLOR,
+                        backgroundColor = SELECTION_COLOR
+                    )
+                )
             )
 
             AnimatedVisibility(
@@ -457,7 +478,7 @@ fun TaskEditScreen(
                         ,
                         text = emptyTitleWarning,
                         fontSize = 13.sp,
-                        color = Red
+                        color = ERROR_TEXT_COLOR
                     )
                 }
             }
@@ -474,7 +495,17 @@ fun TaskEditScreen(
                 label = { Text(descriptionPlaceholderText) },
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 singleLine = false,
-                shape = RoundedCornerShape(15.dp)
+                shape = RoundedCornerShape(15.dp),
+                // TODO: BOILERPLATE - create custom OutlinedTextField
+                colors = OutlinedTextFieldDefaults.colors().copy(
+                    cursorColor = HEADER_TEXT_COLOR,
+                    focusedIndicatorColor = HEADER_TEXT_COLOR,
+                    focusedLabelColor = HEADER_TEXT_COLOR,
+                    textSelectionColors = TextSelectionColors(
+                        handleColor = HEADER_TEXT_COLOR,
+                        backgroundColor = SELECTION_COLOR
+                    )
+                )
             )
         }
     }
@@ -502,9 +533,29 @@ fun TaskEditScreen(
             )
             {
                 if (showStartTimePicker) {
-                    TimePicker(state = startTimePickerState)
+                    TimePicker(
+                        state = startTimePickerState,
+                        colors = TimePickerDefaults.colors().copy(
+                            clockDialColor = BACKGROUND_COLOR,
+                            selectorColor = HEADER_TEXT_COLOR,
+                            timeSelectorSelectedContainerColor = HEADER_TEXT_COLOR,
+                            timeSelectorUnselectedContainerColor = SECONDARY_HEADER_TEXT_COLOR,
+                            timeSelectorSelectedContentColor = COMPONENT_BACKGROUND_COLOR,
+                            timeSelectorUnselectedContentColor = SECONDARY_TEXT_COLOR
+                        )
+                    )
                 } else {
-                    TimePicker(state = endTimePickerState)
+                    TimePicker(
+                        state = endTimePickerState,
+                        colors = TimePickerDefaults.colors().copy(
+                            clockDialColor = BACKGROUND_COLOR,
+                            selectorColor = HEADER_TEXT_COLOR,
+                            timeSelectorSelectedContainerColor = HEADER_TEXT_COLOR,
+                            timeSelectorUnselectedContainerColor = SECONDARY_HEADER_TEXT_COLOR,
+                            timeSelectorSelectedContentColor = COMPONENT_BACKGROUND_COLOR,
+                            timeSelectorUnselectedContentColor = SECONDARY_TEXT_COLOR
+                        )
+                    )
                 }
             }
         }

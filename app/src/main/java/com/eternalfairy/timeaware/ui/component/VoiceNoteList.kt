@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -22,6 +21,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import com.eternalfairy.timeaware.ui.theme.Teal12
 import com.eternalfairy.timeaware.ui.viewmodel.ActivityUiState
 import com.eternalfairy.timeaware.ui.viewmodel.AudioViewModel
 import com.eternalfairy.timeaware.ui.viewmodel.VoiceNoteUiState
@@ -98,7 +98,7 @@ fun VoiceNoteList (
             ) {
                 Text(
                     text = headerText,
-                    color = MaterialTheme.colorScheme.primary
+                    color = Teal12
                 )
             }
 

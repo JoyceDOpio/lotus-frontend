@@ -10,13 +10,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
@@ -24,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eternalfairy.timeaware.R
 import com.eternalfairy.timeaware.data.Time
-import com.eternalfairy.timeaware.ui.screen.TOP_BAR_TEXT_COLOR
+import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.viewmodel.ActivityUiState
 import com.eternalfairy.timeaware.ui.viewmodel.DayState
 import com.eternalfairy.timeaware.utils.TouchGestureUtils
@@ -33,7 +31,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-enum class TaskCardDisplayType {
+enum class CardDisplayType {
     Popup,
     Full
 }
@@ -49,7 +47,7 @@ fun TaskCard (
     startTime: Time?,
     pinned: Boolean? = null,
     title: String,
-    displayType: TaskCardDisplayType = TaskCardDisplayType.Full,
+    displayType: CardDisplayType = CardDisplayType.Full,
     subActivities: List<ActivityUiState> = emptyList(),
     content: @Composable () -> Unit
 ) {
@@ -113,8 +111,8 @@ fun TaskCard (
 
     Column (
         modifier = modifier
-            .padding(horizontal = if (displayType == TaskCardDisplayType.Popup) 20.dp else 30.dp)
-            .padding(top = if (displayType == TaskCardDisplayType.Popup) 15.dp else 0.dp)
+            .padding(horizontal = if (displayType == CardDisplayType.Popup) 20.dp else 30.dp)
+            .padding(top = if (displayType == CardDisplayType.Popup) 15.dp else 0.dp)
             .fillMaxWidth()
             .fillMaxHeight()
         ,
@@ -122,7 +120,7 @@ fun TaskCard (
         horizontalAlignment = horizontalAlignment
     ) {
         // If the display width is that of a popup window, narrow down the layout
-        if (displayType == TaskCardDisplayType.Popup) {
+        if (displayType == CardDisplayType.Popup) {
             Column () {
                 pinned?.let {
                     if (pinned) {
@@ -136,7 +134,7 @@ fun TaskCard (
                                 imageVector = ImageVector.vectorResource(id = R.drawable.pin_circle_svgrepo_com),
                                 contentDescription = "pinned",
                                 modifier = Modifier.fillMaxSize(0.75f),
-                                tint = Color(TOP_BAR_TEXT_COLOR)
+                                tint = HEADER_TEXT_COLOR
                             )
                         }
                     }
@@ -211,7 +209,7 @@ fun TaskCard (
                                     text = percentageText,
                                     fontWeight = FontWeight.Light,
                                     fontSize = 18.sp,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = HEADER_TEXT_COLOR
                                 )
                             }
                         }
@@ -242,7 +240,7 @@ fun TaskCard (
                             imageVector = ImageVector.vectorResource(id = R.drawable.pin_circle_svgrepo_com),
                             contentDescription = "pinned",
                             modifier = Modifier.fillMaxSize(0.75f),
-                            tint = Color(TOP_BAR_TEXT_COLOR)
+                            tint = HEADER_TEXT_COLOR
                         )
                     }
                 }
@@ -302,7 +300,7 @@ fun TaskCard (
                             text = percentageText,
                             fontWeight = FontWeight.Light,
                             fontSize = 18.sp,
-                            color = MaterialTheme.colorScheme.primary
+                            color = HEADER_TEXT_COLOR
                         )
                     }
                 }

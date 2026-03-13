@@ -2,8 +2,6 @@ package com.eternalfairy.timeaware.ui.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -15,11 +13,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
-import com.eternalfairy.timeaware.ui.screen.BOTTOM_BAR_COLOR
-import com.eternalfairy.timeaware.ui.screen.BOTTOM_BAR_TEXT_COLOR
+import com.eternalfairy.timeaware.R
+import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
+import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
 
 @Composable
 fun TaskDropdownMenu(
@@ -34,16 +32,16 @@ fun TaskDropdownMenu(
             onClick = { expanded = !expanded }
         ) {
             Icon(
-                Icons.Default.MoreVert,
+                imageVector = ImageVector.vectorResource(id = R.drawable.more_vert_24dp_1f1f1f_fill0_wght400_grad0_opsz24),
                 contentDescription = "More options",
                 modifier = modifier,
-                tint = Color(BOTTOM_BAR_TEXT_COLOR)
+                tint = HEADER_TEXT_COLOR
             )
 
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
-                modifier = Modifier.background(Color(BOTTOM_BAR_COLOR))
+                modifier = Modifier.background(COMPONENT_BACKGROUND_COLOR)
             ) {
                 for (dropdownItem in dropdownItems) {
                     DropdownMenuItem(
@@ -52,7 +50,7 @@ fun TaskDropdownMenu(
                             Icon(
                                 imageVector = ImageVector.vectorResource(id = dropdownItem.iconId),
                                 contentDescription = null,
-                                tint = Color(BOTTOM_BAR_TEXT_COLOR)
+                                tint = HEADER_TEXT_COLOR
                             )
                         },
                         onClick = dropdownItem.onClick

@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
 
 @Composable
 fun TimePickerDialog(
@@ -26,7 +27,7 @@ fun TimePickerDialog(
     onDismissRequest: () -> Unit,
     confirmButton: @Composable (() -> Unit),
     dismissButton: @Composable (() -> Unit)? = null,
-    containerColor: Color = MaterialTheme.colorScheme.surface,
+    containerColor: Color = COMPONENT_BACKGROUND_COLOR,
     content: @Composable () -> Unit
 ) {
     Dialog(

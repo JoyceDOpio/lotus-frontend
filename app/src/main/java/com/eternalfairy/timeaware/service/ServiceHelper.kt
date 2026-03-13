@@ -6,7 +6,6 @@ import android.content.Intent
 import android.os.Build
 import com.eternalfairy.timeaware.MainActivity
 import com.eternalfairy.timeaware.service.StopwatchService.Companion.CLICK_REQUEST_CODE
-import dagger.hilt.android.AndroidEntryPoint
 
 // Specifies the behaviour for the notification
 //@AndroidEntryPoint

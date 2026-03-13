@@ -1,4 +1,4 @@
-package com.eternalfairy.timeaware.ui.component
+package com.eternalfairy.timeaware.ui.component.calendar
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,12 +13,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,10 +31,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.ripple
+import com.eternalfairy.timeaware.ui.theme.CALENDAR_DATE_TEXT_COLOR
+import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
+import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
+import com.eternalfairy.timeaware.ui.theme.SECONDARY_HEADER_TEXT_COLOR
+import com.eternalfairy.timeaware.ui.theme.White
 import com.eternalfairy.timeaware.ui.viewmodel.UserInput
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -47,24 +53,28 @@ enum class ListDirection {
     END
 }
 
-//const val TODAY_COLOR = 0xff9f017e
+const val NUMBER_OF_DAYS_IN_WEEK = 7
 
 @Composable
-fun Calendar(
+fun CalendarWeek(
+//    componentHeight: Dp = 90.dp,
+    componentWidth: Dp = 400.dp,
+    paddingStart: Dp = 10.dp,
+    paddingTop: Dp = 5.dp,
+    paddingEnd: Dp = 10.dp,
+    paddingBottom: Dp = 5.dp,
     userInput: UserInput,
     onSetDate: (LocalDate) -> Unit
-    ) {
+) {
     var circledDate by remember { mutableStateOf(userInput.selectedDate) }
     // The index of the circled date in a week
     var circledDateIndex by remember { mutableIntStateOf(0) }
-    // The index of the week in weeks
-    var weeksIndex by remember { mutableIntStateOf(0) }
     val today = LocalDate.now()
     val formatter = DateTimeFormatter.ofPattern("d")
-    val numberOfDaysPerWeek = 7
     val daysOfWeek = mutableListOf<String>()
     for (dayOfWeek in DayOfWeek.entries) {
-        val localizedDayName = dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
+        val localizedDayName = dayOfWeek.getDisplayName(TextStyle.SHORT_STANDALONE, Locale.getDefault())
+
         daysOfWeek += localizedDayName
     }
     val listState = rememberLazyListState()
@@ -149,7 +159,6 @@ fun Calendar(
             week.forEachIndexed { dayIndex, day ->
                 if (day == userInput.selectedDate) {
                     circledDateIndex = dayIndex
-//                    weeksIndex = weekIndex
                 }
             }
         }
@@ -187,36 +196,53 @@ fun Calendar(
         if (reachedListEnd) loadMore(ListDirection.END)
     }
 
+    val todaySelectedModifier = Modifier
+        .clip(CircleShape)
+        .background(HEADER_TEXT_COLOR)
+
+    val todayNotSelectedModifier = Modifier
+        .clip(CircleShape)
+        .background(SECONDARY_HEADER_TEXT_COLOR)
+
+    val selectedDayModifier = Modifier
+        .border(
+            width = 1.dp,
+            color = SECONDARY_HEADER_TEXT_COLOR,
+            shape = CircleShape
+        )
+
     Column (
-//        modifier = Modifier
-//            .background(Color(BACKGROUND_COLOR))
+        modifier = Modifier
+            .padding(
+                start = paddingStart, top = paddingTop, end = paddingEnd, bottom = paddingBottom
+            )
+            .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
+            .width(componentWidth)
+            .background(COMPONENT_BACKGROUND_COLOR)
     ) {
         // Circled date
         Row (
             modifier = Modifier
-                .fillMaxWidth(),
+                .padding(top = 10.dp)
+                .fillMaxWidth()
+            ,
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text (
                 text = circledDate.format(DateTimeFormatter.ofPattern("d. MMMM yyyy")),
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                color = HEADER_TEXT_COLOR,
+                fontSize = 18.sp
             )
         }
-
-        HorizontalDivider(
-            modifier = Modifier
-                .padding(horizontal = 10.dp)
-                .fillMaxWidth(),
-            thickness = 1.dp,
-        )
 
         // Weekday names
         Row (
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            repeat(numberOfDaysPerWeek) { iteration ->
+            repeat(NUMBER_OF_DAYS_IN_WEEK) { iteration ->
                 Box (
                     modifier = Modifier
                         .fillMaxWidth()
@@ -232,7 +258,7 @@ fun Calendar(
             }
         }
 
-        // Month days
+        // Week days
         LazyRow (
             modifier = Modifier
                 .fillMaxWidth(),
@@ -246,26 +272,7 @@ fun Calendar(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    repeat(numberOfDaysPerWeek) { iteration ->
-                        val todaySelectedModifier = Modifier
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary)
-//                            .background(Color(TODAY_COLOR))
-
-                        val todayNotSelectedModifier = Modifier
-                            .clip(CircleShape)
-                            .background(Color(0xffA296C5))
-//                            .background(Color(TODAY_COLOR))
-
-                        val selectedDayModifier = Modifier
-                            .border(
-                                width = 1.dp,
-                                color = Color(0xffA296C5),
-//                                color = MaterialTheme.colorScheme.primary,
-//                                color = Color(MINUTE_STEP_COLOR),
-                                shape = CircleShape
-                            )
-
+                    repeat(NUMBER_OF_DAYS_IN_WEEK) { iteration ->
                         Box (
                             modifier = Modifier
                                 .weight(1f)
@@ -289,7 +296,7 @@ fun Calendar(
                                 text = week[iteration].format(formatter),
                                 modifier = Modifier
                                     .align(Alignment.Center),
-                                color = if (week[iteration] == today) Color(0xffffffff) else if (iteration == circledDateIndex) Color(0xff000000) else Color(0xff000000)
+                                color = if (week[iteration] == today) White else CALENDAR_DATE_TEXT_COLOR
                             )
                         }
                     }
@@ -303,6 +310,6 @@ fun Modifier.conditional (condition: Boolean, modifier: Modifier) : Modifier {
     return if (condition) {
         then(modifier)
     } else {
-        return this
+        this
     }
 }

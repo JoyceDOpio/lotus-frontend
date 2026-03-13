@@ -23,10 +23,14 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import com.eternalfairy.timeaware.data.Time
-import com.eternalfairy.timeaware.ui.component.CLOCK_CENTER_COLOR
-import com.eternalfairy.timeaware.ui.component.CLOCK_LABEL_COLOR
-import com.eternalfairy.timeaware.ui.component.HOUR_LABEL_COLOR
-import com.eternalfairy.timeaware.ui.component.MINUTE_STEP_COLOR
+import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
+import com.eternalfairy.timeaware.ui.theme.DeepTeal
+import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
+import com.eternalfairy.timeaware.ui.theme.HotPink
+import com.eternalfairy.timeaware.ui.theme.MINUTE_LABEL_COLOR
+import com.eternalfairy.timeaware.ui.theme.Orange
+import com.eternalfairy.timeaware.ui.theme.SECONDARY_TEXT_COLOR
+import com.eternalfairy.timeaware.ui.theme.White
 import com.eternalfairy.timeaware.utils.TouchGestureUtils.DEG_OFFSET
 import com.eternalfairy.timeaware.utils.TouchGestureUtils.DEG_TO_RAD
 import kotlin.math.cos
@@ -87,7 +91,7 @@ object DrawScopeUtils {
     ) {
         // Draw clock center
         drawCircle(
-            color = Color(CLOCK_CENTER_COLOR),
+            color = COMPONENT_BACKGROUND_COLOR,
             center = center,
             radius = radius,
         )
@@ -117,7 +121,7 @@ object DrawScopeUtils {
             text = clockHourLabel,
             topLeft = clockCenterLabelOffset,
             style = TextStyle(
-                color = Color(CLOCK_LABEL_COLOR)
+                color = HEADER_TEXT_COLOR
             )
         )
     }
@@ -154,7 +158,7 @@ object DrawScopeUtils {
         )
         drawPath(
             path,
-            color = Color(CLOCK_LABEL_COLOR),
+            color = HEADER_TEXT_COLOR,
             alpha = 0.7f,
             style = Stroke(
                 width = 8f
@@ -171,7 +175,7 @@ object DrawScopeUtils {
     ) {
         val textStyle = TextStyle(
             textAlign = TextAlign.Center,
-            color = Color(HOUR_LABEL_COLOR),
+            color = HEADER_TEXT_COLOR,
         )
 
         // Draw hour steps and labels
@@ -205,7 +209,7 @@ object DrawScopeUtils {
             )
 
             if (i > 0) {
-                // If it is refers to the second or second last hour label
+                // If it refers to the second or second last hour label
                 if (i == 1 || i == (minutesBetweenHoursAccumulated.size - 2)) {
                     // If the interval between the two consecutive hour labels is less than 30 minutes, don't draw it the second/second last label
                     if ((i == 1 && minutesBetweenHoursAccumulated[i] - minutesBetweenHoursAccumulated[0] >= 30)
@@ -234,7 +238,7 @@ object DrawScopeUtils {
 
                 // Draw only a circle to mark the start/end of active time
                 drawCircle(
-                    color = Color(MINUTE_STEP_COLOR),
+                    color = MINUTE_LABEL_COLOR,
                     radius = 15f,
                     center = circleCenterOffset
                 )
@@ -264,7 +268,7 @@ object DrawScopeUtils {
 
         for (i in 0..totalMinutes) {
             if (i % minuteStep == 0 && !(i in minutesBetweenHoursAccumulated)) {
-                var stepAngle = i * minuteAngle + DEG_OFFSET
+                val stepAngle = i * minuteAngle + DEG_OFFSET
 
                 val stepEndOffset = Offset(
                     x = center.x + (outerRadius * cos(stepAngle * DEG_TO_RAD)).toFloat(),
@@ -272,7 +276,7 @@ object DrawScopeUtils {
                 )
 
                 drawCircle(
-                    color = Color(MINUTE_STEP_COLOR),
+                    color = MINUTE_LABEL_COLOR,
                     radius = 5f,
                     center = stepEndOffset,
                 )
@@ -296,12 +300,12 @@ object DrawScopeUtils {
         borderWidth: Float = 2f
     ) {
         val rainbowColors = listOf(
-            Color(0xfff78f0a),
-            Color(0xffc4067c),
-            Color(0xff06aac4),
-            Color(0xff06aac4),
-            Color(0xfff78f0a),
-            Color(0xfff78f0a),
+            Orange,
+            HotPink,
+            DeepTeal,
+            DeepTeal,
+            Orange,
+            Orange
         )
 
         val gradient = Brush.sweepGradient(
@@ -338,7 +342,7 @@ object DrawScopeUtils {
         )
 
         drawPath(
-            startBorderPath, color = Color(0xffffffff), style = Stroke(
+            startBorderPath, color = White, style = Stroke(
                 width = borderWidth
             )
         )
@@ -361,7 +365,7 @@ object DrawScopeUtils {
         )
 
         drawPath(
-            endBorderPath, color = Color(0xffffffff), style = Stroke(
+            endBorderPath, color = White, style = Stroke(
                 width = borderWidth
             )
         )
@@ -476,7 +480,6 @@ object DrawScopeUtils {
 
                 // Truncate text if its length exceeds the path's length
                 if (titleWidth >= pathMeasure.length) {
-//                    text = truncateTextToPath(taskTitle, textMeasurer, pathMeasure)
                     val textChars = mutableListOf<Char>()
 
                     taskTitle.forEachIndexed { index, char ->
@@ -509,10 +512,6 @@ object DrawScopeUtils {
 
                 val measuredText = textMeasurer.measure(text = text)
 
-//                if (text != "") {
-//                    textWidth = measuredText.getBoundingBox(text.lastIndex).bottomRight.x
-//                }
-
                 this.drawContext.canvas.nativeCanvas.apply {
                     drawTextOnPath(
                         text,
@@ -528,5 +527,4 @@ object DrawScopeUtils {
                 }
             }
         }
-//    }
 }

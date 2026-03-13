@@ -1,8 +1,7 @@
 package com.eternalfairy.timeaware.ui.screen
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,13 +11,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,10 +25,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -42,24 +39,32 @@ import com.eternalfairy.timeaware.data.Time
 import com.eternalfairy.timeaware.ui.component.ActiveTimeHeader
 import com.eternalfairy.timeaware.ui.component.ActivityGraph
 import com.eternalfairy.timeaware.ui.component.BottomBar
-import com.eternalfairy.timeaware.ui.component.Calendar
 import com.eternalfairy.timeaware.ui.component.ComparisonDial
 import com.eternalfairy.timeaware.ui.component.DragItemListGoal
 import com.eternalfairy.timeaware.ui.component.DragItemListTask
 import com.eternalfairy.timeaware.ui.component.DropDownItem
+import com.eternalfairy.timeaware.ui.component.MoveToCalendarDial
 import com.eternalfairy.timeaware.ui.component.PlannerDial
 import com.eternalfairy.timeaware.ui.component.SubActivityList
 import com.eternalfairy.timeaware.ui.component.TaskCard
 import com.eternalfairy.timeaware.ui.component.TaskDropdownMenu
 import com.eternalfairy.timeaware.ui.component.TopBar
 import com.eternalfairy.timeaware.ui.component.VoiceNoteList
+import com.eternalfairy.timeaware.ui.component.calendar.CalendarMonth
+import com.eternalfairy.timeaware.ui.theme.BACKGROUND_COLOR
+import com.eternalfairy.timeaware.ui.theme.COMMENT_TEXT_COLOR
+import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
+import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.viewmodel.ActivityUiState
 import com.eternalfairy.timeaware.ui.viewmodel.AudioViewModel
 import com.eternalfairy.timeaware.ui.viewmodel.DayState
 import com.eternalfairy.timeaware.ui.viewmodel.GoalUiState
 import com.eternalfairy.timeaware.ui.viewmodel.TaskUiState
 import com.eternalfairy.timeaware.ui.viewmodel.UserInput
+import com.eternalfairy.timeaware.ui.viewmodel.toTask
+import com.eternalfairy.timeaware.utils.TouchGestureUtils
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
@@ -83,7 +88,6 @@ fun BigScreenPortrait (
     onDeleteTask: () -> Unit,
     onEditTask: () -> Unit,
     onDeleteVoiceNote: (UUID?) -> Unit,
-    onMoveToCalendar: () -> Unit,
     onMoveToToDoList: () -> Unit,
     onPinTask: (Boolean) -> Unit,
     onPressActiveTime: () -> Unit,
@@ -102,7 +106,7 @@ fun BigScreenPortrait (
     setTaskDate: (LocalDate?) -> Unit,
     setTaskDescription: (String) -> Unit,
     setTaskEndTime: (Time) -> Unit,
-    setTaskPriority: (Int) -> Unit,
+    setTaskPriority: (Int?) -> Unit,
     setTaskStartTime: (Time) -> Unit,
     setTaskTitle: (String) -> Unit,
     updateLastPlayedPosition: (Long, Int) -> Unit
@@ -121,7 +125,6 @@ fun BigScreenPortrait (
     val deleteText = "Delete"//TODO: Read from string resource
     val noTaskText = "NO TASK TO DISPLAY"//TODO: Read from string resource
     val noActivityText = "NO ACTIVITY TO DISPLAY"//TODO: Read from string resource
-    val dayTitle = "Day overview"//TODO: Read from string resource
     val goalsTitle = "Goals"//TODO: Read from string resource
     val toDoTitle = "To Do"//TODO: Read from string resource
 
@@ -129,55 +132,142 @@ fun BigScreenPortrait (
     val taskDetails = taskUiState
     val activityDetails = activityUiState
 
+    // Move to calendar
+    // The task that is being moved to calendar - if I save the taskUiState under the touchedTask it seems it is not updated in time after touching it. The dial tries to draw it before its value is updated.
+    var taskToBeMovedToCalendar by remember { mutableStateOf<Task?>(null) }
+    // The optimal duration of the task will be 30 minutes and minimum will be 5 minutes
+    val optimalDuration = 30
+    val minimalDuration = 5
+    var movedTaskStartTime: Time? = null
+    var movedTaskEndTime: Time? = null
+    // Find a slot between tasks to fit in the moved task
+    var slotStartTime = if (!userInput.selectedDate.isBefore(LocalDate.now()) && !userInput.selectedDate.isAfter(LocalDate.now())) Time(
+        LocalDateTime.now().hour, LocalDateTime.now().minute) else dayState.activeTimeStart
+    var slotEndTime: Time
+    var tasks: List<Task> = dayState.tasks.toList()
+    val moveToCalendarHeaderText = "Move To Calendar"// TODO: Read string from resource
+    val notEnoughTimeSpaceText = "THERE IS NOT ENOUGH TIME WITHIN THE SELECTED DAY TO MOVE THE TASK"// TODO: Read string from resource
+
+    val mainPanelWidth = 750.dp
+    val mainPanelHeight = 650.dp
+    val sidePanelWidth = 370.dp
+    val sidePanelHeight = 700.dp
+
+    // TODO: DUPLICATE - Move to utils
+    fun findFirstSlot() {
+        if (taskUiState.id != null) {
+            // Update the task to be moved to calendar with date and initial start- and end time values
+            setTaskDate(dayState.date)
+            setTaskPriority(null)
+
+            // If there are tasks planned for the day
+            if (!dayState.tasks.isEmpty()) {
+                for (task in dayState.tasks) {
+                    // If the slot start time is after the task's start time, omit that task
+                    if (slotStartTime.compareTo(task.startTime!!) == 1) {
+                        // If the slot start time is within the task
+                        if (slotStartTime.compareTo(task.endTime!!) == -1
+                            || slotStartTime.compareTo(task.endTime!!) == 0) {
+                            // We're adding 1 minute from the task's end time, so that the tasks don't overlap
+                            slotStartTime = TouchGestureUtils.addMinutesToTime(1, task.endTime!!)
+                        }
+                    }
+                    // Else if the slot start time is before the task's start time
+                    else {
+                        // We're subtracting 1 minute from the task's start time, so that the tasks don't overlap
+                        slotEndTime = TouchGestureUtils.addMinutesToTime(-1, task.startTime!!)
+                        val availableTime = TouchGestureUtils.calculateTotalNumberOfMinutes(slotStartTime, slotEndTime)
+
+                        if (availableTime >= optimalDuration) {
+                            movedTaskStartTime = slotStartTime
+                            movedTaskEndTime = TouchGestureUtils.addMinutesToTime(optimalDuration,
+                                movedTaskStartTime!!
+                            )
+                            break
+                        }
+                        else {
+                            // We're adding 1 minute from the task's end time, so that the tasks don't overlap
+                            slotStartTime = TouchGestureUtils.addMinutesToTime(1, task.endTime!!)
+                        }
+                    }
+                }
+            }
+            // Else if there are no tasks
+            else {
+                movedTaskStartTime = slotStartTime
+                movedTaskEndTime = TouchGestureUtils.addMinutesToTime(optimalDuration,
+                    movedTaskStartTime
+                )
+            }
+
+            if (movedTaskStartTime != null && movedTaskEndTime != null) {
+                setTaskStartTime(movedTaskStartTime)
+                setTaskEndTime(movedTaskEndTime)
+                taskToBeMovedToCalendar = taskUiState.toTask().copy(
+                    id = taskUiState.id
+                )
+                tasks = dayState.tasks.toList() + taskToBeMovedToCalendar!!
+            }
+        }
+    }
+
+    // I know that the width is 600-839 dp, and that the height is 480-899 dp
+    // Let's make component width of 550 dp
     Column (
         modifier = Modifier
             .fillMaxSize()
+            .background(BACKGROUND_COLOR)
+        ,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
         // Main panel
         Column (
             modifier = Modifier
-                .fillMaxWidth()
+                .padding(
+                    horizontal = 10.dp
+                )
+                .height(mainPanelHeight)
+                .width(mainPanelWidth)
         ) {
             TopBar(
+                componentWidth = mainPanelWidth,
                 title = selectedDate.format(formatter)
             )
 
-            // If the selected date is in the past, show a comparison of the planned tasks and actual activities
+            // If we are not showing the task-activity comparison
             AnimatedVisibility(
-                visible = selectedDate.isBefore(LocalDate.now())
-            ) {// FIXME: This can be removed ('cause it's a double)
-                Column(
-                    modifier = Modifier
-//                        .padding(innerPadding)
-                        .fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.SpaceBetween
+                visible = mainPanelState != BigScreenMainPanelState.Comparison
+            ) {
+                // If the selected date is in the past, show a comparison of the planned tasks and actual activities
+                AnimatedVisibility(
+                    visible = selectedDate.isBefore(LocalDate.now())
+                            || mainPanelState == BigScreenMainPanelState.DayActivity
                 ) {
-                    val focusRequester = remember { FocusRequester() }
-                    val focusManager = LocalFocusManager.current
-
-                    Row (
+                    Column(
                         modifier = Modifier
-                            .weight(1.45f),
-                        verticalAlignment = Alignment.CenterVertically
+                            .width(mainPanelWidth)
+                            .height(mainPanelHeight)
+                        ,
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.SpaceBetween
                     ) {
                         ActivityGraph(
+                            componentWidth = mainPanelWidth,
                             dayState = dayState,
+                            drawClockHand = mainPanelState == BigScreenMainPanelState.DayActivity,
                             onNavigateToTaskActivityComparison = {
                                 mainPanelState = BigScreenMainPanelState.Comparison
                             },
                             selectActivity = selectActivity,
                             selectTask = selectTask
                         )
-                    }
 
-                    Row (
-                        modifier = Modifier
-                            .weight(3.5f),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
                         ComparisonDial(
+                            componentWidth = mainPanelWidth,
+                            componentHeight = 600.dp,
                             dayState = dayState,
+                            drawClockHand = mainPanelState == BigScreenMainPanelState.DayActivity,
                             onNavigateToTaskActivityComparison = {
                                 mainPanelState = BigScreenMainPanelState.Comparison
                             },
@@ -186,25 +276,25 @@ fun BigScreenPortrait (
                         )
                     }
                 }
-            }
 
-            // If the selected date is today or in the future, show the planning screen
-            AnimatedVisibility(
-                visible = !selectedDate.isBefore(LocalDate.now())
-            ) {
+
                 // Show the day planner
                 AnimatedVisibility(
-                    visible = mainPanelState == BigScreenMainPanelState.DayTask,
-                    enter = fadeIn(),
-                    exit = fadeOut()
+                    // If the selected date is today or in the future, show the planning screen
+                    visible = mainPanelState == BigScreenMainPanelState.DayTask
+                            && !selectedDate.isBefore(LocalDate.now())
                 ) {
                     Column(
                         modifier = Modifier
-                            .fillMaxSize(),
+                            .width(mainPanelWidth)
+                            .height(mainPanelHeight)
+                        ,
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.SpaceBetween
                     ) {
                         PlannerDial(
+                            componentWidth = mainPanelWidth,
+                            componentHeight = 600.dp,
                             dayState = dayState,
                             drawClockHand = userInput.selectedDate.isEqual(LocalDate.now()),
                             lastTaskPriority = lastTaskPriority,
@@ -227,41 +317,54 @@ fun BigScreenPortrait (
                     }
                 }
 
-                // Show actual activities
                 AnimatedVisibility(
-                    visible = mainPanelState == BigScreenMainPanelState.DayActivity
+                    visible = mainPanelState == BigScreenMainPanelState.MoveToCalendar
                 ) {
-                    Row (
-                        modifier = Modifier
-                            .weight(1.5f),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        ActivityGraph(
-                            dayState = dayState,
-                            drawClockHand = true,
-                            onNavigateToTaskActivityComparison = {
-                                mainPanelState = BigScreenMainPanelState.Comparison
-                            },
-                            selectActivity = selectActivity,
-                            selectTask = selectTask
-                        )
-                    }
+                    findFirstSlot()
 
-                    Row (
-                        modifier = Modifier
-                            .weight(3.5f),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        ComparisonDial(
-                            dayState = dayState,
-                            drawClockHand = true,
-                            onNavigateToTaskActivityComparison = {
-                                mainPanelState = BigScreenMainPanelState.Comparison
-                            },
-                            selectActivity = selectActivity,
-                            selectTask = selectTask
-                        )
+                    TopBar(
+                        componentWidth = mainPanelWidth,
+                        title = moveToCalendarHeaderText
+                    )
+
+                    // Handle exception in case taskToBeMoved is null
+                    taskToBeMovedToCalendar?.also {
+                        if (it.startTime != null && it.endTime != null) {
+                            MoveToCalendarDial(
+                                componentWidth = mainPanelWidth,
+                                componentHeight = 580.dp,
+                                dayState = dayState,
+                                userInput = userInput,
+                                onPressActiveTime = onPressActiveTime,
+                                minimalDuration = minimalDuration,
+                                tasks = tasks,
+                                taskToBeMovedToCalendar = it
+                            )
+                        }
                     }
+                        ?:run {
+                            Spacer(modifier = Modifier.weight(1f))
+
+                            Column (
+                                modifier = Modifier
+                                    .height(580.dp)
+                                    .width(mainPanelWidth)
+                                    .padding(horizontal = 10.dp, vertical = 5.dp)
+                                    .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
+                                    .background(COMPONENT_BACKGROUND_COLOR)
+                                ,
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = notEnoughTimeSpaceText,
+                                    color = COMMENT_TEXT_COLOR,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
                 }
             }
 
@@ -271,12 +374,21 @@ fun BigScreenPortrait (
             ) {
                 Row (
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .width(mainPanelWidth)
+                        .height(600.dp)
+                    ,
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     // Task
                     Column (
                         modifier = Modifier
-                            .fillMaxHeight(0.5f),
+                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                            .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
+                            .width(350.dp)
+                            .height(600.dp)
+                            .background(COMPONENT_BACKGROUND_COLOR)
+                        ,
                         verticalArrangement = Arrangement.Top,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -306,7 +418,7 @@ fun BigScreenPortrait (
                                             .weight(1f)
                                         ,
                                         text = taskLabel,
-                                        color = MaterialTheme.colorScheme.primary,
+                                        color = HEADER_TEXT_COLOR,
                                         textAlign = TextAlign.Center
                                     )
                                 }
@@ -370,25 +482,22 @@ fun BigScreenPortrait (
                             ) {
                                 Text(
                                     text = noTaskText,
-                                    color = Color.LightGray
+                                    color = COMMENT_TEXT_COLOR,
+                                    textAlign = TextAlign.Center
                                 )
                             }
                         }
                     }
 
-                    VerticalDivider(
-                        modifier = Modifier
-                            .padding(
-                                horizontal = 5.dp, vertical = 15.dp
-                            )
-                            .fillMaxWidth(),
-                        thickness = 1.dp,
-                    )
-
                     // Activity
                     Column (
                         modifier = Modifier
-                            .fillMaxHeight(),
+                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                            .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
+                            .width(350.dp)
+                            .height(600.dp)
+                            .background(COMPONENT_BACKGROUND_COLOR)
+                        ,
                         verticalArrangement = Arrangement.Top,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -419,7 +528,7 @@ fun BigScreenPortrait (
                                             .weight(1f)
                                         ,
                                         text = activityLabel,
-                                        color = MaterialTheme.colorScheme.primary,
+                                        color = HEADER_TEXT_COLOR,
                                         textAlign = TextAlign.Center
                                     )
                                 }
@@ -526,7 +635,8 @@ fun BigScreenPortrait (
                             ) {
                                 Text(
                                     text = noActivityText,
-                                    color = Color.LightGray
+                                    color = COMMENT_TEXT_COLOR,
+                                    textAlign = TextAlign.Center
                                 )
                             }
                         }
@@ -535,45 +645,200 @@ fun BigScreenPortrait (
             }
         }
 
+        // The sub-panels
         Row (
             modifier = Modifier
-                .fillMaxWidth()
+                .padding(
+                    start = 10.dp,
+                    top = 5.dp,
+                    end = 10.dp,
+                    bottom = 50.dp
+                )
+                .width(mainPanelWidth)
+                .height(sidePanelHeight)
+            ,
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            // Left sub-panel
             Column (
                 modifier = Modifier
-                    .fillMaxWidth(0.5f)
+                    .width(sidePanelWidth)
+                    .height(sidePanelHeight)
+                ,
+                verticalArrangement = Arrangement.SpaceBetween,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 AnimatedVisibility(
                     visible = userInput.selectedDate.isEqual(LocalDate.now())
                 ) {
                     ActiveTimeHeader(
+                        componentWidth = sidePanelWidth,
                         dayState = dayState,
                         userInput = userInput
                     )
                 }
 
-                Row (
-                    modifier = Modifier
-                        .weight(1.05f),
-                    verticalAlignment = Alignment.Bottom
+                // A spacer to push the calendar to the bottom when only the calendar is displayed
+                AnimatedVisibility(
+                    visible = selectedDate.isBefore(LocalDate.now())
+                            || selectedDate.isAfter(LocalDate.now())
                 ) {
-                    Calendar(
-                        userInput = userInput,
-                        onSetDate = onSetSelectedDate
+                    Spacer(Modifier.weight(1f, true))
+                }
+
+                CalendarMonth (
+                    componentWidth = sidePanelWidth,
+                    paddingBottom = if (selectedDate.isBefore(LocalDate.now())) 20.dp else 5.dp,
+                    selectedDate = userInput.selectedDate,
+                    onSetDate = onSetSelectedDate
+                )
+
+                // Task bottom bar
+                AnimatedVisibility(
+                    visible = mainPanelState == BigScreenMainPanelState.DayTask
+                            && !selectedDate.isBefore(LocalDate.now())
+                ) {
+                    BottomBar(
+                        componentWidth = sidePanelWidth,
+                        content = {
+                            // Add button
+                            IconButton(
+                                onClick = {
+                                    selectTask(null)
+                                    setTaskDate(userInput.selectedDate)
+
+                                    onShowPopupWindow(PopupState.EditTask)
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = ImageVector.vectorResource(id = R.drawable.add_square_svgrepo_com),
+                                    contentDescription = "Add",
+                                    modifier = Modifier.fillMaxSize(0.8F),
+                                    tint = HEADER_TEXT_COLOR
+                                )
+                            }
+
+                            Spacer(Modifier.weight(1f, true))
+
+                            // If the selected date is in the future, don't show the activities. The activity recording should be reserved only for today.
+                            if (selectedDate.isEqual(LocalDate.now())) {
+                                IconButton(onClick = {
+                                    mainPanelState = BigScreenMainPanelState.DayActivity
+                                }) {
+                                    Icon(
+                                        imageVector = ImageVector.vectorResource(id = R.drawable.graph_infographic_data_element_2_svgrepo_com),
+                                        contentDescription = "Activity recorder",
+                                        modifier = Modifier.fillMaxSize(0.75f),
+                                        tint = HEADER_TEXT_COLOR
+                                    )
+                                }
+                            }
+                        }
                     )
                 }
 
-                BottomBar(
-                    content = {
-                        // If we are showing the activity overview of the task-activity comparison, show the "Go back" button
-                        if (mainPanelState == BigScreenMainPanelState.DayActivity
-                            || mainPanelState == BigScreenMainPanelState.Comparison) {
+                // Activity bottom bar
+                AnimatedVisibility(
+                    visible = mainPanelState == BigScreenMainPanelState.DayActivity
+                ) {
+                    BottomBar(
+                        componentWidth = sidePanelWidth,
+                        content = {
                             IconButton(
                                 onClick = {
-                                    if (mainPanelState == BigScreenMainPanelState.DayActivity) {
+                                    mainPanelState = BigScreenMainPanelState.DayTask
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = ImageVector.vectorResource(id = R.drawable.cancel_svgrepo_com),
+                                    contentDescription = "Back",
+                                    modifier = Modifier.fillMaxSize(0.8F),
+                                    tint = HEADER_TEXT_COLOR
+                                )
+                            }
+
+                            Spacer(Modifier.weight(1f, true))
+
+                            IconButton(onClick = {
+                                // Show the activity recorder in a pop-up dialog
+                                val popupState = PopupState.ActivityRecorder
+                                onShowPopupWindow(popupState)
+                            }) {
+                                Icon(
+                                    imageVector = ImageVector.vectorResource(id = R.drawable.timer_svgrepo_com),
+                                    contentDescription = "Activity recorder",
+                                    modifier = Modifier.fillMaxSize(0.75f),
+                                    tint = HEADER_TEXT_COLOR
+                                )
+                            }
+                        }
+                    )
+                }
+
+                // Move-to-calendar bottom bar
+                AnimatedVisibility(
+                    visible = mainPanelState == BigScreenMainPanelState.MoveToCalendar
+                ) {
+                    BottomBar(
+                        componentWidth = sidePanelWidth,
+                        content = {
+                            IconButton(
+                                onClick = {
+                                    mainPanelState = BigScreenMainPanelState.DayTask
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = ImageVector.vectorResource(id = R.drawable.cancel_svgrepo_com),
+                                    contentDescription = "Back",
+                                    modifier = Modifier.fillMaxSize(0.8F),
+                                    tint = HEADER_TEXT_COLOR
+                                )
+                            }
+
+                            Spacer(Modifier.weight(1f, true))
+
+                            if (taskToBeMovedToCalendar != null) {// FIXME: Optimize null handling
+                                // Save button
+                                IconButton(onClick = {
+                                    // Update the task's start- and end times
+                                    for (task in tasks) {
+                                        if (task.id == taskToBeMovedToCalendar!!.id) {
+                                            // If the task to be moved to the calendar is pinned, we don't want to actually move this task but to copy it to the calendar so that the original task stays in the TO-DO list for further references (i.e. so that the task can be copied over and over again to the calendar)
+                                            if (task.pinned) {
+                                                saveTask(task.copy(id = UUID.randomUUID(), pinned = false))
+                                            }
+                                            else saveTask(task)
+                                        }
+                                        else saveTask(task)
+                                    }
+                                    mainPanelState = BigScreenMainPanelState.DayTask
+                                }) {
+                                    Icon(
+                                        imageVector = ImageVector.vectorResource(id = R.drawable.save_alt_svgrepo_com),
+                                        contentDescription = "Save",
+                                        modifier = Modifier.fillMaxSize(0.6F),
+                                        tint = HEADER_TEXT_COLOR
+                                    )
+                                }
+                            }
+                        }
+                    )
+                }
+
+                // Comparison bottom bar
+                AnimatedVisibility(
+                    visible = mainPanelState == BigScreenMainPanelState.Comparison
+                ) {
+                    BottomBar(
+                        componentWidth = sidePanelWidth,
+                        content = {
+                            IconButton(
+                                onClick = {
+                                    if (selectedDate.isBefore(LocalDate.now())) {
                                         mainPanelState = BigScreenMainPanelState.DayTask
                                     }
-                                    else if (mainPanelState == BigScreenMainPanelState.Comparison) {
+                                    else if (selectedDate.isEqual(LocalDate.now())) {
                                         mainPanelState = BigScreenMainPanelState.DayActivity
                                     }
                                 }
@@ -582,69 +847,29 @@ fun BigScreenPortrait (
                                     imageVector = ImageVector.vectorResource(id = R.drawable.cancel_svgrepo_com),
                                     contentDescription = "Back",
                                     modifier = Modifier.fillMaxSize(0.8F),
-                                    tint = Color(BOTTOM_BAR_TEXT_COLOR)
+                                    tint = HEADER_TEXT_COLOR
                                 )
                             }
 
-
+                            Spacer(Modifier.weight(1f, true))
                         }
-
-                        // If the selected date is today or in the future
-                        if (!selectedDate.isBefore(LocalDate.now())) {
-                            // If the tasks screen is to be shown
-                            if (mainPanelState == BigScreenMainPanelState.DayTask) {
-                                // Add button
-                                IconButton(
-                                    onClick = {
-                                        selectTask(null)
-                                        setTaskDate(userInput.selectedDate)
-
-                                        onShowPopupWindow(PopupState.EditTask)
-                                    }
-                                ) {
-                                    Icon(
-                                        imageVector = ImageVector.vectorResource(id = R.drawable.add_square_svgrepo_com),
-                                        contentDescription = "Add",
-                                        modifier = Modifier.fillMaxSize(0.8F),
-                                        tint = Color(BOTTOM_BAR_TEXT_COLOR)
-                                    )
-                                }
-                            }
-
-                            // If the selected date is in the future, don't show the activities. The activity recording should be reserved only for today.
-                            if (!selectedDate.isAfter(LocalDate.now())) {
-                                Spacer(Modifier.weight(1f, true))
-
-                                IconButton(onClick = {
-                                    if (mainPanelState == BigScreenMainPanelState.DayActivity) {
-                                        // Show the activity recorder in a pop-up dialog
-                                        val popupState = PopupState.ActivityRecorder
-                                        onShowPopupWindow(popupState)
-                                    }
-                                    else {
-                                        mainPanelState = BigScreenMainPanelState.DayActivity
-                                    }
-                                }) {
-                                    Icon(
-                                        imageVector = if (mainPanelState == BigScreenMainPanelState.DayActivity) ImageVector.vectorResource(id = R.drawable.timer_svgrepo_com) else ImageVector.vectorResource(id = R.drawable.graph_infographic_data_element_2_svgrepo_com),
-                                        contentDescription = "Activity recorder",
-//                                    modifier = Modifier.fillMaxSize((if (showActivityScreen) 0.8f else 0.7f)),
-                                        modifier = Modifier.fillMaxSize(0.75f),
-                                        tint = Color(BOTTOM_BAR_TEXT_COLOR)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                )
+                    )
+                }
             }
 
-            // Side panel
+            // Side panel (right sub-panel)
             Column (
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .height(sidePanelHeight)
+                    .width(sidePanelWidth)
+                ,
+                verticalArrangement = Arrangement.SpaceBetween,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 TopBar(
+                    componentWidth = sidePanelWidth,
+                    componentHeight = 60.dp,
+                    paddingTop = 5.dp,
                     title = when (sidePanelState) {
                         BigScreenSidePanelState.Goal -> goalsTitle
                         BigScreenSidePanelState.ToDo -> toDoTitle
@@ -653,17 +878,19 @@ fun BigScreenPortrait (
 
                 // Show the TO-DO list (list of tasks without specific date and time)
                 AnimatedVisibility(
-                    visible = sidePanelState == BigScreenSidePanelState.ToDo,
-                    enter = fadeIn(),
-                    exit = fadeOut(),
+                    visible = sidePanelState == BigScreenSidePanelState.ToDo
                 ) {
                     DragItemListTask (
+                        componentWidth = sidePanelWidth,
+                        componentHeight = 350.dp,
                         dayState = dayState,
                         items = toDoTasks,
                         lastTaskPriority = lastTaskPriority,
                         taskUiState = taskUiState,
                         deleteTask = deleteTask,
-                        onMoveToCalendar = onMoveToCalendar,
+                        onMoveToCalendar = {
+                            mainPanelState = BigScreenMainPanelState.MoveToCalendar
+                        },
                         onMoveToToDoList = onMoveToToDoList,
                         onPinTask = onPinTask,
                         saveTask = saveTask,
@@ -679,11 +906,11 @@ fun BigScreenPortrait (
 
                 // Show the goals
                 AnimatedVisibility(
-                    visible = sidePanelState == BigScreenSidePanelState.Goal,
-                    enter = fadeIn(),
-                    exit = fadeOut(),
+                    visible = sidePanelState == BigScreenSidePanelState.Goal
                 ) {
                     DragItemListGoal(
+                        componentWidth = sidePanelWidth,
+                        componentHeight = 350.dp,
                         items = goals,
                         goalUiState = goalUiState,
                         lastGoalPriority = lastGoalPriority,
@@ -697,6 +924,7 @@ fun BigScreenPortrait (
                 }
 
                 BottomBar(
+                    componentWidth = sidePanelWidth,
                     content = {
                         // Add button
                         IconButton(
@@ -723,7 +951,7 @@ fun BigScreenPortrait (
                                 imageVector = ImageVector.vectorResource(id = R.drawable.add_square_svgrepo_com),
                                 contentDescription = "Add",
                                 modifier = Modifier.fillMaxSize(0.8F),
-                                tint = Color(BOTTOM_BAR_TEXT_COLOR)
+                                tint = HEADER_TEXT_COLOR
                             )
                         }
 
@@ -762,7 +990,7 @@ fun BigScreenPortrait (
                                     }
                                 },
                                 modifier = Modifier.fillMaxSize(0.75f),
-                                tint = Color(BOTTOM_BAR_TEXT_COLOR)
+                                tint = HEADER_TEXT_COLOR
                             )
                         }
                     }

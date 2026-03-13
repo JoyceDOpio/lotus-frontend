@@ -4,12 +4,7 @@ import android.os.Parcelable
 import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
-import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.CreationExtras
-import com.eternalfairy.timeaware.PlannerApplication
 import com.eternalfairy.timeaware.data.Activity
 import com.eternalfairy.timeaware.data.Day
 import com.eternalfairy.timeaware.data.IActivitiesRepository
@@ -36,9 +31,6 @@ import kotlinx.parcelize.Parcelize
 import java.time.LocalDate
 import java.util.UUID
 import javax.inject.Inject
-import kotlin.String
-import kotlin.collections.map
-import kotlin.collections.sortedWith
 
 //const val ACTIVITY_SAVED_STATE_KEY = "activity"
 const val ACTIVITY_ID_SAVED_STATE_KEY = "activity_id"

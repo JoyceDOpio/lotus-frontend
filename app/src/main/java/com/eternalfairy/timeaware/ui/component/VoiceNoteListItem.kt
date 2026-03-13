@@ -12,7 +12,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -32,6 +31,7 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.media3.exoplayer.ExoPlayer
 import com.eternalfairy.timeaware.R
+import com.eternalfairy.timeaware.ui.theme.Teal12
 import com.eternalfairy.timeaware.ui.viewmodel.VoiceNoteUiState
 import kotlinx.coroutines.delay
 import java.time.format.DateTimeFormatter
@@ -104,7 +104,7 @@ fun VoiceNoteListItem (
                                 imageVector = ImageVector.vectorResource(id = R.drawable.pause_circle_svgrepo_com),
                                 contentDescription = "Pause",
                                 modifier = Modifier.fillMaxSize(0.7f),
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = Teal12
                             )
                         }
                         false -> {
@@ -113,7 +113,7 @@ fun VoiceNoteListItem (
                                 contentDescription = "Play",
                                 modifier = Modifier
                                     .fillMaxSize(0.7f),
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = Teal12
                             )
                         }
                     }
@@ -137,8 +137,8 @@ fun VoiceNoteListItem (
                     valueRange = 0f..voiceNote.duration.toFloat(),// FIXME: Voice note duration is inaccurate (it's bigger than exoPlayer.contentDuration)
 //                    valueRange = 0f..exoPlayer.contentDuration.toFloat(),
                     colors = SliderDefaults.colors(
-                        thumbColor = MaterialTheme.colorScheme.primary,
-                        activeTrackColor = MaterialTheme.colorScheme.primary,
+                        thumbColor = Teal12,
+                        activeTrackColor = Teal12,
                         inactiveTrackColor = Color.LightGray,
                     )
                 )

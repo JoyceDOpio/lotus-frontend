@@ -5,10 +5,7 @@ import android.media.MediaRecorder
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
-import androidx.compose.ui.platform.LocalContext
-import dagger.hilt.android.AndroidEntryPoint
 import java.io.IOException
-import javax.inject.Inject
 
 private const val LOG_TAG = "AudioRecorder"
 

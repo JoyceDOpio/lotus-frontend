@@ -1,5 +1,6 @@
 package com.eternalfairy.timeaware.ui.screen
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,6 +19,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
+import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
+import com.eternalfairy.timeaware.ui.theme.SECONDARY_HEADER_TEXT_COLOR
+import com.eternalfairy.timeaware.ui.theme.SECONDARY_TEXT_COLOR
 
 enum class DeleteType {
     Activity,
@@ -27,13 +31,10 @@ enum class DeleteType {
     VoiceNote
 }
 
-class Deletable()
-
 @Composable
 fun DeleteScreen (
     onBack: () -> Unit,
     onDelete: () -> Unit,
-//    onDelete: (Deletable) -> Unit,
     deleteType: DeleteType = DeleteType.Task
 ) {
 //    val icon = R.drawable.delete_24dp_5f6368_fill0_wght400_grad0_opsz24
@@ -50,6 +51,7 @@ fun DeleteScreen (
     Scaffold () { innerPadding ->
         Column (
             modifier = Modifier
+                .background(COMPONENT_BACKGROUND_COLOR)
                 .padding(30.dp)
                 .padding(innerPadding)
                 .fillMaxSize()
@@ -73,17 +75,18 @@ fun DeleteScreen (
                 Button(
                     onClick = onBack,
                     shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                    colors = ButtonDefaults.buttonColors(containerColor = SECONDARY_HEADER_TEXT_COLOR)
                 ) {
                     Text(
                         text = cancelButtonText,
-                        color = MaterialTheme.colorScheme.primary
+                        color = SECONDARY_TEXT_COLOR
                     )
                 }
 
                 Button(
                     onClick = onDelete,
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = HEADER_TEXT_COLOR)
                 ) {
                     Text(
                         text = okButtonText,

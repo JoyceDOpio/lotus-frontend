@@ -21,14 +21,16 @@ interface DaoTask {
     suspend fun delete(task: Task)
 
     @Query("SELECT * FROM tasks WHERE id = :id")
-    fun getTask(id: UUID): Flow<Task>
+//    fun getTask(id: UUID): Flow<Task>
+    fun getTask(id: UUID): Flow<Task?>
 
     // Return a list of Task entities as Flow. Room keeps this Flow updated for you, which means you only need to explicitly get the data once.
     @Query("SELECT * FROM tasks WHERE date = :date ORDER BY start_time ASC")
     fun getAllTasks(date: String): Flow<List<Task>>
 
     @Query("SELECT MAX(priority) FROM tasks")
-    fun getLastPriority(): Flow<Int>
+//    fun getLastPriority(): Flow<Int>
+    fun getLastPriority(): Flow<Int?>
 
     @Query("SELECT * FROM tasks WHERE date IS NULL ORDER BY priority ASC")
     fun getTasksWithoutDate(): Flow<List<Task>>

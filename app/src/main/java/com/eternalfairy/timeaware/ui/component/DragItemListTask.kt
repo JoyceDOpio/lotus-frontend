@@ -1,12 +1,17 @@
 package com.eternalfairy.timeaware.ui.component
 
 import android.util.Log
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -14,14 +19,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.eternalfairy.timeaware.data.Task
 import com.eternalfairy.timeaware.data.Time
 import com.eternalfairy.timeaware.ui.screen.DeleteScreen
 import com.eternalfairy.timeaware.ui.screen.TaskEditScreen
 import com.eternalfairy.timeaware.ui.screen.TaskInfoScreen
+import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.viewmodel.DayState
 import com.eternalfairy.timeaware.ui.viewmodel.TaskUiState
 import com.eternalfairy.timeaware.utils.TaskModePopup
@@ -30,6 +39,8 @@ import java.util.UUID
 
 @Composable
 fun DragItemListTask(//TODO: Merge with DragItemListGoal
+    componentHeight: Dp = 680.dp,
+    componentWidth: Dp = 400.dp,
     dayState: DayState,
     items: List<Task>,
     lastTaskPriority: Int?,
@@ -71,6 +82,11 @@ fun DragItemListTask(//TODO: Merge with DragItemListGoal
 
     LazyColumn(
         modifier = Modifier
+            .height(componentHeight)
+            .width(componentWidth)
+            .padding(horizontal = 10.dp, vertical = 5.dp)
+            .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
+            .background(COMPONENT_BACKGROUND_COLOR)
             .pointerInput(key1 = listState) {
                 detectDragGesturesAfterLongPress (
                     onDragStart = { offset ->
@@ -164,6 +180,7 @@ fun DragItemListTask(//TODO: Merge with DragItemListGoal
     if (showPopupWindow) {
         PopupDialog(
             onDismissRequest = {
+                taskState = TaskModePopup.Info
                 showPopupWindow = false
             }
         ) {
@@ -186,7 +203,7 @@ fun DragItemListTask(//TODO: Merge with DragItemListGoal
                 }
                 TaskModePopup.Info -> {
                     TaskInfoScreen(
-                        displayType = TaskCardDisplayType.Popup,
+                        displayType = CardDisplayType.Popup,
                         dayState = dayState,
                         taskUiState = taskUiState,
                         onDeleteTask = {

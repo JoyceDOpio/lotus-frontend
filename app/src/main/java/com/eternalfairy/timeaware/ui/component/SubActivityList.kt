@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -13,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.eternalfairy.timeaware.data.Time
+import com.eternalfairy.timeaware.ui.theme.Teal12
 import com.eternalfairy.timeaware.ui.viewmodel.ActivityUiState
 import com.eternalfairy.timeaware.ui.viewmodel.VoiceNoteUiState
 import com.eternalfairy.timeaware.utils.TouchGestureUtils
@@ -42,7 +42,7 @@ fun SubActivityList (
         ) {
             Text (
                 text = headerText,
-                color = MaterialTheme.colorScheme.primary
+                color = Teal12
             )
 
             var subActivitiesTotal = 0
@@ -54,7 +54,7 @@ fun SubActivityList (
             Text (
                 text = TouchGestureUtils.formatTime(subActivitiesTotal),
                 fontWeight = FontWeight.Light,
-                color = MaterialTheme.colorScheme.primary,
+                color = Teal12
             )
         }
 
@@ -79,7 +79,7 @@ fun SubActivityList (
                     Text (
                         modifier = Modifier
                             .leftBorder(
-                                color = MaterialTheme.colorScheme.primary,
+                                color = Teal12,
                                 width = 5f
                             )
                             .padding(
@@ -89,7 +89,7 @@ fun SubActivityList (
                         ,
                         text = TouchGestureUtils.formatTime(minutesBetween),
                         fontWeight = FontWeight.Light,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = Teal12,
                     )
                 }
 

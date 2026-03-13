@@ -17,20 +17,21 @@ import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.components.ActivityComponent
 import dagger.hilt.android.components.ServiceComponent
 import dagger.hilt.android.components.ViewModelComponent
 import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 @Module
-@InstallIn(ViewModelComponent::class, ServiceComponent::class)
+//@InstallIn(ViewModelComponent::class, ServiceComponent::class)
+@InstallIn(SingletonComponent::class)
 object HiltModule {
-    @Provides
-    @Singleton
-    fun provideApplicationContext(application: Application): Context {
-        return application.applicationContext
-    }
+//    @Provides
+//    @Singleton
+//    fun provideApplicationContext(application: Application): Context {
+//        return application.applicationContext
+//    }
 
     // Repositories
     @Singleton
@@ -55,21 +56,22 @@ object HiltModule {
         RepositoryVoiceNotes(OfflineDatabase.getDatabase(context).voiceNoteDao())
 }
 
-//@Module
+@Module
 //@InstallIn(ViewModelComponent::class, ServiceComponent::class)
-//abstract class RepositoryModule {
-//    @Binds
-//    abstract fun bindActivitiesRepository(activitiesRepository: RepositoryActivities): IActivitiesRepository
-//
-//    @Binds
-//    abstract fun bindDaysRepository(daysRepository: RepositoryDays): IDaysRepository
-//
-//    @Binds
-//    abstract fun bindGoalsRepository(goalsRepository: RepositoryGoals): IGoalsRepository
-//
-//    @Binds
-//    abstract fun bindTasksRepository(tasksRepository: RepositoryTasks): ITasksRepository
-//
-//    @Binds
-//    abstract fun bindVoiceNotesRepository(voiceNotesRepository: RepositoryVoiceNotes): IVoiceNotesRepository
-//}
+@InstallIn(SingletonComponent::class)
+abstract class RepositoryModule {
+    @Binds
+    abstract fun bindActivitiesRepository(activitiesRepository: RepositoryActivities): IActivitiesRepository
+
+    @Binds
+    abstract fun bindDaysRepository(daysRepository: RepositoryDays): IDaysRepository
+
+    @Binds
+    abstract fun bindGoalsRepository(goalsRepository: RepositoryGoals): IGoalsRepository
+
+    @Binds
+    abstract fun bindTasksRepository(tasksRepository: RepositoryTasks): ITasksRepository
+
+    @Binds
+    abstract fun bindVoiceNotesRepository(voiceNotesRepository: RepositoryVoiceNotes): IVoiceNotesRepository
+}

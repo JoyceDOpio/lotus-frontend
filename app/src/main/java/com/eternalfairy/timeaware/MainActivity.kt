@@ -20,10 +20,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import com.eternalfairy.timeaware.service.StopwatchService
-import com.eternalfairy.timeaware.ui.theme.CircularPlannerTheme
-import com.eternalfairy.timeaware.utils.rememberWindowSize
+import com.eternalfairy.timeaware.ui.theme.TimeAwareTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -54,21 +52,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            val context = LocalContext.current
-
-//            // Lock the screen in the portrait orientation
-//            val activity = context as Activity
-//            activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-
-            val windowSize = rememberWindowSize()
-
-            CircularPlannerTheme {
+            TimeAwareTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     if (isBound) {
                         PlannerApp(
                             modifier = Modifier.padding(innerPadding),
-                            stopwatchService = stopwatchService,
-                            windowSize = windowSize
+                            stopwatchService = stopwatchService
                         )
                     }
                 }

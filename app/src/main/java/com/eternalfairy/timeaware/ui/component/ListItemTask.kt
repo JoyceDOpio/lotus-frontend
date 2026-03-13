@@ -1,5 +1,6 @@
 package com.eternalfairy.timeaware.ui.component
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,9 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,6 +21,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eternalfairy.timeaware.data.Task
+import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
+import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
 import java.util.UUID
 
 @Composable
@@ -32,21 +32,34 @@ fun ListItemTask(
     onNavigateToTaskInfo: () -> Unit,
     selectTask: (UUID?) -> Unit
 ){
-    OutlinedCard(
+    Row(
         modifier = modifier
             .padding(
-                horizontal = 5.dp,
-                vertical = 3.dp
+                horizontal = 10.dp,
+                vertical = 10.dp
             )
             .clickable {
                 selectTask(task.id)
                 onNavigateToTaskInfo()
             }
-            .sizeIn(maxHeight = 150.dp),
-        border = CardDefaults.outlinedCardBorder()
+            .sizeIn(maxHeight = 150.dp)
+            .background(COMPONENT_BACKGROUND_COLOR)
+            .leftBorder(
+                color = HEADER_TEXT_COLOR,
+                width = 5f
+            )
     ) {
         Row (
             modifier = Modifier
+                .padding(
+                    horizontal = 5.dp,
+                    vertical = 3.dp
+                )
+                .clickable {
+                    selectTask(task.id)
+                    onNavigateToTaskInfo()
+                }
+                .sizeIn(maxHeight = 150.dp)
                 .fillMaxWidth()
                 .height(IntrinsicSize.Min)
                 .padding(
@@ -55,6 +68,7 @@ fun ListItemTask(
                 .padding(
                     start = 15.dp
                 )
+
             ,
             horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.CenterVertically
@@ -64,7 +78,7 @@ fun ListItemTask(
                 Text(
                     text = task.priority.toString(),
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = HEADER_TEXT_COLOR
                 )
             }
 

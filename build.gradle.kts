@@ -1,4 +1,4 @@
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
+// Top-level build file where you can add configuration options common to all subprojects/modules.
 plugins {
     alias(libs.plugins.android.application) apply false
 //    alias(libs.plugins.jetbrains.kotlin.android) apply false
@@ -10,7 +10,8 @@ plugins {
 //    id("org.jetbrains.kotlin.android") version "2.3.10" apply false
 
     // Java annotations
-    id("com.google.devtools.ksp") version "2.0.21-1.0.27" apply false
+//    id("com.google.devtools.ksp") version "2.0.21-1.0.27" apply false
+    id("com.google.devtools.ksp") version "2.3.4" apply false
 
     // Dependency injection
     id("com.google.dagger.hilt.android") version "2.59.2" apply false

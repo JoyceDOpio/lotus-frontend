@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.eternalfairy.timeaware.R
 import com.eternalfairy.timeaware.data.Time
+import com.eternalfairy.timeaware.ui.theme.Teal12
 import com.eternalfairy.timeaware.ui.viewmodel.ActivityUiState
 import com.eternalfairy.timeaware.ui.viewmodel.AudioViewModel
 import com.eternalfairy.timeaware.ui.viewmodel.VoiceNoteUiState
@@ -82,7 +83,7 @@ fun SubActivityListItem (
                     Text (
                         text = ordinalNumber.toString(),
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = Teal12
                     )
 
                     Spacer(modifier = Modifier.width(10.dp))
@@ -191,7 +192,7 @@ fun SubActivityListItem (
                     Text (
                         text = notesHeader,
                         fontWeight = FontWeight.Light,
-                        color = MaterialTheme.colorScheme.primary
+                        color = Teal12
                     )
 
                     Text(

@@ -38,14 +38,16 @@ android {
 //            }
 //        }
 
-        ksp {
-            arg("room.schemaLocation", "$projectDir/schemas")
-        }
+//        ksp {
+//            arg("room.schemaLocation", "$projectDir/schemas")
+//        }
+
+
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -53,17 +55,36 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+//        sourceCompatibility = JavaVersion.VERSION_1_8
+//        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
 //    kotlinOptions {
 //        jvmTarget = "1.8"
 //    }
-//    compilerOptions {
-//        languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0
-//        // Optional: Set jvmTarget
-//        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
+//    kotlin {
+//        compilerOptions {
+//            languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0
+//            // Optional: Set jvmTarget
+//            // jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
+//        }
 //    }
+    // Add Kotlin source directories to AndroidSourceSet.kotlin
+    sourceSets {
+//        named("main") {
+//            kotlin {
+//                directories += "additionalSourceDirectory/kotlin"
+//
+//            }
+//        }
+        named("main") {
+            kotlin .directories.add("additionalSourceDirectory/kotlin")
+        }
+//        named("debug") {
+//            kotlin .directories.add("additionalSourceDirectory/kotlin")
+//        }
+    }
     buildFeatures {
         compose = true
     }
@@ -75,9 +96,21 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
-    room {
-        schemaDirectory("$projectDir/schemas")
-//        schemaDirectory("/schemas")
+//    room {
+//        schemaDirectory("$projectDir/schemas")
+////        schemaDirectory("/schemas")
+//    }
+}
+
+room {
+    schemaDirectory("$projectDir/schemas")
+}
+
+kotlin {
+    compilerOptions {
+        languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0
+        // Optional: Set jvmTarget
+         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
     }
 }
 
@@ -94,6 +127,8 @@ dependencies {
     implementation(libs.androidx.compose.material)
     implementation(libs.androidx.room.compiler)
     implementation(libs.androidx.emoji2)
+    implementation(libs.androidx.compose.foundation.layout)
+    implementation(libs.androidx.compose.ui.unit)
 //    implementation(libs.androidx.lifecycle.service)// This triggers the error: migrate the Indication implementation to implement IndicationNodeFactory
 //    implementation(libs.androidx.compose.adaptive)// This triggers the error: migrate the Indication implementation to implement IndicationNodeFactory
     testImplementation(libs.junit)
@@ -115,7 +150,9 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
 
-    ksp(libs.androidx.room.compiler.v284)
+//    ksp(libs.androidx.room.compiler.v284)
+//    ksp("androidx.room:room-compiler:2.5.0")
+    ksp("androidx.room:room-compiler:2.8.4")
 
     // View Model
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -137,6 +174,11 @@ dependencies {
 
     // Window size
     implementation(libs.androidx.compose.material3.window.size.class1)
+    implementation(libs.androidx.material3.adaptive)
+//    implementation(libs.androidx.material3.adaptive.navigation.suite)
+    implementation("androidx.compose.material3:material3-adaptive-navigation-suite")
+
+//    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
 }
 
 configurations.implementation{
