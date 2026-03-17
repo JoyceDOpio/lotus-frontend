@@ -1,5 +1,6 @@
 package com.eternalfairy.timeaware.ui.component
 
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.scrollBy
@@ -24,14 +25,14 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import com.eternalfairy.timeaware.data.Goal
+import com.eternalfairy.timeaware.data.room.Goal
 import com.eternalfairy.timeaware.ui.screen.DeleteScreen
 import com.eternalfairy.timeaware.ui.screen.DeleteType
 import com.eternalfairy.timeaware.ui.screen.GoalEditScreen
 import com.eternalfairy.timeaware.ui.screen.GoalInfoScreen
 import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
-import com.eternalfairy.timeaware.ui.viewmodel.GoalUiState
-import com.eternalfairy.timeaware.ui.viewmodel.toGoal
+import com.eternalfairy.timeaware.ui.viewmodel.room.GoalUiState
+import com.eternalfairy.timeaware.ui.viewmodel.room.toGoal
 import com.eternalfairy.timeaware.utils.GoalModePopup
 import kotlinx.coroutines.channels.Channel
 import java.util.UUID
@@ -161,8 +162,14 @@ fun DragItemListGoal(//TODO: Merge with DragItemListTask
             }
 
             ListItemGoal(
-                modifier,
-                item,
+                modifier = modifier
+                    .animateItem(
+                        placementSpec = tween(
+                            durationMillis = 600
+                        )
+                    )
+                ,
+                goal = item,
                 onNavigateToGoalInfo = { showPopupWindow = true },
                 selectGoal = selectGoal
             )

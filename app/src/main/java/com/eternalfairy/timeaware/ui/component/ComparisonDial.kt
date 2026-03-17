@@ -45,7 +45,7 @@ import com.eternalfairy.timeaware.R
 import com.eternalfairy.timeaware.data.Time
 import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
-import com.eternalfairy.timeaware.ui.viewmodel.DayState
+import com.eternalfairy.timeaware.ui.viewmodel.room.DayState
 import com.eternalfairy.timeaware.utils.DrawScopeUtils.drawClockCenter
 import com.eternalfairy.timeaware.utils.DrawScopeUtils.drawClockHand
 import com.eternalfairy.timeaware.utils.DrawScopeUtils.drawHourStepsAndLabels
@@ -62,6 +62,10 @@ import kotlin.math.min
 fun ComparisonDial(
     componentHeight: Dp = 450.dp,
     componentWidth: Dp = 400.dp,
+    paddingStart: Dp = 10.dp,
+    paddingTop: Dp = 5.dp,
+    paddingEnd: Dp = 10.dp,
+    paddingBottom: Dp = 5.dp,
     dayState: DayState,
     drawClockHand: Boolean = false,
     onNavigateToTaskActivityComparison: () -> Unit,
@@ -172,7 +176,12 @@ fun ComparisonDial(
         modifier = Modifier
             .height(componentHeight)
             .width(componentWidth)
-            .padding(horizontal = 10.dp, vertical = 5.dp)
+            .padding(
+                start = paddingStart,
+                top = paddingTop,
+                end = paddingEnd,
+                bottom = paddingBottom
+            )
             .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
             .background(COMPONENT_BACKGROUND_COLOR)
         ,

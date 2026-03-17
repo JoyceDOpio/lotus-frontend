@@ -32,8 +32,8 @@ import com.eternalfairy.timeaware.ui.component.TaskCard
 import com.eternalfairy.timeaware.ui.component.TaskDropdownMenu
 import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
-import com.eternalfairy.timeaware.ui.viewmodel.DayState
-import com.eternalfairy.timeaware.ui.viewmodel.TaskUiState
+import com.eternalfairy.timeaware.ui.viewmodel.room.DayState
+import com.eternalfairy.timeaware.ui.viewmodel.room.TaskUiState
 
 @Composable
 fun TaskInfoScreen(

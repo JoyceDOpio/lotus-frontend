@@ -34,7 +34,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.eternalfairy.timeaware.R
-import com.eternalfairy.timeaware.data.Goal
+import com.eternalfairy.timeaware.data.room.Goal
 import kotlinx.coroutines.delay
 
 @Composable

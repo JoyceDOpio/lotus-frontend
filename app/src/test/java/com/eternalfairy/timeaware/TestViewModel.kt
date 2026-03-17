@@ -6,8 +6,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.eternalfairy.timeaware.data.Time
-import com.eternalfairy.timeaware.ui.viewmodel.DayState
-import com.eternalfairy.timeaware.ui.viewmodel.UserInput
+import com.eternalfairy.timeaware.ui.viewmodel.room.DayState
+import com.eternalfairy.timeaware.ui.viewmodel.room.UserInput
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

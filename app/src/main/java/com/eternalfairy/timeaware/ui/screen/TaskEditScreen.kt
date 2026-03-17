@@ -57,8 +57,8 @@ import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.theme.SECONDARY_HEADER_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.theme.SECONDARY_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.theme.SELECTION_COLOR
-import com.eternalfairy.timeaware.ui.viewmodel.DayState
-import com.eternalfairy.timeaware.ui.viewmodel.TaskUiState
+import com.eternalfairy.timeaware.ui.viewmodel.room.DayState
+import com.eternalfairy.timeaware.ui.viewmodel.room.TaskUiState
 import com.eternalfairy.timeaware.utils.TouchGestureUtils
 import java.util.UUID
 

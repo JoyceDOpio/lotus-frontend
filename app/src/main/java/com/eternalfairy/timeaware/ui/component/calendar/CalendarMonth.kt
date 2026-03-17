@@ -349,7 +349,8 @@ fun CalendarMonth (
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text (
-                text = yearMonths[listState.firstVisibleItemIndex].format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                text = yearMonths[if (listState.layoutInfo.totalItemsCount == 1) 0 else listState.firstVisibleItemIndex].format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+//                text = yearMonths[listState.layoutInfo.].format(DateTimeFormatter.ofPattern("MMMM yyyy")),
                 textAlign = TextAlign.Center,
                 color = HEADER_TEXT_COLOR,
                 fontSize = 20.sp

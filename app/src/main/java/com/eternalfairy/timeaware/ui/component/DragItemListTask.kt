@@ -1,6 +1,7 @@
 package com.eternalfairy.timeaware.ui.component
 
 import android.util.Log
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.scrollBy
@@ -25,14 +26,14 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import com.eternalfairy.timeaware.data.Task
+import com.eternalfairy.timeaware.data.room.Task
 import com.eternalfairy.timeaware.data.Time
 import com.eternalfairy.timeaware.ui.screen.DeleteScreen
 import com.eternalfairy.timeaware.ui.screen.TaskEditScreen
 import com.eternalfairy.timeaware.ui.screen.TaskInfoScreen
 import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
-import com.eternalfairy.timeaware.ui.viewmodel.DayState
-import com.eternalfairy.timeaware.ui.viewmodel.TaskUiState
+import com.eternalfairy.timeaware.ui.viewmodel.room.DayState
+import com.eternalfairy.timeaware.ui.viewmodel.room.TaskUiState
 import com.eternalfairy.timeaware.utils.TaskModePopup
 import kotlinx.coroutines.channels.Channel
 import java.util.UUID
@@ -169,8 +170,14 @@ fun DragItemListTask(//TODO: Merge with DragItemListGoal
             }
 
             ListItemTask(
-                modifier,
-                item,
+                modifier = modifier
+                    .animateItem(
+                        placementSpec = tween(
+                            durationMillis = 600
+                        )
+                    )
+                ,
+                task = item,
                 onNavigateToTaskInfo = { showPopupWindow = true },
                 selectTask = selectTask
             )

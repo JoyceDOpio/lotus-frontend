@@ -13,11 +13,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.eternalfairy.timeaware.service.StopwatchService
-import com.eternalfairy.timeaware.ui.screen.MainScreen
-import com.eternalfairy.timeaware.ui.viewmodel.DayViewModel
-import com.eternalfairy.timeaware.ui.viewmodel.GoalViewModel
-import com.eternalfairy.timeaware.ui.viewmodel.toActivity
-import com.eternalfairy.timeaware.ui.viewmodel.toVoiceNote
+import com.eternalfairy.timeaware.ui.screen.planner.PlannerContainer
+import com.eternalfairy.timeaware.ui.viewmodel.room.DayViewModel
+import com.eternalfairy.timeaware.ui.viewmodel.room.GoalViewModel
+import com.eternalfairy.timeaware.ui.viewmodel.room.toActivity
+import com.eternalfairy.timeaware.ui.viewmodel.room.toVoiceNote
 import com.eternalfairy.timeaware.utils.AudioRecorder
 import java.io.File
 
@@ -34,7 +34,7 @@ fun Navigation(
     val dayState by dayViewModel.dayState.collectAsState()
     val mainRecordedActivityUiState by dayViewModel.recordedMainActivityUiState.collectAsState()
     val subRecordedActivityUiState by dayViewModel.recordedSubActivityUiState.collectAsState()
-    val dayUiState by dayViewModel.dayUiState.collectAsState()
+//    val dayUiState by dayViewModel.dayUiState.collectAsState()
     val lastTaskPriority by dayViewModel.lastTaskPriority.collectAsState(initial = 0)
     val taskUiState by dayViewModel.taskUiState.collectAsState()
     val toDoTasks by dayViewModel.toDoTasks.collectAsState(emptyList())
@@ -57,8 +57,15 @@ fun Navigation(
 //        startDestination = WelcomeRoute// TODO: Display welcoming (goals) once every day
         startDestination = PlannerRoute
     ) {
+//        composable<LoginRoute>{ backStackEntry ->
+//            LoginScreen(
+//                goals = goals,
+//                onNext = { navController.navigate(route = PlannerRoute) }
+//            )
+//        }
+
         composable<PlannerRoute> { backStackEntry ->
-            MainScreen(
+            PlannerContainer(
                 activityEditState = activityEditState,
                 activityUiState = activityUiState,
                 context = context,

@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.eternalfairy.timeaware.service.StopwatchService
 import com.eternalfairy.timeaware.ui.theme.TimeAwareTheme
+import com.google.android.gms.ads.MobileAds
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -51,6 +52,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        // Initialize the Google Mobile Ads SDK on a background thread.
+        MobileAds.initialize(this@MainActivity) {}
+
         setContent {
             TimeAwareTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -63,6 +67,8 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+
+
 
         requestPermissions()
     }

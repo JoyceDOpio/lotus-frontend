@@ -23,8 +23,8 @@ import androidx.compose.ui.unit.sp
 import com.eternalfairy.timeaware.R
 import com.eternalfairy.timeaware.data.Time
 import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
-import com.eternalfairy.timeaware.ui.viewmodel.ActivityUiState
-import com.eternalfairy.timeaware.ui.viewmodel.DayState
+import com.eternalfairy.timeaware.ui.viewmodel.room.ActivityUiState
+import com.eternalfairy.timeaware.ui.viewmodel.room.DayState
 import com.eternalfairy.timeaware.utils.TouchGestureUtils
 import kotlinx.coroutines.delay
 import java.time.LocalDate

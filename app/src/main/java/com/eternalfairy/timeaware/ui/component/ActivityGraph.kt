@@ -65,7 +65,7 @@ import com.eternalfairy.timeaware.ui.component.calendar.conditional
 import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.theme.MINUTE_LABEL_COLOR
-import com.eternalfairy.timeaware.ui.viewmodel.DayState
+import com.eternalfairy.timeaware.ui.viewmodel.room.DayState
 import com.eternalfairy.timeaware.utils.TouchGestureUtils
 import com.eternalfairy.timeaware.utils.TouchGestureUtils.TOUCH_STROKE
 import kotlinx.coroutines.delay

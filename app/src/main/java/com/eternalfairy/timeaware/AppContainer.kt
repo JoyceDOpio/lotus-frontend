@@ -1,17 +1,17 @@
 package com.eternalfairy.timeaware
 
 import android.content.Context
-import com.eternalfairy.timeaware.data.IActivitiesRepository
-import com.eternalfairy.timeaware.data.IDaysRepository
-import com.eternalfairy.timeaware.data.IGoalsRepository
-import com.eternalfairy.timeaware.data.ITasksRepository
-import com.eternalfairy.timeaware.data.IVoiceNotesRepository
-import com.eternalfairy.timeaware.data.OfflineDatabase
-import com.eternalfairy.timeaware.data.RepositoryActivities
-import com.eternalfairy.timeaware.data.RepositoryDays
-import com.eternalfairy.timeaware.data.RepositoryGoals
-import com.eternalfairy.timeaware.data.RepositoryTasks
-import com.eternalfairy.timeaware.data.RepositoryVoiceNotes
+import com.eternalfairy.timeaware.data.room.IActivitiesRepository
+import com.eternalfairy.timeaware.data.room.IDaysRepository
+import com.eternalfairy.timeaware.data.room.IGoalsRepository
+import com.eternalfairy.timeaware.data.room.ITasksRepository
+import com.eternalfairy.timeaware.data.room.IVoiceNotesRepository
+import com.eternalfairy.timeaware.data.room.OfflineDatabase
+import com.eternalfairy.timeaware.data.room.RepositoryActivities
+import com.eternalfairy.timeaware.data.room.RepositoryDays
+import com.eternalfairy.timeaware.data.room.RepositoryGoals
+import com.eternalfairy.timeaware.data.room.RepositoryTasks
+import com.eternalfairy.timeaware.data.room.RepositoryVoiceNotes
 
 // A container is an object that contains the dependencies that the app requires
 interface AppContainer {

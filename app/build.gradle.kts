@@ -178,7 +178,14 @@ dependencies {
 //    implementation(libs.androidx.material3.adaptive.navigation.suite)
     implementation("androidx.compose.material3:material3-adaptive-navigation-suite")
 
-//    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
+    // Supabase
+    implementation(platform("io.github.jan-tennert.supabase:bom:3.4.1"))
+    implementation("io.github.jan-tennert.supabase:postgrest-kt")
+    implementation("io.ktor:ktor-client-android:3.4.1")
+//    implementation("oi.github.jan-tennert.supabase:auth-kt")
+
+    // Google ads
+    implementation("com.google.android.gms:play-services-ads:25.0.0")
 }
 
 configurations.implementation{

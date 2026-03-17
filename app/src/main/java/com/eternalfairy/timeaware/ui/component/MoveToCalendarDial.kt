@@ -55,13 +55,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eternalfairy.timeaware.R
-import com.eternalfairy.timeaware.data.Task
+import com.eternalfairy.timeaware.data.room.Task
 import com.eternalfairy.timeaware.data.Time
 import com.eternalfairy.timeaware.ui.theme.COMMENT_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
-import com.eternalfairy.timeaware.ui.viewmodel.DayState
-import com.eternalfairy.timeaware.ui.viewmodel.UserInput
+import com.eternalfairy.timeaware.ui.viewmodel.room.DayState
+import com.eternalfairy.timeaware.ui.viewmodel.room.UserInput
 import com.eternalfairy.timeaware.utils.AngleMode
 import com.eternalfairy.timeaware.utils.DrawScopeUtils.drawClockCenter
 import com.eternalfairy.timeaware.utils.DrawScopeUtils.drawClockHand

@@ -20,8 +20,8 @@ import com.eternalfairy.timeaware.data.Time
 import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.theme.TERTIARY_TEXT_COLOR
-import com.eternalfairy.timeaware.ui.viewmodel.DayState
-import com.eternalfairy.timeaware.ui.viewmodel.UserInput
+import com.eternalfairy.timeaware.ui.viewmodel.room.DayState
+import com.eternalfairy.timeaware.ui.viewmodel.room.UserInput
 import com.eternalfairy.timeaware.utils.TouchGestureUtils
 import kotlinx.coroutines.delay
 import java.time.LocalDate

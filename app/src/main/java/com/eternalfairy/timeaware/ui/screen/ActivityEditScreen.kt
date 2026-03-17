@@ -40,7 +40,7 @@ import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.ERROR_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.theme.SELECTION_COLOR
-import com.eternalfairy.timeaware.ui.viewmodel.ActivityUiState
+import com.eternalfairy.timeaware.ui.viewmodel.room.ActivityUiState
 
 enum class ActivityEditMode {
     Full,

@@ -61,7 +61,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.eternalfairy.timeaware.R
 import com.eternalfairy.timeaware.data.Time
-import com.eternalfairy.timeaware.data.VoiceNote
+import com.eternalfairy.timeaware.data.room.VoiceNote
 import com.eternalfairy.timeaware.service.ServiceHelper
 import com.eternalfairy.timeaware.service.StopwatchService
 import com.eternalfairy.timeaware.service.StopwatchService.Companion.MAIN_ACTIVITY_NOTIFICATION_ID
@@ -74,8 +74,8 @@ import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.theme.MINUTE_LABEL_COLOR
 import com.eternalfairy.timeaware.ui.theme.SECONDARY_HEADER_TEXT_COLOR
-import com.eternalfairy.timeaware.ui.viewmodel.ActivityUiState
-import com.eternalfairy.timeaware.ui.viewmodel.DayState
+import com.eternalfairy.timeaware.ui.viewmodel.room.ActivityUiState
+import com.eternalfairy.timeaware.ui.viewmodel.room.DayState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState

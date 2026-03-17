@@ -41,7 +41,7 @@ import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.theme.SECONDARY_HEADER_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.theme.White
-import com.eternalfairy.timeaware.ui.viewmodel.UserInput
+import com.eternalfairy.timeaware.ui.viewmodel.room.UserInput
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
