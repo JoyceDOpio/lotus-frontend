@@ -37,9 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eternalfairy.timeaware.R
-import com.eternalfairy.timeaware.data.room.Goal
-import com.eternalfairy.timeaware.data.room.Task
-import com.eternalfairy.timeaware.data.Time
+import com.eternalfairy.timeaware.db.Time
 import com.eternalfairy.timeaware.ui.component.ActiveTimeHeader
 import com.eternalfairy.timeaware.ui.component.ActivityGraph
 import com.eternalfairy.timeaware.ui.component.BannerAd
@@ -56,17 +54,16 @@ import com.eternalfairy.timeaware.ui.component.TaskDropdownMenu
 import com.eternalfairy.timeaware.ui.component.TopBar
 import com.eternalfairy.timeaware.ui.component.VoiceNoteList
 import com.eternalfairy.timeaware.ui.component.calendar.CalendarMonth
+import com.eternalfairy.timeaware.ui.data.ActivityUiState
+import com.eternalfairy.timeaware.ui.data.DayUiState
+import com.eternalfairy.timeaware.ui.data.GoalUiState
+import com.eternalfairy.timeaware.ui.data.TaskUiState
+import com.eternalfairy.timeaware.ui.data.UserInput
 import com.eternalfairy.timeaware.ui.theme.BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.COMMENT_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
-import com.eternalfairy.timeaware.ui.viewmodel.room.ActivityUiState
 import com.eternalfairy.timeaware.ui.viewmodel.AudioViewModel
-import com.eternalfairy.timeaware.ui.viewmodel.room.DayState
-import com.eternalfairy.timeaware.ui.viewmodel.room.GoalUiState
-import com.eternalfairy.timeaware.ui.viewmodel.room.TaskUiState
-import com.eternalfairy.timeaware.ui.viewmodel.room.UserInput
-import com.eternalfairy.timeaware.ui.viewmodel.room.toTask
 import com.eternalfairy.timeaware.utils.TouchGestureUtils
 import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdRequest
@@ -84,15 +81,15 @@ fun BigScreenPortrait (
 //    adView: AdView,
     audioViewModel: AudioViewModel,
     context: Context,
-    dayState: DayState,
-    goals: List<Goal>,
+    dayUiState: DayUiState,
+    goals: List<GoalUiState>,
     goalUiState: GoalUiState,
     lastGoalPriority: Int?,
     lastTaskPriority: Int?,
     taskUiState: TaskUiState,
-    toDoTasks: List<Task>,
+    toDoTasks: List<TaskUiState>,
     userInput: UserInput,
-    deleteGoal: (Goal) -> Unit,
+    deleteGoal: (UUID) -> Unit,
     deleteTask: () -> Unit,
     deleteVoiceNote: () -> Unit,
     onDeleteActivity: (UUID) -> Unit,
@@ -105,9 +102,9 @@ fun BigScreenPortrait (
     onPressActiveTime: () -> Unit,
     onSetSelectedDate: (LocalDate) -> Unit,
     onShowPopupWindow: (PopupState) -> Unit,
-    saveGoal: (Goal) -> Unit,
+    saveGoal: (GoalUiState) -> Unit,
     saveGoalFromState: () -> Unit,
-    saveTask: (Task) -> Unit,
+    saveTask: (TaskUiState) -> Unit,
     saveTaskFromState: () -> Unit,
     selectActivity: (UUID?) -> Unit,
     selectGoal: (UUID?) -> Unit,
@@ -146,17 +143,19 @@ fun BigScreenPortrait (
 
     // Move to calendar
     // The task that is being moved to calendar - if I save the taskUiState under the touchedTask it seems it is not updated in time after touching it. The dial tries to draw it before its value is updated.
-    var taskToBeMovedToCalendar by remember { mutableStateOf<Task?>(null) }
+    var taskToBeMovedToCalendar by remember { mutableStateOf<TaskUiState?>(null) }
     // The optimal duration of the task will be 30 minutes and minimum will be 5 minutes
     val optimalDuration = 30
     val minimalDuration = 5
     var movedTaskStartTime: Time? = null
     var movedTaskEndTime: Time? = null
     // Find a slot between tasks to fit in the moved task
+//    var slotStartTime = if (!userInput.selectedDate.isBefore(OffsetDateTime.now()) && !userInput.selectedDate.isAfter(OffsetDateTime.now())) Time(
+//        OffsetDateTime.now().hour, OffsetDateTime.now().minute) else dayUiState.activeTimeStart
     var slotStartTime = if (!userInput.selectedDate.isBefore(LocalDate.now()) && !userInput.selectedDate.isAfter(LocalDate.now())) Time(
-        LocalDateTime.now().hour, LocalDateTime.now().minute) else dayState.activeTimeStart
+        LocalDateTime.now().hour, LocalDateTime.now().minute) else dayUiState.activeTimeStart
     var slotEndTime: Time
-    var tasks: List<Task> = dayState.tasks.toList()
+    var tasks: List<TaskUiState> = dayUiState.tasks.toList()
     val moveToCalendarHeaderText = "Move To Calendar"// TODO: Read string from resource
     val notEnoughTimeSpaceText = "THERE IS NOT ENOUGH TIME WITHIN THE SELECTED DAY TO MOVE THE TASK"// TODO: Read string from resource
 
@@ -217,12 +216,12 @@ fun BigScreenPortrait (
     fun findFirstSlot() {
         if (taskUiState.id != null) {
             // Update the task to be moved to calendar with date and initial start- and end time values
-            setTaskDate(dayState.date)
+            setTaskDate(dayUiState.date)
             setTaskPriority(null)
 
             // If there are tasks planned for the day
-            if (!dayState.tasks.isEmpty()) {
-                for (task in dayState.tasks) {
+            if (!dayUiState.tasks.isEmpty()) {
+                for (task in dayUiState.tasks) {
                     // If the slot start time is after the task's start time, omit that task
                     if (slotStartTime.compareTo(task.startTime!!) == 1) {
                         // If the slot start time is within the task
@@ -263,10 +262,10 @@ fun BigScreenPortrait (
             if (movedTaskStartTime != null && movedTaskEndTime != null) {
                 setTaskStartTime(movedTaskStartTime)
                 setTaskEndTime(movedTaskEndTime)
-                taskToBeMovedToCalendar = taskUiState.toTask().copy(
+                taskToBeMovedToCalendar = taskUiState.copy(
                     id = taskUiState.id
                 )
-                tasks = dayState.tasks.toList() + taskToBeMovedToCalendar!!
+                tasks = dayUiState.tasks.toList() + taskToBeMovedToCalendar!!
             }
         }
     }
@@ -301,6 +300,7 @@ fun BigScreenPortrait (
             ) {
                 // If the selected date is in the past, show a comparison of the planned tasks and actual activities
                 AnimatedVisibility(
+//                    visible = selectedDate.isBefore(OffsetDateTime.now())
                     visible = selectedDate.isBefore(LocalDate.now())
                             || mainPanelState == BigScreenMainPanelState.DayActivity
                 ) {
@@ -314,7 +314,7 @@ fun BigScreenPortrait (
                     ) {
                         ActivityGraph(
                             componentWidth = mainPanelWidth,
-                            dayState = dayState,
+                            dayUiState = dayUiState,
                             drawClockHand = mainPanelState == BigScreenMainPanelState.DayActivity,
                             onNavigateToTaskActivityComparison = {
                                 mainPanelState = BigScreenMainPanelState.Comparison
@@ -326,7 +326,7 @@ fun BigScreenPortrait (
                         ComparisonDial(
                             componentWidth = mainPanelWidth,
                             componentHeight = 600.dp,
-                            dayState = dayState,
+                            dayUiState = dayUiState,
                             drawClockHand = mainPanelState == BigScreenMainPanelState.DayActivity,
                             onNavigateToTaskActivityComparison = {
                                 mainPanelState = BigScreenMainPanelState.Comparison
@@ -342,6 +342,7 @@ fun BigScreenPortrait (
                 AnimatedVisibility(
                     // If the selected date is today or in the future, show the planning screen
                     visible = mainPanelState == BigScreenMainPanelState.DayTask
+//                            && !selectedDate.isBefore(OffsetDateTime.now())
                             && !selectedDate.isBefore(LocalDate.now())
                 ) {
                     Column(
@@ -355,7 +356,8 @@ fun BigScreenPortrait (
                         PlannerDial(
                             componentWidth = mainPanelWidth,
                             componentHeight = 600.dp,
-                            dayState = dayState,
+                            dayUiState = dayUiState,
+//                            drawClockHand = userInput.selectedDate.isEqual(OffsetDateTime.now()),
                             drawClockHand = userInput.selectedDate.isEqual(LocalDate.now()),
                             lastTaskPriority = lastTaskPriority,
                             taskUiState = taskUiState,
@@ -393,7 +395,7 @@ fun BigScreenPortrait (
                             MoveToCalendarDial(
                                 componentWidth = mainPanelWidth,
                                 componentHeight = 580.dp,
-                                dayState = dayState,
+                                dayUiState = dayUiState,
                                 userInput = userInput,
                                 onPressActiveTime = onPressActiveTime,
                                 minimalDuration = minimalDuration,
@@ -514,7 +516,7 @@ fun BigScreenPortrait (
 
                             TaskCard (
                                 date = userInput.selectedDate,
-                                dayState = dayState,
+                                dayUiState = dayUiState,
                                 endTime = taskDetails.endTime,
                                 startTime = taskDetails.startTime,
                                 title = taskDetails.title,
@@ -627,7 +629,7 @@ fun BigScreenPortrait (
 
                             TaskCard (
                                 date = userInput.selectedDate,
-                                dayState = dayState,
+                                dayUiState = dayUiState,
                                 endTime = activityDetails.endTime,
                                 startTime = activityDetails.startTime,
                                 title = activityDetails.title,
@@ -730,18 +732,21 @@ fun BigScreenPortrait (
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 AnimatedVisibility(
+//                    visible = userInput.selectedDate.isEqual(OffsetDateTime.now())
                     visible = userInput.selectedDate.isEqual(LocalDate.now())
                 ) {
                     ActiveTimeHeader(
                         componentWidth = sidePanelWidth,
-                        dayState = dayState,
+                        dayUiState = dayUiState,
                         userInput = userInput
                     )
                 }
 
                 // If the selected date is in the past or in the future, show the ad banner instead of the Active Time Header.
                 AnimatedVisibility(
+//                    visible = selectedDate.isBefore(OffsetDateTime.now())
                     visible = selectedDate.isBefore(LocalDate.now())
+//                            || selectedDate.isAfter(OffsetDateTime.now())
                             || selectedDate.isAfter(LocalDate.now())
                 ) {
 //                    BannerAd(
@@ -976,7 +981,7 @@ fun BigScreenPortrait (
                     DragItemListTask (
                         componentWidth = sidePanelWidth,
                         componentHeight = 350.dp,
-                        dayState = dayState,
+                        dayUiState = dayUiState,
                         items = toDoTasks,
                         lastTaskPriority = lastTaskPriority,
                         taskUiState = taskUiState,

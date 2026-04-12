@@ -1,17 +1,17 @@
 package com.eternalfairy.timeaware
 
 import android.content.Context
-import com.eternalfairy.timeaware.data.room.IActivitiesRepository
-import com.eternalfairy.timeaware.data.room.IDaysRepository
-import com.eternalfairy.timeaware.data.room.IGoalsRepository
-import com.eternalfairy.timeaware.data.room.ITasksRepository
-import com.eternalfairy.timeaware.data.room.IVoiceNotesRepository
-import com.eternalfairy.timeaware.data.room.OfflineDatabase
-import com.eternalfairy.timeaware.data.room.RepositoryActivities
-import com.eternalfairy.timeaware.data.room.RepositoryDays
-import com.eternalfairy.timeaware.data.room.RepositoryGoals
-import com.eternalfairy.timeaware.data.room.RepositoryTasks
-import com.eternalfairy.timeaware.data.room.RepositoryVoiceNotes
+import com.eternalfairy.timeaware.db.room.IActivitiesRepository
+import com.eternalfairy.timeaware.db.room.IDaysRepository
+import com.eternalfairy.timeaware.db.room.IGoalsRepository
+import com.eternalfairy.timeaware.db.room.ITasksRepository
+import com.eternalfairy.timeaware.db.room.IVoiceNotesRepository
+import com.eternalfairy.timeaware.db.room.OfflineDatabase
+import com.eternalfairy.timeaware.db.room.RepositoryActivities
+import com.eternalfairy.timeaware.db.room.RepositoryDays
+import com.eternalfairy.timeaware.db.room.RepositoryGoals
+import com.eternalfairy.timeaware.db.room.RepositoryTasks
+import com.eternalfairy.timeaware.db.room.RepositoryVoiceNotes
 
 // A container is an object that contains the dependencies that the app requires
 interface AppContainer {

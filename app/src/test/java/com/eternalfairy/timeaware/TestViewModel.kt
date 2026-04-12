@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
-import com.eternalfairy.timeaware.data.Time
+import com.eternalfairy.timeaware.db.Time
 import com.eternalfairy.timeaware.ui.viewmodel.room.DayState
 import com.eternalfairy.timeaware.ui.viewmodel.room.UserInput
 import kotlinx.coroutines.ExperimentalCoroutinesApi

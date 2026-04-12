@@ -60,12 +60,12 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.eternalfairy.timeaware.R
-import com.eternalfairy.timeaware.data.Time
+import com.eternalfairy.timeaware.db.Time
 import com.eternalfairy.timeaware.ui.component.calendar.conditional
+import com.eternalfairy.timeaware.ui.data.DayUiState
 import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.theme.MINUTE_LABEL_COLOR
-import com.eternalfairy.timeaware.ui.viewmodel.room.DayState
 import com.eternalfairy.timeaware.utils.TouchGestureUtils
 import com.eternalfairy.timeaware.utils.TouchGestureUtils.TOUCH_STROKE
 import kotlinx.coroutines.delay
@@ -92,26 +92,26 @@ fun ActivityGraph (
     paddingTop: Dp = 5.dp,
     paddingEnd: Dp = 10.dp,
     paddingBottom: Dp = 5.dp,
-    dayState: DayState,
+    dayUiState: DayUiState,
     drawClockHand: Boolean = false,
 //    height: Dp = 320.dp,// Minimum height is 300.dp - at 280.dp there is a problem with index out of bounds
     onNavigateToTaskActivityComparison: () -> Unit,
     selectActivity: (UUID?) -> Unit,
     selectTask: (UUID?) -> Unit
 ) {
-    val tasks = dayState.tasks
-    val activities = dayState.activities
+    val tasks = dayUiState.tasks
+    val activities = dayUiState.activities
 
     var canvasWidth by remember { mutableStateOf(0.dp) }
     var canvasHeight by remember { mutableFloatStateOf(0f) }
     var canvasHeightDp by remember { mutableStateOf(0.dp) }
 
     // The planned start and end time of the day
-    val activeTimeStart: Time = dayState.activeTimeStart
-    val activeTimeEnd: Time = dayState.activeTimeEnd
+    val activeTimeStart: Time = dayUiState.activeTimeStart
+    val activeTimeEnd: Time = dayUiState.activeTimeEnd
     // The actual start and end time of the day
-    val actualActiveTimeStart = dayState.actualActiveTimeStart
-    val actualActiveTimeEnd = dayState.actualActiveTimeEnd
+    val actualActiveTimeStart = dayUiState.actualActiveTimeStart
+    val actualActiveTimeEnd = dayUiState.actualActiveTimeEnd
     // In case the activity starts before the active time start we need to draw the task axis a little further
     val xOffsetInMinutesTask = TouchGestureUtils.calculateTotalNumberOfMinutes(
         actualActiveTimeStart ?: activeTimeStart, activeTimeStart

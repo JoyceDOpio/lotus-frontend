@@ -4,8 +4,8 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.eternalfairy.timeaware.data.room.Goal
-import com.eternalfairy.timeaware.data.room.IGoalsRepository
+import com.eternalfairy.timeaware.db.room.Goal
+import com.eternalfairy.timeaware.db.room.IGoalsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -19,7 +19,7 @@ import javax.inject.Inject
 data class GoalUiState (
     val id: UUID? = null,
     var title: String = "",
-    var priority: Int? = null,
+    var priority: Int? = null
 )
 
 @HiltViewModel
@@ -48,6 +48,7 @@ class GoalViewModel @Inject constructor(
 //    }
 
     val goalUiState = MutableStateFlow(GoalUiState())
+
     val goals = goalsRepository
         .getAllGoals()
         .stateIn(

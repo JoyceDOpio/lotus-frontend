@@ -5,7 +5,6 @@ import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,13 +16,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,9 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eternalfairy.timeaware.R
-import com.eternalfairy.timeaware.data.room.Goal
-import com.eternalfairy.timeaware.data.room.Task
-import com.eternalfairy.timeaware.data.Time
+import com.eternalfairy.timeaware.db.Time
 import com.eternalfairy.timeaware.ui.component.ActiveTimeHeader
 import com.eternalfairy.timeaware.ui.component.ActivityGraph
 import com.eternalfairy.timeaware.ui.component.BannerAd
@@ -56,44 +58,46 @@ import com.eternalfairy.timeaware.ui.component.TaskDropdownMenu
 import com.eternalfairy.timeaware.ui.component.TopBar
 import com.eternalfairy.timeaware.ui.component.VoiceNoteList
 import com.eternalfairy.timeaware.ui.component.calendar.CalendarWeek
+import com.eternalfairy.timeaware.ui.data.ActivityUiState
+import com.eternalfairy.timeaware.ui.data.DayUiState
+import com.eternalfairy.timeaware.ui.data.GoalUiState
+import com.eternalfairy.timeaware.ui.data.TaskUiState
+import com.eternalfairy.timeaware.ui.data.UserInput
 import com.eternalfairy.timeaware.ui.theme.BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.COMMENT_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
-import com.eternalfairy.timeaware.ui.viewmodel.room.ActivityUiState
 import com.eternalfairy.timeaware.ui.viewmodel.AudioViewModel
-import com.eternalfairy.timeaware.ui.viewmodel.room.DayState
-import com.eternalfairy.timeaware.ui.viewmodel.room.GoalUiState
-import com.eternalfairy.timeaware.ui.viewmodel.room.TaskUiState
-import com.eternalfairy.timeaware.ui.viewmodel.room.UserInput
-import com.eternalfairy.timeaware.ui.viewmodel.room.toTask
 import com.eternalfairy.timeaware.utils.TouchGestureUtils
 import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.LoadAdError
-import kotlinx.serialization.Contextual
+import io.github.jan.supabase.auth.user.UserInfo
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SmallScreenPortrait (
     activityUiState: ActivityUiState,
 //    adView: AdView,
     audioViewModel: AudioViewModel,
     context: Context,
-    dayState: DayState,
-    goals: List<Goal>,
+    dayUiState: DayUiState,
+    goals: List<GoalUiState>,
     goalUiState: GoalUiState,
     lastGoalPriority: Int?,
     lastTaskPriority: Int?,
     taskUiState: TaskUiState,
-    toDoTasks: List<Task>,
+    toDoTasks: List<TaskUiState>,
+    userInfo: UserInfo,
     userInput: UserInput,
-    deleteGoal: (Goal) -> Unit,
+    deleteGoal: (UUID) -> Unit,
     deleteTask: () -> Unit,
     deleteVoiceNote: () -> Unit,
     onDeleteActivity: (UUID) -> Unit,
@@ -101,14 +105,16 @@ fun SmallScreenPortrait (
     onDeleteTask: () -> Unit,
     onEditTask: () -> Unit,
     onDeleteVoiceNote: (UUID?) -> Unit,
+    onLogout: () -> Unit,
     onMoveToToDoList: () -> Unit,
+    onNavigateToLogin: () -> Unit,
     onPinTask: (Boolean) -> Unit,
     onPressActiveTime: () -> Unit,
     onSetSelectedDate: (LocalDate) -> Unit,
     onShowPopupWindow: (PopupState) -> Unit,
-    saveGoal: (Goal) -> Unit,
+    saveGoal: (GoalUiState) -> Unit,
     saveGoalFromState: () -> Unit,
-    saveTask: (Task) -> Unit,
+    saveTask: (TaskUiState) -> Unit,
     saveTaskFromState: () -> Unit,
     selectActivity: (UUID?) -> Unit,
     selectGoal: (UUID?) -> Unit,
@@ -126,6 +132,11 @@ fun SmallScreenPortrait (
 ) {
     val formatter = DateTimeFormatter.ofPattern("d. MMMM yyyy")
     val selectedDate = userInput.selectedDate
+
+    // Bottom sheet
+    val sheetState = rememberModalBottomSheetState()
+    var showBottomSheet by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     // Screen state
     var screenState by remember { mutableStateOf(SmallScreenState.DayTask) }
@@ -149,7 +160,7 @@ fun SmallScreenPortrait (
 
     // Move to calendar
     // The task that is being moved to calendar - if I save the taskUiState under the touchedTask it seems it is not updated in time after touching it. The dial tries to draw it before its value is updated.
-    var taskToBeMovedToCalendar by remember { mutableStateOf<Task?>(null) }
+    var taskToBeMovedToCalendar by remember { mutableStateOf<TaskUiState?>(null) }
     // The optimal duration of the task will be 30 minutes and minimum will be 5 minutes
     val optimalDuration = 30
     val minimalDuration = 5
@@ -157,9 +168,9 @@ fun SmallScreenPortrait (
     var movedTaskEndTime: Time? = null
     // Find a slot between tasks to fit in the moved task
     var slotStartTime = if (!userInput.selectedDate.isBefore(LocalDate.now()) && !userInput.selectedDate.isAfter(LocalDate.now())) Time(
-        LocalDateTime.now().hour, LocalDateTime.now().minute) else dayState.activeTimeStart
+        LocalDateTime.now().hour, LocalDateTime.now().minute) else dayUiState.activeTimeStart
     var slotEndTime: Time
-    var tasks: List<Task> = dayState.tasks.toList()
+    var tasks: List<TaskUiState> = dayUiState.tasks.toList()
     val moveToCalendarHeaderText = "Move To Calendar"// TODO: Read string from resource
     val notEnoughTimeSpaceText = "THERE IS NOT ENOUGH TIME WITHIN THE SELECTED DAY TO MOVE THE TASK"// TODO: Read string from resource
 
@@ -175,7 +186,7 @@ fun SmallScreenPortrait (
     val adSize = AdSize.getLargeAnchoredAdaptiveBannerAdSize(LocalContext.current, adWidth)
     adView.setAdSize(adSize)
 
-    adView?.adListener =
+    adView.adListener =
         object : AdListener() {
             override fun onAdClicked() {
                 // Code to be executed when the user clicks on an ad.
@@ -213,12 +224,12 @@ fun SmallScreenPortrait (
     fun findFirstSlot() {
         if (taskUiState.id != null) {
             // Update the task to be moved to calendar with date and initial start- and end time values
-            setTaskDate(dayState.date)
+            setTaskDate(dayUiState.date)
             setTaskPriority(null)
 
             // If there are tasks planned for the day
-            if (!dayState.tasks.isEmpty()) {
-                for (task in dayState.tasks) {
+            if (!dayUiState.tasks.isEmpty()) {
+                for (task in dayUiState.tasks) {
                     // If the slot start time is after the task's start time, omit that task
                     if (slotStartTime.compareTo(task.startTime!!) == 1) {
                         // If the slot start time is within the task
@@ -259,10 +270,10 @@ fun SmallScreenPortrait (
             if (movedTaskStartTime != null && movedTaskEndTime != null) {
                 setTaskStartTime(movedTaskStartTime)
                 setTaskEndTime(movedTaskEndTime)
-                taskToBeMovedToCalendar = taskUiState.toTask().copy(
+                taskToBeMovedToCalendar = taskUiState.copy(
                     id = taskUiState.id
                 )
-                tasks = dayState.tasks.toList() + taskToBeMovedToCalendar!!
+                tasks = dayUiState.tasks.toList() + taskToBeMovedToCalendar!!
             }
         }
     }
@@ -305,7 +316,7 @@ fun SmallScreenPortrait (
                     visible = screenState == SmallScreenState.DayTask && selectedDate.isEqual(LocalDate.now())
                 ) {
                     ActiveTimeHeader(
-                        dayState = dayState,
+                        dayUiState = dayUiState,
                         userInput = userInput
                     )
                 }
@@ -314,27 +325,7 @@ fun SmallScreenPortrait (
                 AnimatedVisibility(
                     visible = screenState == SmallScreenState.DayTask && selectedDate.isAfter(LocalDate.now())
                 ) {
-//                    BannerAd(
-//                        adView = adView
-//                    )
-//                    Column (
-//                        modifier = Modifier
-//                            .padding(
-//                                horizontal = 10.dp,
-//                                vertical = 5.dp
-//                            )
-//                            .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
-//                            .width(400.dp)
-////                .height(componentHeight)
-//                            .background(COMPONENT_BACKGROUND_COLOR)
-//                    ) {
-//                        Box() {
-//                            adView
-//                        }
-//                    }
                     Column(
-//                        modifier = Modifier.fillMaxSize(),
-//                        verticalArrangement = Arrangement.Bottom
                         modifier = Modifier
                             .padding(
                                 horizontal = 10.dp,
@@ -367,7 +358,7 @@ fun SmallScreenPortrait (
                         verticalArrangement = Arrangement.SpaceBetween
                     ) {
                         ActivityGraph(
-                            dayState = dayState,
+                            dayUiState = dayUiState,
                             drawClockHand = screenState == SmallScreenState.DayActivity,
                             onNavigateToTaskActivityComparison = {
                                 screenState = SmallScreenState.Comparison
@@ -377,7 +368,7 @@ fun SmallScreenPortrait (
                         )
 
                         ComparisonDial(
-                            dayState = dayState,
+                            dayUiState = dayUiState,
                             drawClockHand = screenState == SmallScreenState.DayActivity,
                             onNavigateToTaskActivityComparison = {
                                 screenState = SmallScreenState.Comparison
@@ -388,14 +379,6 @@ fun SmallScreenPortrait (
                     }
                 }
 
-//                // If the selected date is in the future, show a spacer
-//                AnimatedVisibility(
-//                    visible = selectedDate.isAfter(LocalDate.now())
-//                            && screenState == SmallScreenState.DayTask
-//                ) {
-//                    Spacer(modifier = Modifier.height(80.dp))
-//                }
-
                 // If the selected date is today or in the future, show the planning screen
                 AnimatedVisibility(
                     visible = !selectedDate.isBefore(LocalDate.now())
@@ -405,7 +388,7 @@ fun SmallScreenPortrait (
                         visible = screenState == SmallScreenState.DayTask
                     ) {
                         PlannerDial(
-                            dayState = dayState,
+                            dayUiState = dayUiState,
                             drawClockHand = userInput.selectedDate.isEqual(LocalDate.now()),
                             lastTaskPriority = lastTaskPriority,
                             taskUiState = taskUiState,
@@ -431,7 +414,7 @@ fun SmallScreenPortrait (
                         visible = screenState == SmallScreenState.ToDo
                     ) {
                         DragItemListTask (
-                            dayState = dayState,
+                            dayUiState = dayUiState,
                             items = toDoTasks,
                             lastTaskPriority = lastTaskPriority,
                             taskUiState = taskUiState,
@@ -486,7 +469,7 @@ fun SmallScreenPortrait (
                     taskToBeMovedToCalendar?.also {
                         if (it.startTime != null && it.endTime != null) {
                             MoveToCalendarDial(
-                                dayState = dayState,
+                                dayUiState = dayUiState,
                                 userInput = userInput,
                                 onPressActiveTime = onPressActiveTime,
                                 minimalDuration = minimalDuration,
@@ -606,7 +589,7 @@ fun SmallScreenPortrait (
 
                         TaskCard (
                             date = userInput.selectedDate,
-                            dayState = dayState,
+                            dayUiState = dayUiState,
                             endTime = taskDetails.endTime,
                             startTime = taskDetails.startTime,
                             title = taskDetails.title,
@@ -717,7 +700,7 @@ fun SmallScreenPortrait (
 
                         TaskCard (
                             date = userInput.selectedDate,
-                            dayState = dayState,
+                            dayUiState = dayUiState,
                             endTime = activityDetails.endTime,
                             startTime = activityDetails.startTime,
                             title = activityDetails.title,
@@ -791,8 +774,6 @@ fun SmallScreenPortrait (
                 }
             }
         }
-
-
 
         // Show calendar in the day overview of tasks or when we're moving a task to the calendar
         AnimatedVisibility(
@@ -959,6 +940,21 @@ fun SmallScreenPortrait (
                             )
                         }
                     }
+
+                    Spacer(Modifier.weight(1f, true))
+
+                    IconButton(
+                        onClick = {
+
+                        }
+                    ) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(id = R.drawable.user_svgrepo_com),
+                            contentDescription = "Activity recorder",
+                            modifier = Modifier.fillMaxSize(0.75f),
+                            tint = HEADER_TEXT_COLOR
+                        )
+                    }
                 }
             )
         }
@@ -1077,6 +1073,34 @@ fun SmallScreenPortrait (
                     Spacer(Modifier.weight(1f, true))
                 }
             )
+        }
+
+        // Bottom sheet
+        if (showBottomSheet) {
+            ModalBottomSheet(
+                onDismissRequest = {
+                    showBottomSheet = false
+                },
+                sheetState = sheetState
+            ) {
+                // Sheet content
+                Button(onClick = {
+                    scope.launch { sheetState.hide() }.invokeOnCompletion {
+                        if (!sheetState.isVisible) {
+                            showBottomSheet = false
+                        }
+
+                        if (userInfo.isAnonymous == false) {
+                            onLogout()
+                        }
+                        onNavigateToLogin()
+                    }
+                }) {
+                    Text(
+                        text = if (userInfo.isAnonymous == true) "Sign Up/Sign In" else "Log Out"
+                    )
+                }
+            }
         }
     }
 }

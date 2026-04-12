@@ -25,14 +25,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import com.eternalfairy.timeaware.data.room.Goal
+import com.eternalfairy.timeaware.ui.data.GoalUiState
 import com.eternalfairy.timeaware.ui.screen.DeleteScreen
 import com.eternalfairy.timeaware.ui.screen.DeleteType
 import com.eternalfairy.timeaware.ui.screen.GoalEditScreen
 import com.eternalfairy.timeaware.ui.screen.GoalInfoScreen
 import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
-import com.eternalfairy.timeaware.ui.viewmodel.room.GoalUiState
-import com.eternalfairy.timeaware.ui.viewmodel.room.toGoal
 import com.eternalfairy.timeaware.utils.GoalModePopup
 import kotlinx.coroutines.channels.Channel
 import java.util.UUID
@@ -45,10 +43,10 @@ fun DragItemListGoal(//TODO: Merge with DragItemListTask
     goalUiState: GoalUiState,
 //    items: List<Draggable>,
 //    items: List<T>,
-    items: List<Goal>,
+    items: List<GoalUiState>,
     lastGoalPriority: Int?,
-    deleteGoal: (Goal) -> Unit,
-    saveGoal: (Goal) -> Unit,
+    deleteGoal: (UUID) -> Unit,
+    saveGoal: (GoalUiState) -> Unit,
     saveGoalFromState: () -> Unit,
     selectGoal: (UUID?) -> Unit,
     setGoalPriority: (Int) -> Unit,
@@ -149,7 +147,7 @@ fun DragItemListGoal(//TODO: Merge with DragItemListTask
     ) {
         itemsIndexed(
             items = itemsCopy,
-            contentType = { index, item -> Draggable(index = index, id = item.id) }
+            contentType = { index, item -> Draggable(index = index, id = item.id!!) }
         ) { index, item ->
             val modifier = if (draggedItemIndex == index) {
                 Modifier
@@ -218,7 +216,7 @@ fun DragItemListGoal(//TODO: Merge with DragItemListTask
                             showPopupWindow = false
                         },
                         onDelete = {
-                            deleteGoal(goalUiState.toGoal().copy(id = goalUiState.id!!))
+                            deleteGoal(goalUiState.id!!)
                             showPopupWindow = false
                         },
                         deleteType= DeleteType.Goal

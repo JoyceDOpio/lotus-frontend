@@ -20,9 +20,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.eternalfairy.timeaware.db.powersync.AppSchema
 import com.eternalfairy.timeaware.service.StopwatchService
 import com.eternalfairy.timeaware.ui.theme.TimeAwareTheme
 import com.google.android.gms.ads.MobileAds
+import com.powersync.DatabaseDriverFactory
+import com.powersync.PowerSyncDatabase
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint

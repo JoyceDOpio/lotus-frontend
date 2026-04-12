@@ -20,7 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.eternalfairy.timeaware.data.room.Task
+import com.eternalfairy.timeaware.ui.data.TaskUiState
 import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
 import java.util.UUID
@@ -28,7 +28,7 @@ import java.util.UUID
 @Composable
 fun ListItemTask(
     modifier: Modifier = Modifier,
-    task: Task,
+    task: TaskUiState,
     onNavigateToTaskInfo: () -> Unit,
     selectTask: (UUID?) -> Unit
 ){

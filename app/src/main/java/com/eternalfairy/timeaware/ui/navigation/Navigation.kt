@@ -7,18 +7,20 @@ import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.eternalfairy.timeaware.service.StopwatchService
+import com.eternalfairy.timeaware.ui.screen.login.LoginContainer
 import com.eternalfairy.timeaware.ui.screen.planner.PlannerContainer
-import com.eternalfairy.timeaware.ui.viewmodel.room.DayViewModel
-import com.eternalfairy.timeaware.ui.viewmodel.room.GoalViewModel
-import com.eternalfairy.timeaware.ui.viewmodel.room.toActivity
-import com.eternalfairy.timeaware.ui.viewmodel.room.toVoiceNote
+import com.eternalfairy.timeaware.ui.viewmodel.powersync.AuthViewModel
+import com.eternalfairy.timeaware.ui.viewmodel.powersync.PlannerViewModel
+import com.eternalfairy.timeaware.ui.viewmodel.supabase.AuthResponse
 import com.eternalfairy.timeaware.utils.AudioRecorder
+import kotlinx.coroutines.launch
 import java.io.File
 
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
@@ -28,48 +30,123 @@ fun Navigation(
     stopwatchService: StopwatchService,
 ) {
 //    val dayViewModel: DayViewModel = viewModel(factory = DayViewModel.Factory)
-    val dayViewModel: DayViewModel = hiltViewModel()
+//    val dayViewModel: DayViewModel = hiltViewModel()
+    val plannerViewModel: PlannerViewModel = hiltViewModel()
 
-    val activityEditState by dayViewModel._activityEditState.collectAsState()// Use the mutable state so that it can be modified by the user
-    val dayState by dayViewModel.dayState.collectAsState()
-    val mainRecordedActivityUiState by dayViewModel.recordedMainActivityUiState.collectAsState()
-    val subRecordedActivityUiState by dayViewModel.recordedSubActivityUiState.collectAsState()
+    val activityEditState by plannerViewModel._activityEditState.collectAsState()// Use the mutable state so that it can be modified by the user
+    val dayState by plannerViewModel.dayUiState.collectAsState()
+    val mainRecordedActivityUiState by plannerViewModel.recordedMainActivityUiState.collectAsState()
+    val subRecordedActivityUiState by plannerViewModel.recordedSubActivityUiState.collectAsState()
 //    val dayUiState by dayViewModel.dayUiState.collectAsState()
-    val lastTaskPriority by dayViewModel.lastTaskPriority.collectAsState(initial = 0)
-    val taskUiState by dayViewModel.taskUiState.collectAsState()
-    val toDoTasks by dayViewModel.toDoTasks.collectAsState(emptyList())
-    val userInput by dayViewModel.userInput.collectAsState()
-    val voiceNoteToBeDeleted by dayViewModel.voiceNoteToBeDeletedState.collectAsState()
+    val lastTaskPriority by plannerViewModel.lastTaskPriority.collectAsState(initial = 0)
+    val taskUiState by plannerViewModel._taskEditState.collectAsState()
+    val toDoTasks by plannerViewModel.toDoTasks.collectAsState(emptyList())
+    val userInput by plannerViewModel.userInput.collectAsState()
+    val voiceNoteToBeDeleted by plannerViewModel.voiceNoteToBeDeletedState.collectAsState()
 
     val context = LocalContext.current
     val audioRecorder = AudioRecorder(context)
 
 //    val goalViewModel: GoalViewModel = viewModel(factory = GoalViewModel.Factory)
-    val goalViewModel: GoalViewModel = hiltViewModel()
-    val goals by goalViewModel.goals.collectAsState()
-    val goalUiState by goalViewModel.goalUiState.collectAsState()
-    val lastGoalPriority by goalViewModel.lastPriority.collectAsState()
+//    val goalViewModel: GoalViewModel = hiltViewModel()
+//    val goals by goalViewModel.goals.collectAsState()
+//    val goalUiState by goalViewModel.goalUiState.collectAsState()
+//    val lastGoalPriority by goalViewModel.lastPriority.collectAsState()
+    val goals by plannerViewModel.goals.collectAsState()
+    val goalUiState by plannerViewModel._goalEditState.collectAsState()
+    val lastGoalPriority by plannerViewModel.lastGoalPriority.collectAsState()
 
-    val activityUiState by dayViewModel.activityUiState.collectAsState()
+    val activityUiState by plannerViewModel.activityUiState.collectAsState()
+
+    val authViewModel: AuthViewModel = hiltViewModel()
+    // Read the user session, i.e. determine whether the user is logged in or not (anonymously or not)
+    val sessionStatus by authViewModel.sessionStatus.collectAsState()
+    // I wonder whether this will get updated after navigation gets redirected from Login to Planner
+    val userInfo by authViewModel.user.collectAsState()
+
+    val coroutineScope = rememberCoroutineScope()
+
+    Log.i("Navigation", "sessionStatus ${sessionStatus.toString()}")
 
     NavHost(
         navController = navController,
 //        startDestination = WelcomeRoute// TODO: Display welcoming (goals) once every day
-        startDestination = PlannerRoute
+//        startDestination = PlannerRoute
+        // If the user is logged in, show the Planner screen directly; if not, show the login screen
+//        startDestination = if (sessionStatus is SessionStatus.Authenticated) PlannerRoute else LoginRoute
+        startDestination = LoginRoute
     ) {
-//        composable<LoginRoute>{ backStackEntry ->
-//            LoginScreen(
-//                goals = goals,
-//                onNext = { navController.navigate(route = PlannerRoute) }
-//            )
-//        }
+        composable<LoginRoute> { backStackEntry ->
+            LoginContainer(
+                userInfo = userInfo,
+//                onNavigateToNext = { navController.navigate(route = PlannerRoute) },
+                onSignInAnonymously = {
+                    coroutineScope.launch {
+                        authViewModel.authManager.signInAnonymously().collect { response ->
+                            when (response) {
+                                AuthResponse.Success -> {
+                                    navController.navigate(route = PlannerRoute)
+                                }
+
+                                is AuthResponse.Error -> {
+
+                                }
+
+                                else -> {}
+                            }
+                        }
+                    }
+                },
+                onSignInWithEmail = { email, password ->
+                    coroutineScope.launch {
+                        authViewModel.authManager.signInWithEmail(email, password).collect { response ->
+                            when (response) {
+                                AuthResponse.Success -> {
+                                    navController.navigate(route = PlannerRoute)
+                                }
+
+                                is AuthResponse.Error -> {
+
+                                }
+
+                                else -> {}
+                            }
+                        }
+                    }
+                },
+                onSignUpWithEmail = { firstName, lastName, email, password ->
+                    coroutineScope.launch {
+                        authViewModel.authManager.signUpWithEmail(email, password).collect { response ->
+                            when (response) {
+                                AuthResponse.Success -> {
+                                    // If sign-up was successful, create a user profile
+                                    authViewModel.saveUserProfile(
+                                        firstName = firstName,
+                                        lastName = lastName,
+                                        email = email
+                                    )
+
+                                    navController.navigate(route = PlannerRoute)
+                                }
+
+                                is AuthResponse.Error -> {
+
+                                }
+
+                                else -> {}
+                            }
+                        }
+                    }
+                },
+            )
+        }
 
         composable<PlannerRoute> { backStackEntry ->
             PlannerContainer(
                 activityEditState = activityEditState,
                 activityUiState = activityUiState,
                 context = context,
-                dayState = dayState,
+                dayUiState = dayState,
                 goals = goals,
                 goalUiState = goalUiState,
                 lastGoalPriority = lastGoalPriority,
@@ -79,21 +156,23 @@ fun Navigation(
                 stopwatchService = stopwatchService,
                 taskUiState = taskUiState,
                 toDoTasks = toDoTasks,
+                // UserInfo should never be null when the PlannerRoute is reached
+                userInfo = userInfo!!,
                 userInput = userInput,
-                clearMainRecordedActivity = dayViewModel::clearMainRecordedActivity,
-                clearSubRecordedActivity = dayViewModel::clearSubRecordedActivity,
+                clearMainRecordedActivity = plannerViewModel::clearMainRecordedActivity,
+                clearSubRecordedActivity = plannerViewModel::clearSubRecordedActivity,
                 deleteActivity = {
-                    Log.i("Navigation", "activityToBeDeletedState ${dayViewModel.activityToBeDeletedState.value}")
-                    dayViewModel.deleteActivity(dayViewModel.activityToBeDeletedState.value.toActivity())
+                    Log.i("Navigation", "activityToBeDeletedState ${plannerViewModel.activityToBeDeletedState.value}")
+                    plannerViewModel.deleteActivity(plannerViewModel.activityToBeDeletedState.value.id!!)
                 },
-                deleteGoal = goalViewModel::deleteGoal,
+                deleteGoal = plannerViewModel::deleteGoal,
                 deleteTask = {
-                    val tasks = dayViewModel.dayState.value.tasks + dayViewModel.toDoTasks.value
-                    val task = tasks.find { task -> task.id == dayViewModel.taskUiState.value.id }
+                    val tasks = plannerViewModel.dayUiState.value.tasks + plannerViewModel.toDoTasks.value
+                    val task = tasks.find { task -> task.id == plannerViewModel._taskEditState.value.id }
 
-                    if (task != null) {
+                    task?.let {
                         Log.i("Navigation", "task $task")
-                        dayViewModel.deleteTask(task)
+                        plannerViewModel.deleteTask(task.id!!)
                     }
                 },
                 deleteVoiceNote = {
@@ -104,20 +183,23 @@ fun Navigation(
                             file.delete()
                         }
                         // The voice note reference from the database
-                        dayViewModel.deleteVoiceNote(voiceNoteToBeDeleted.toVoiceNote())
+                        plannerViewModel.deleteVoiceNote(voiceNoteToBeDeleted.id!!)
                     } catch (e: Exception) {
                         e.printStackTrace()
                         Toast.makeText(context,"Error deleting the file", Toast.LENGTH_SHORT).show()
                     }
                 },
                 onClickSaveActiveTime = {
-                    dayViewModel.saveDay()
+                    plannerViewModel.saveDay()
+                },
+                onLogout = {
+                    authViewModel.authManager.logOut()
                 },
                 onMoveToToDoList = {
                     val task = dayState.tasks.find { task -> task.id == taskUiState.id }
 
                     if (task != null) {
-                        dayViewModel.updateTask(
+                        plannerViewModel.updateTask(
                             task.copy(
                                 date = null,
                                 startTime = null,
@@ -127,57 +209,58 @@ fun Navigation(
                         )
                     }
                 },
+                onNavigateToLogin = { navController.navigate(route = LoginRoute) },
                 onPinTask = { value ->
-                    dayViewModel.setTaskPinned(value)
-                    dayViewModel.saveTask()
+                    plannerViewModel.setTaskPinned(value)
+                    plannerViewModel.saveTaskFromState()
                 },
                 onSetSelectedDate = { date ->
-                    dayViewModel.setSelectedDate(date)
+                    plannerViewModel.setSelectedDate(date)
                 },
-                saveActivity = dayViewModel::saveActivity,
-                saveMainRecordedActivity = dayViewModel::saveMainRecordedActivity,
-                saveSubRecordedActivity = dayViewModel::saveSubRecordedActivity,
-                saveDay = dayViewModel::saveDay,
-                saveGoal = goalViewModel::saveGoal,
-                saveGoalFromState = goalViewModel::saveGoal,
-                saveTask = dayViewModel::saveTask,
-                saveTaskFromState = dayViewModel::saveTask,
-                saveVoiceNote = dayViewModel::saveVoiceNote,
-                selectActivity = dayViewModel::selectActivity,
-                selectActivityToBeDeleted = dayViewModel::selectActivityForDeletion,
-                selectActivityToBeEdited = dayViewModel::selectActivityForEditing,
-                selectGoal = goalViewModel::selectGoal,
-                selectTask = dayViewModel::selectTask,
-                selectVoiceNoteToBeDeleted = dayViewModel::selectVoiceNoteForDeletion,
-                setActiveTimeStart = dayViewModel::setActiveTimeStart,
-                setActiveTimeEnd = dayViewModel::setActiveTimeEnd,
-                setActivityNote = dayViewModel::setActivityNote,
-                setActivityTitle = dayViewModel::setActivityTitle,
-                setActualActiveTimeEnd = dayViewModel::setActualActiveTimeEnd,
-                setActualActiveTimeStart = dayViewModel::setActualActiveTimeStart,
-                setGoalPriority = goalViewModel::setPriority,
-                setGoalTitle = goalViewModel::setTitle,
-                setRecordedMainActivityDate = dayViewModel::setRecordedMainActivityDate,
-                setRecordedMainActivityEndTime = dayViewModel::setRecordedMainActivityEndTime,
-                setRecordedMainActivityId = dayViewModel::setRecordedMainActivityId,
-                setRecordedMainActivityNote = dayViewModel::setRecordedMainActivityNote,
-                setRecordedMainActivityStartTime = dayViewModel::setRecordedMainActivityStartTime,
-                setRecordedMainActivityTitle = dayViewModel::setRecordedMainActivityTitle,
-                setRecordedSubActivityEndTime = dayViewModel::setRecordedSubActivityEndTime,
-                setRecordedSubActivityId = dayViewModel::setRecordedSubActivityId,
-                setRecordedSubActivityMainActivityId = dayViewModel::setRecordedSubActivityMainActivityId,
-                setRecordedSubActivityNote = dayViewModel::setRecordedSubActivityNote,
-                setRecordedSubActivityStartTime = dayViewModel::setRecordedSubActivityStartTime,
-                setRecordedSubActivityTitle = dayViewModel::setRecordedSubActivityTitle,
-                setTaskDate = dayViewModel::setTaskDate,
-                setTaskDescription = dayViewModel::setTaskDescription,
-                setTaskEndTime = dayViewModel::setTaskEndTime,
-                setTaskPriority = dayViewModel::setTaskPriority,
-                setTaskStartTime = dayViewModel::setTaskStartTime,
-                setTaskTitle = dayViewModel::setTaskTitle,
+                saveActivity = plannerViewModel::saveActivity,
+                saveMainRecordedActivity = plannerViewModel::saveMainRecordedActivity,
+                saveSubRecordedActivity = plannerViewModel::saveSubRecordedActivity,
+                saveDay = plannerViewModel::saveDay,
+                saveGoal = plannerViewModel::saveGoal,
+                saveGoalFromState = plannerViewModel::saveGoalFromState,
+                saveTask = plannerViewModel::saveTask,
+                saveTaskFromState = plannerViewModel::saveTaskFromState,
+                saveVoiceNote = plannerViewModel::saveVoiceNote,
+                selectActivity = plannerViewModel::selectActivity,
+                selectActivityToBeDeleted = plannerViewModel::selectActivityForDeletion,
+                selectActivityToBeEdited = plannerViewModel::selectActivityForEditing,
+                selectGoal = plannerViewModel::selectGoal,
+                selectTask = plannerViewModel::selectTask,
+                selectVoiceNoteToBeDeleted = plannerViewModel::selectVoiceNoteForDeletion,
+                setActiveTimeStart = plannerViewModel::setActiveTimeStart,
+                setActiveTimeEnd = plannerViewModel::setActiveTimeEnd,
+                setActivityNote = plannerViewModel::setActivityNote,
+                setActivityTitle = plannerViewModel::setActivityTitle,
+                setActualActiveTimeEnd = plannerViewModel::setActualActiveTimeEnd,
+                setActualActiveTimeStart = plannerViewModel::setActualActiveTimeStart,
+                setGoalPriority = plannerViewModel::setGoalPriority,
+                setGoalTitle = plannerViewModel::setGoalTitle,
+                setRecordedMainActivityDate = plannerViewModel::setRecordedMainActivityDate,
+                setRecordedMainActivityEndTime = plannerViewModel::setRecordedMainActivityEndTime,
+                setRecordedMainActivityId = plannerViewModel::setRecordedMainActivityId,
+                setRecordedMainActivityNote = plannerViewModel::setRecordedMainActivityNote,
+                setRecordedMainActivityStartTime = plannerViewModel::setRecordedMainActivityStartTime,
+                setRecordedMainActivityTitle = plannerViewModel::setRecordedMainActivityTitle,
+                setRecordedSubActivityEndTime = plannerViewModel::setRecordedSubActivityEndTime,
+                setRecordedSubActivityId = plannerViewModel::setRecordedSubActivityId,
+                setRecordedSubActivityMainActivityId = plannerViewModel::setRecordedSubActivityMainActivityId,
+                setRecordedSubActivityNote = plannerViewModel::setRecordedSubActivityNote,
+                setRecordedSubActivityStartTime = plannerViewModel::setRecordedSubActivityStartTime,
+                setRecordedSubActivityTitle = plannerViewModel::setRecordedSubActivityTitle,
+                setTaskDate = plannerViewModel::setTaskDate,
+                setTaskDescription = plannerViewModel::setTaskDescription,
+                setTaskEndTime = plannerViewModel::setTaskEndTime,
+                setTaskPriority = plannerViewModel::setTaskPriority,
+                setTaskStartTime = plannerViewModel::setTaskStartTime,
+                setTaskTitle = plannerViewModel::setTaskTitle,
                 startRecording = audioRecorder::startRecording,
                 stopRecording = audioRecorder::stopRecording,
-                updateLastPlayedPosition = dayViewModel::updateLastPlayedPosition
+                updateLastPlayedPosition = plannerViewModel::updateLastPlayedPosition
             )
         }
 

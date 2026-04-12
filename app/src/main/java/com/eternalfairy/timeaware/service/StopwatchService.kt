@@ -12,7 +12,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.toColorInt
 import com.eternalfairy.timeaware.R
-import com.eternalfairy.timeaware.data.room.IActivitiesRepository
+import com.eternalfairy.timeaware.db.room.IActivitiesRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

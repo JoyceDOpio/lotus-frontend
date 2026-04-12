@@ -5,15 +5,15 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.eternalfairy.timeaware.data.room.Activity
-import com.eternalfairy.timeaware.data.room.Day
-import com.eternalfairy.timeaware.data.room.Task
-import com.eternalfairy.timeaware.data.Time
-import com.eternalfairy.timeaware.data.room.IActivitiesRepository
-import com.eternalfairy.timeaware.data.room.IDaysRepository
-import com.eternalfairy.timeaware.data.room.ITasksRepository
-import com.eternalfairy.timeaware.data.room.IVoiceNotesRepository
-import com.eternalfairy.timeaware.data.room.VoiceNote
+import com.eternalfairy.timeaware.db.room.Activity
+import com.eternalfairy.timeaware.db.room.Day
+import com.eternalfairy.timeaware.db.room.Task
+import com.eternalfairy.timeaware.db.Time
+import com.eternalfairy.timeaware.db.room.IActivitiesRepository
+import com.eternalfairy.timeaware.db.room.IDaysRepository
+import com.eternalfairy.timeaware.db.room.ITasksRepository
+import com.eternalfairy.timeaware.db.room.IVoiceNotesRepository
+import com.eternalfairy.timeaware.db.room.VoiceNote
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -144,9 +144,9 @@ data class UserInput(
 @HiltViewModel
 class DayViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
+    private val activitiesRepository: IActivitiesRepository,
     private val daysRepository: IDaysRepository,
     private val tasksRepository: ITasksRepository,
-    private val activitiesRepository: IActivitiesRepository,
     private val voiceNotesRepository: IVoiceNotesRepository
 ) : ViewModel() {
 //    companion object {

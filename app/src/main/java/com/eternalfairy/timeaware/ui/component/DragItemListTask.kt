@@ -26,14 +26,13 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import com.eternalfairy.timeaware.data.room.Task
-import com.eternalfairy.timeaware.data.Time
+import com.eternalfairy.timeaware.db.Time
+import com.eternalfairy.timeaware.ui.data.DayUiState
+import com.eternalfairy.timeaware.ui.data.TaskUiState
 import com.eternalfairy.timeaware.ui.screen.DeleteScreen
 import com.eternalfairy.timeaware.ui.screen.TaskEditScreen
 import com.eternalfairy.timeaware.ui.screen.TaskInfoScreen
 import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
-import com.eternalfairy.timeaware.ui.viewmodel.room.DayState
-import com.eternalfairy.timeaware.ui.viewmodel.room.TaskUiState
 import com.eternalfairy.timeaware.utils.TaskModePopup
 import kotlinx.coroutines.channels.Channel
 import java.util.UUID
@@ -42,15 +41,15 @@ import java.util.UUID
 fun DragItemListTask(//TODO: Merge with DragItemListGoal
     componentHeight: Dp = 680.dp,
     componentWidth: Dp = 400.dp,
-    dayState: DayState,
-    items: List<Task>,
+    dayUiState: DayUiState,
+    items: List<TaskUiState>,
     lastTaskPriority: Int?,
     taskUiState: TaskUiState,
     deleteTask: () -> Unit,
     onMoveToCalendar: () -> Unit,
     onMoveToToDoList: () -> Unit,
     onPinTask: (Boolean) -> Unit,
-    saveTask: (Task) -> Unit,
+    saveTask: (TaskUiState) -> Unit,
     saveTaskFromState: () -> Unit,
     selectTask: (UUID?) -> Unit,
     setTaskDescription: (String) -> Unit,
@@ -155,7 +154,7 @@ fun DragItemListTask(//TODO: Merge with DragItemListGoal
         itemsIndexed(
             items = itemsCopy,
 //            contentType = { index, item -> Draggable(index = index, id = item.id) }
-            contentType = { index, item -> Draggable(index = index, id = item.id) }
+            contentType = { index, item -> Draggable(index = index, id = item.id!!) }
         ) { index, item ->
             Log.i("draggedItemIndex", draggedItemIndex.toString())
             Log.i("index", index.toString())
@@ -194,7 +193,7 @@ fun DragItemListTask(//TODO: Merge with DragItemListGoal
             when (taskState) {
                 TaskModePopup.Edit -> {
                     TaskEditScreen(
-                        dayState = dayState,
+                        dayUiState = dayUiState,
                         lastTaskPriority = lastTaskPriority ?: 0,
                         taskUiState = taskUiState,
                         onBack = {
@@ -211,7 +210,7 @@ fun DragItemListTask(//TODO: Merge with DragItemListGoal
                 TaskModePopup.Info -> {
                     TaskInfoScreen(
                         displayType = CardDisplayType.Popup,
-                        dayState = dayState,
+                        dayUiState = dayUiState,
                         taskUiState = taskUiState,
                         onDeleteTask = {
                             taskState = TaskModePopup.Delete

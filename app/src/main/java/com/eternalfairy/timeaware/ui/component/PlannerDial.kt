@@ -59,16 +59,15 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eternalfairy.timeaware.R
-import com.eternalfairy.timeaware.data.room.Task
-import com.eternalfairy.timeaware.data.Time
+import com.eternalfairy.timeaware.db.Time
+import com.eternalfairy.timeaware.ui.data.DayUiState
+import com.eternalfairy.timeaware.ui.data.TaskUiState
+import com.eternalfairy.timeaware.ui.data.UserInput
 import com.eternalfairy.timeaware.ui.screen.DeleteScreen
 import com.eternalfairy.timeaware.ui.screen.TaskEditScreen
 import com.eternalfairy.timeaware.ui.screen.TaskInfoScreen
 import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
-import com.eternalfairy.timeaware.ui.viewmodel.room.DayState
-import com.eternalfairy.timeaware.ui.viewmodel.room.TaskUiState
-import com.eternalfairy.timeaware.ui.viewmodel.room.UserInput
 import com.eternalfairy.timeaware.utils.AngleMode
 import com.eternalfairy.timeaware.utils.DrawScopeUtils.drawClockCenter
 import com.eternalfairy.timeaware.utils.DrawScopeUtils.drawClockHand
@@ -110,7 +109,7 @@ fun PlannerDial(
     paddingTop: Dp = 5.dp,
     paddingEnd: Dp = 10.dp,
     paddingBottom: Dp = 5.dp,
-    dayState: DayState,
+    dayUiState: DayUiState,
     drawClockHand: Boolean = false,
     lastTaskPriority: Int?,
     taskUiState: TaskUiState,
@@ -124,14 +123,15 @@ fun PlannerDial(
     setTaskPriority: (Int) -> Unit,
     setTaskStartTime: (Time) -> Unit,
     setTaskTitle: (String) -> Unit,
-    saveTask: (Task) -> Unit,
+    saveTask: (TaskUiState) -> Unit,
     saveTaskFromState: () -> Unit,
     selectTask: (UUID?) -> Unit,
+//    setTaskDate: (OffsetDateTime?) -> Unit
     setTaskDate: (LocalDate?) -> Unit
 ) {
     val textMeasurer = rememberTextMeasurer()
-    val activeTimeStart: Time = dayState.activeTimeStart
-    val activeTimeEnd: Time = dayState.activeTimeEnd
+    val activeTimeStart: Time = dayUiState.activeTimeStart
+    val activeTimeEnd: Time = dayUiState.activeTimeEnd
     var taskMode: TaskMode by remember { mutableStateOf(TaskMode.View) }
     var angleMode: AngleMode by remember { mutableStateOf(AngleMode.None) }
 
@@ -181,15 +181,15 @@ fun PlannerDial(
     // Variables to identify whether the dial was touched within an existing task area
     var touchWithinTaskArea by remember { mutableStateOf(true) }
     // If I save the taskUiState under the touchedTask it seems it is not updated in time after touching it. The dial tries to draw it before its value is updated.
-    var touchedTask by remember { mutableStateOf<Task?>(null) }
-    var nextTask by remember { mutableStateOf<Task?>(null) }
-    var previousTask by remember { mutableStateOf<Task?>(null) }
+    var touchedTask by remember { mutableStateOf<TaskUiState?>(null) }
+    var nextTask by remember { mutableStateOf<TaskUiState?>(null) }
+    var previousTask by remember { mutableStateOf<TaskUiState?>(null) }
 
     var clockTime by remember { mutableStateOf(Time(LocalTime.now().hour, LocalTime.now().minute)) }
     var taskClockTime by remember { mutableStateOf(Time(LocalTime.now().hour, LocalTime.now().minute)) }
 
 //    val tasks = dayState.tasks.toList()
-    val tasks = dayState.tasks.toMutableList()
+    val tasks = dayUiState.tasks.toMutableList()
 
     var showPopupWindow by remember { mutableStateOf(false) }
     var popupState by remember { mutableStateOf(TaskModePopup.Info) }
@@ -215,7 +215,7 @@ fun PlannerDial(
     Log.i("PlannerDial", "tasks $tasks")
 //    Log.i("PlannerDial", "isTransforming $isTransforming")
 
-    fun checkIfTouchWithinTasks(angle: Float, tasks: List<Task>): Boolean {
+    fun checkIfTouchWithinTasks(angle: Float, tasks: List<TaskUiState>): Boolean {
         // The task stores the appropriate angle values, i.e. values corresponding to how the circle is drawn (the 0 degree starts at the right-hand side (east) of the circle). We want to 'correct' these angles as if 0 degree starts at the top of the circle (north)
         var isTouchWithinAnyTask: Boolean
 
@@ -682,7 +682,7 @@ fun PlannerDial(
                         translationX = offset.x * scale,
                         translationY = offset.y * scale
                     )
-                    .pointerInput(dayState, taskUiState, userInput) {
+                    .pointerInput(dayUiState, taskUiState, userInput) {
                         val viewConfig = viewConfiguration
 
                         awaitEachGesture {
@@ -742,7 +742,7 @@ fun PlannerDial(
                             } while (pressed)
                         }
                     }
-                    .pointerInput(dayState, taskUiState, userInput) {
+                    .pointerInput(dayUiState, taskUiState, userInput) {
                         detectTapGestures(
                             onTap = { offset ->
                                 val distance = TouchGestureUtils.distance(offset, center)
@@ -982,7 +982,7 @@ fun PlannerDial(
 //                        }
                         )
                     }
-                    .pointerInput(dayState, taskUiState, userInput) {
+                    .pointerInput(dayUiState, taskUiState, userInput) {
                         detectDragGesturesAfterLongPress(
                             onDragStart = { offset ->
                                 // Get the starting coordinates and determine if the touch is:
@@ -1518,7 +1518,7 @@ fun PlannerDial(
                             }
                         )
                     }
-                    .pointerInput(dayState, taskUiState, userInput) {
+                    .pointerInput(dayUiState, taskUiState, userInput) {
                         detectDragGestures(
                             onDragStart = { offset ->
                                 // Get the starting coordinates and determine if the touch is:
@@ -2473,7 +2473,7 @@ fun PlannerDial(
                 }
                 TaskModePopup.Edit -> {
                     TaskEditScreen(
-                        dayState = dayState,
+                        dayUiState = dayUiState,
                         lastTaskPriority = lastTaskPriority ?: 0,
                         taskUiState = taskUiState,
                         onBack = {
@@ -2493,7 +2493,7 @@ fun PlannerDial(
                 TaskModePopup.Info -> {
                     TaskInfoScreen(
                         displayType = CardDisplayType.Popup,
-                        dayState = dayState,
+                        dayUiState = dayUiState,
                         taskUiState = taskUiState,
                         onDeleteTask = {
                             popupState = TaskModePopup.Delete

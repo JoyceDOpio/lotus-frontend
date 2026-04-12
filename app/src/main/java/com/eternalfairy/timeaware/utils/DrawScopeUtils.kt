@@ -5,7 +5,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.asAndroidPath
@@ -22,14 +21,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
-import com.eternalfairy.timeaware.data.Time
+import com.eternalfairy.timeaware.db.Time
 import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.DeepTeal
 import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.theme.HotPink
 import com.eternalfairy.timeaware.ui.theme.MINUTE_LABEL_COLOR
 import com.eternalfairy.timeaware.ui.theme.Orange
-import com.eternalfairy.timeaware.ui.theme.SECONDARY_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.theme.White
 import com.eternalfairy.timeaware.utils.TouchGestureUtils.DEG_OFFSET
 import com.eternalfairy.timeaware.utils.TouchGestureUtils.DEG_TO_RAD

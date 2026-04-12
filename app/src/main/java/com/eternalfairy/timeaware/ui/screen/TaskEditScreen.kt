@@ -19,6 +19,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,8 +49,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eternalfairy.timeaware.R
-import com.eternalfairy.timeaware.data.Time
+import com.eternalfairy.timeaware.db.Time
 import com.eternalfairy.timeaware.ui.component.TimePickerDialog
+import com.eternalfairy.timeaware.ui.data.DayUiState
+import com.eternalfairy.timeaware.ui.data.TaskUiState
 import com.eternalfairy.timeaware.ui.theme.BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.ERROR_TEXT_COLOR
@@ -57,8 +60,6 @@ import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.theme.SECONDARY_HEADER_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.theme.SECONDARY_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.theme.SELECTION_COLOR
-import com.eternalfairy.timeaware.ui.viewmodel.room.DayState
-import com.eternalfairy.timeaware.ui.viewmodel.room.TaskUiState
 import com.eternalfairy.timeaware.utils.TouchGestureUtils
 import java.util.UUID
 
@@ -66,7 +67,7 @@ import java.util.UUID
 @Composable
 fun TaskEditScreen(
     modifier: Modifier = Modifier,
-    dayState: DayState,
+    dayUiState: DayUiState,
     lastTaskPriority: Int,
     taskUiState: TaskUiState,
     onBack: () -> Unit,
@@ -119,8 +120,8 @@ fun TaskEditScreen(
     // Warning texts
     val emptyTitleWarning = "The title cannot be empty"// TODO: Read string from resource
     val startTimeLaterThanEndTimeWarning = "The start time must be earlier than the end time"// TODO: Read string from resource
-    val startTimeOutsideActiveTimeWarning = "The start time must be within active time: ${dayState.activeTimeStart} - ${dayState.activeTimeEnd}"// TODO: Read string from resource
-    val endTimeOutsideActiveTimeWarning = "The end time must be within active time: ${dayState.activeTimeStart} - ${dayState.activeTimeEnd}"// TODO: Read string from resource
+    val startTimeOutsideActiveTimeWarning = "The start time must be within active time: ${dayUiState.activeTimeStart} - ${dayUiState.activeTimeEnd}"// TODO: Read string from resource
+    val endTimeOutsideActiveTimeWarning = "The end time must be within active time: ${dayUiState.activeTimeStart} - ${dayUiState.activeTimeEnd}"// TODO: Read string from resource
     val startTimeOverlappingTaskWarning = "The start time is overlapping another task"// TODO: Read string from resource
     val endTimeOverlappingTaskWarning = "The end time is overlapping another task"// TODO: Read string from resource
     val taskWithinStartAndEndTimeWarning = "Another task is within the start time and end time bounds"// TODO: Read string from resource
@@ -134,19 +135,19 @@ fun TaskEditScreen(
     if (taskDetails.date != null) {
         // Set the initial values for the time pickers
         startTimePickerState = rememberTimePickerState(
-            initialHour = taskDetails.startTime?.hour ?: dayState.activeTimeStart.hour,
-            initialMinute = taskDetails.startTime?.minute ?: dayState.activeTimeStart.minute
+            initialHour = taskDetails.startTime?.hour ?: dayUiState.activeTimeStart.hour,
+            initialMinute = taskDetails.startTime?.minute ?: dayUiState.activeTimeStart.minute
         )
         endTimePickerState = rememberTimePickerState(
-            initialHour = taskDetails.endTime?.hour ?: dayState.activeTimeEnd.hour,
-            initialMinute = taskDetails.endTime?.minute  ?: dayState.activeTimeEnd.minute
+            initialHour = taskDetails.endTime?.hour ?: dayUiState.activeTimeEnd.hour,
+            initialMinute = taskDetails.endTime?.minute  ?: dayUiState.activeTimeEnd.minute
         )
 
         val startTime = Time(startTimePickerState.hour, startTimePickerState.minute)
         val endTime = Time(endTimePickerState.hour, endTimePickerState.minute)
 
         // Check whether the start- and end time don't overlap with another task
-        for (task in dayState.tasks) {
+        for (task in dayUiState.tasks) {
             if (task.id != taskDetails.id) {
                 isStartTimeOverlappingAnotherTask = ((startTime.compareTo(task.startTime!!) == 0 || startTime.compareTo(task.startTime!!) == 1)
                         && (startTime.compareTo(task.endTime!!) == -1 || startTime.compareTo(task.endTime!!) == 0))
@@ -168,14 +169,14 @@ fun TaskEditScreen(
 
         // Check whether the start- and end time have correct values
         isStartTimeEarlierThanEndTime = (startTime.compareTo(endTime) == -1)
-        isStartTimeWithinActiveTime = ((startTime.compareTo(dayState.activeTimeStart) == 0 || startTime.compareTo(dayState.activeTimeStart) == 1)
-                && startTime.compareTo(dayState.activeTimeEnd) == -1)
-        isEndTimeWithinActiveTime = (endTime.compareTo(dayState.activeTimeStart) == 1
-                && (endTime.compareTo(dayState.activeTimeEnd) == -1 || endTime.compareTo(dayState.activeTimeEnd) == 0))
+        isStartTimeWithinActiveTime = ((startTime.compareTo(dayUiState.activeTimeStart) == 0 || startTime.compareTo(dayUiState.activeTimeStart) == 1)
+                && startTime.compareTo(dayUiState.activeTimeEnd) == -1)
+        isEndTimeWithinActiveTime = (endTime.compareTo(dayUiState.activeTimeStart) == 1
+                && (endTime.compareTo(dayUiState.activeTimeEnd) == -1 || endTime.compareTo(dayUiState.activeTimeEnd) == 0))
         isTaskOfMinimalDuration = TouchGestureUtils.calculateTotalNumberOfMinutes(startTime, endTime) >= minimalTaskDuration
 
         // Check whether the start- and end time don't overlap with another task
-        for (task in dayState.tasks) {
+        for (task in dayUiState.tasks) {
             if (task.id != taskDetails.id) {
                 isStartTimeOverlappingAnotherTask = ((startTime.compareTo(task.startTime!!) == 0 || startTime.compareTo(task.startTime!!) == 1)
                         && (startTime.compareTo(task.endTime!!) == -1 || startTime.compareTo(task.endTime!!) == 0))
@@ -297,8 +298,8 @@ fun TaskEditScreen(
                                 modifier = Modifier
                                     .padding(10.dp),
                                 text = "%d:%02d".format(
-                                    taskDetails.startTime?.hour ?: dayState.activeTimeStart.hour,
-                                    taskDetails.startTime?.minute ?: dayState.activeTimeStart.minute
+                                    taskDetails.startTime?.hour ?: dayUiState.activeTimeStart.hour,
+                                    taskDetails.startTime?.minute ?: dayUiState.activeTimeStart.minute
                                 ),
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.SemiBold,
@@ -326,8 +327,8 @@ fun TaskEditScreen(
                                 modifier = Modifier
                                     .padding(10.dp),
                                 text = "%d:%02d".format(
-                                    taskDetails.endTime?.hour ?: dayState.activeTimeEnd.hour,
-                                    taskDetails.endTime?.minute ?: dayState.activeTimeEnd.minute
+                                    taskDetails.endTime?.hour ?: dayUiState.activeTimeEnd.hour,
+                                    taskDetails.endTime?.minute ?: dayUiState.activeTimeEnd.minute
                                 ),
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.SemiBold,
@@ -520,14 +521,20 @@ fun TaskEditScreen(
                     TextButton(
                         onClick = {
                             onSaveCloseTimePicker()
-                        }
+                        },
+                        colors = ButtonDefaults.buttonColors().copy(
+                            contentColor = HEADER_TEXT_COLOR
+                        )
                     ) { Text(confirmButtonText) }
                 },
                 dismissButton = {
                     TextButton(
                         onClick = {
                             onDismissCloseTimePicker()
-                        }
+                        },
+                        colors = ButtonDefaults.buttonColors().copy(
+                            contentColor = HEADER_TEXT_COLOR
+                        )
                     ) { Text(dismissButtonText) }
                 }
             )

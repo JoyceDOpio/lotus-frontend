@@ -12,27 +12,28 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.eternalfairy.timeaware.data.room.Goal
-import com.eternalfairy.timeaware.data.room.Task
-import com.eternalfairy.timeaware.data.Time
-import com.eternalfairy.timeaware.data.room.VoiceNote
+import com.eternalfairy.timeaware.db.Time
 import com.eternalfairy.timeaware.service.StopwatchService
 import com.eternalfairy.timeaware.ui.component.ActiveTimeSetUp
 import com.eternalfairy.timeaware.ui.component.ActivityRecorder
 import com.eternalfairy.timeaware.ui.component.MultiWindowSizeLayout
 import com.eternalfairy.timeaware.ui.component.PopupDialog
-import com.eternalfairy.timeaware.ui.viewmodel.room.ActivityUiState
+import com.eternalfairy.timeaware.ui.data.ActivityUiState
+import com.eternalfairy.timeaware.ui.data.DayUiState
+import com.eternalfairy.timeaware.ui.data.GoalUiState
+import com.eternalfairy.timeaware.ui.data.TaskUiState
+import com.eternalfairy.timeaware.ui.data.UserInput
+import com.eternalfairy.timeaware.ui.data.VoiceNoteUiState
+import com.eternalfairy.timeaware.ui.screen.ActivityEditMode
+import com.eternalfairy.timeaware.ui.screen.ActivityEditScreen
+import com.eternalfairy.timeaware.ui.screen.DeleteScreen
+import com.eternalfairy.timeaware.ui.screen.DeleteType
+import com.eternalfairy.timeaware.ui.screen.GoalEditScreen
+import com.eternalfairy.timeaware.ui.screen.TaskEditScreen
 import com.eternalfairy.timeaware.ui.viewmodel.AudioViewModel
-import com.eternalfairy.timeaware.ui.viewmodel.room.DayState
-import com.eternalfairy.timeaware.ui.viewmodel.room.GoalUiState
-import com.eternalfairy.timeaware.ui.viewmodel.room.TaskUiState
-import com.eternalfairy.timeaware.ui.viewmodel.room.UserInput
-import com.google.android.gms.ads.AdRequest
-import com.google.android.gms.ads.AdSize
-import com.google.android.gms.ads.AdView
+import io.github.jan.supabase.auth.user.UserInfo
 import java.time.LocalDate
 import java.util.UUID
 
@@ -88,8 +89,8 @@ fun PlannerContainer(
     context: Context,
     activityEditState: ActivityUiState,
     activityUiState: ActivityUiState,
-    dayState: DayState,
-    goals: List<Goal>,
+    dayUiState: DayUiState,
+    goals: List<GoalUiState>,
     goalUiState: GoalUiState,
     lastGoalPriority: Int?,
     lastTaskPriority: Int?,
@@ -97,27 +98,31 @@ fun PlannerContainer(
     recordedSubActivityUiState: ActivityUiState,
     stopwatchService: StopwatchService,
     taskUiState: TaskUiState,
-    toDoTasks: List<Task>,
+    toDoTasks: List<TaskUiState>,
+    userInfo: UserInfo,
     userInput: UserInput,
     clearMainRecordedActivity: () -> Unit,
     clearSubRecordedActivity: () -> Unit,
     deleteActivity: () -> Unit,
-    deleteGoal: (Goal) -> Unit,
+    deleteGoal: (UUID) -> Unit,
     deleteTask: () -> Unit,
     deleteVoiceNote: () -> Unit,
-    onMoveToToDoList: () -> Unit,
     onClickSaveActiveTime: () -> Unit,
+    onLogout: () -> Unit,
+    onMoveToToDoList: () -> Unit,
+    onNavigateToLogin: () -> Unit,
     onPinTask: (Boolean) -> Unit,
+//    onSetSelectedDate: (OffsetDateTime) -> Unit,
     onSetSelectedDate: (LocalDate) -> Unit,
     saveActivity: () -> Unit,
     saveDay: () -> Unit,
-    saveGoal: (Goal) -> Unit,
+    saveGoal: (GoalUiState) -> Unit,
     saveGoalFromState: () -> Unit,
     saveMainRecordedActivity: () -> Unit,
     saveSubRecordedActivity: () -> Unit,
-    saveTask: (Task) -> Unit,
+    saveTask: (TaskUiState) -> Unit,
     saveTaskFromState: () -> Unit,
-    saveVoiceNote: (VoiceNote) -> Unit,
+    saveVoiceNote: (VoiceNoteUiState) -> Unit,
     selectActivity: (UUID?) -> Unit,
     selectActivityToBeDeleted: (UUID?) -> Unit,
     selectActivityToBeEdited: (UUID?) -> Unit,
@@ -132,6 +137,7 @@ fun PlannerContainer(
     setActualActiveTimeStart: (Time) -> Unit,
     setGoalPriority: (Int) -> Unit,
     setGoalTitle: (String) -> Unit,
+//    setRecordedMainActivityDate: (OffsetDateTime) -> Unit,
     setRecordedMainActivityDate: (LocalDate) -> Unit,
     setRecordedMainActivityEndTime: (Time) -> Unit,
     setRecordedMainActivityId: (UUID) -> Unit,
@@ -144,6 +150,7 @@ fun PlannerContainer(
     setRecordedSubActivityNote: (String) -> Unit,
     setRecordedSubActivityStartTime: (Time) -> Unit,
     setRecordedSubActivityTitle: (String) -> Unit,
+//    setTaskDate: (OffsetDateTime?) -> Unit,
     setTaskDate: (LocalDate?) -> Unit,
     setTaskDescription: (String) -> Unit,
     setTaskEndTime: (Time) -> Unit,
@@ -177,13 +184,14 @@ fun PlannerContainer(
 //                adView = adView,
                 audioViewModel = audioViewModel,
                 context = context,
-                dayState = dayState,
+                dayUiState = dayUiState,
                 goals = goals,
                 goalUiState = goalUiState,
                 lastGoalPriority = lastGoalPriority,
                 lastTaskPriority = lastTaskPriority,
                 taskUiState = taskUiState,
                 toDoTasks = toDoTasks,
+                userInfo = userInfo,
                 userInput = userInput,
                 deleteGoal = deleteGoal,
                 deleteTask = deleteTask,
@@ -214,7 +222,9 @@ fun PlannerContainer(
                     popupState = PopupState.DeleteVoiceNote
                     showPopupWindow = true
                 },
+                onLogout = onLogout,
                 onMoveToToDoList = onMoveToToDoList,
+                onNavigateToLogin = onNavigateToLogin,
                 onPinTask = onPinTask,
                 onPressActiveTime = {
                     popupState = PopupState.ActiveTimeSetup
@@ -250,7 +260,7 @@ fun PlannerContainer(
 //                adView = adView,
                 audioViewModel = audioViewModel,
                 context = context,
-                dayState = dayState,
+                dayUiState = dayUiState,
                 goals = goals,
                 goalUiState = goalUiState,
                 lastGoalPriority = lastGoalPriority,
@@ -323,7 +333,7 @@ fun PlannerContainer(
 //                adView = adView,
                 audioViewModel = audioViewModel,
                 context = context,
-                dayState = dayState,
+                dayUiState = dayUiState,
                 goals = goals,
                 goalUiState = goalUiState,
                 lastGoalPriority = lastGoalPriority,
@@ -395,7 +405,7 @@ fun PlannerContainer(
 //                adView = adView,
                 audioViewModel = audioViewModel,
                 context = context,
-                dayState = dayState,
+                dayUiState = dayUiState,
                 goals = goals,
                 goalUiState = goalUiState,
                 lastGoalPriority = lastGoalPriority,
@@ -473,7 +483,7 @@ fun PlannerContainer(
                 PopupState.ActiveTimeSetup -> {
                     // Show active time setup
                     ActiveTimeSetUp(
-                        dayState = dayState,
+                        dayUiState = dayUiState,
                         onBack = { showPopupWindow = false },
                         onClickSaveActiveTime = {
                             onClickSaveActiveTime()
@@ -493,7 +503,7 @@ fun PlannerContainer(
                                 vertical = 5.dp
                             )
                         ,
-                        dayState = dayState,
+                        dayUiState = dayUiState,
                         recordedMainActivityUiState = recordedMainActivityUiState,
                         recordedSubActivityUiState = recordedSubActivityUiState,
                         stopwatchService = stopwatchService,
@@ -524,7 +534,7 @@ fun PlannerContainer(
                 }
 
                 PopupState.DeleteActivity -> {
-                    _root_ide_package_.com.eternalfairy.timeaware.ui.screen.DeleteScreen(
+                    DeleteScreen(
                         onBack = {
                         showPopupWindow = false
                     },
@@ -533,12 +543,12 @@ fun PlannerContainer(
                             selectActivityToBeDeleted(null)
                             showPopupWindow = false
                         },
-                        deleteType = _root_ide_package_.com.eternalfairy.timeaware.ui.screen.DeleteType.Activity
+                        deleteType = DeleteType.Activity
                     )
                 }
 
                 PopupState.DeleteTask -> {
-                    _root_ide_package_.com.eternalfairy.timeaware.ui.screen.DeleteScreen(onBack = {
+                    DeleteScreen(onBack = {
                         showPopupWindow = false
                     }, onDelete = {
                         deleteTask()
@@ -548,7 +558,7 @@ fun PlannerContainer(
                 }
 
                 PopupState.DeleteVoiceNote -> {
-                    _root_ide_package_.com.eternalfairy.timeaware.ui.screen.DeleteScreen(
+                    DeleteScreen(
                         onBack = {
                         showPopupWindow = false
                     },
@@ -559,14 +569,14 @@ fun PlannerContainer(
                             selectVoiceNoteToBeDeleted(null)
                             showPopupWindow = false
                         },
-                        deleteType = _root_ide_package_.com.eternalfairy.timeaware.ui.screen.DeleteType.VoiceNote
+                        deleteType = DeleteType.VoiceNote
                     )
                 }
 
                 PopupState.EditActivity -> {
-                    _root_ide_package_.com.eternalfairy.timeaware.ui.screen.ActivityEditScreen(
+                    ActivityEditScreen(
                         activityEditState = activityEditState,
-                        mode = _root_ide_package_.com.eternalfairy.timeaware.ui.screen.ActivityEditMode.Full,
+                        mode = ActivityEditMode.Full,
                         onBack = {
                             showPopupWindow = false
                         },
@@ -577,7 +587,7 @@ fun PlannerContainer(
                 }
 
                 PopupState.EditActivityNotes -> {
-                    _root_ide_package_.com.eternalfairy.timeaware.ui.screen.ActivityEditScreen(
+                    ActivityEditScreen(
                         activityEditState = if (isSubActivityTimerRunning) recordedSubActivityUiState else recordedMainActivityUiState,
                         onBack = {
                             popupState = PopupState.ActivityRecorder
@@ -594,7 +604,7 @@ fun PlannerContainer(
                 }
 
                 PopupState.EditGoal -> {
-                    _root_ide_package_.com.eternalfairy.timeaware.ui.screen.GoalEditScreen(
+                    GoalEditScreen(
                         goalUiState = goalUiState,
                         lastPriority = lastGoalPriority ?: 0,
                         onBack = {
@@ -607,8 +617,8 @@ fun PlannerContainer(
                 }
 
                 PopupState.EditTask -> {
-                    _root_ide_package_.com.eternalfairy.timeaware.ui.screen.TaskEditScreen(
-                        dayState = dayState,
+                    TaskEditScreen(
+                        dayUiState = dayUiState,
                         lastTaskPriority = lastTaskPriority ?: 0,
                         taskUiState = taskUiState,
                         onBack = {

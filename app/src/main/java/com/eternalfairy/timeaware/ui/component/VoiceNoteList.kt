@@ -21,10 +21,10 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import com.eternalfairy.timeaware.ui.data.ActivityUiState
+import com.eternalfairy.timeaware.ui.data.VoiceNoteUiState
 import com.eternalfairy.timeaware.ui.theme.Teal12
-import com.eternalfairy.timeaware.ui.viewmodel.room.ActivityUiState
 import com.eternalfairy.timeaware.ui.viewmodel.AudioViewModel
-import com.eternalfairy.timeaware.ui.viewmodel.room.VoiceNoteUiState
 
 @Composable
 fun VoiceNoteList (

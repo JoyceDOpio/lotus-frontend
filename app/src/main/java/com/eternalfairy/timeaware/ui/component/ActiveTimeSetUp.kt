@@ -36,20 +36,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eternalfairy.timeaware.R
-import com.eternalfairy.timeaware.data.Time
+import com.eternalfairy.timeaware.db.Time
+import com.eternalfairy.timeaware.ui.data.DayUiState
 import com.eternalfairy.timeaware.ui.theme.BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.ERROR_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.theme.SECONDARY_HEADER_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.theme.SECONDARY_TEXT_COLOR
-import com.eternalfairy.timeaware.ui.viewmodel.room.DayState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActiveTimeSetUp (
     modifier: Modifier = Modifier,
-    dayState: DayState,
+    dayUiState: DayUiState,
     onBack: () -> Unit,
     onClickSaveActiveTime: () -> Unit,
     setActiveTimeStart: (Time) -> Unit,
@@ -58,12 +58,12 @@ fun ActiveTimeSetUp (
     var showTimePicker by remember { mutableStateOf(false) }
     var showStartActiveTimePicker by remember { mutableStateOf(false) }
     val startActiveTimePickerState = rememberTimePickerState(
-        dayState.activeTimeStart.hour,
-        dayState.activeTimeStart.minute
+        dayUiState.activeTimeStart.hour,
+        dayUiState.activeTimeStart.minute
     )
     val endActiveTimePickerState = rememberTimePickerState(
-        dayState.activeTimeEnd.hour,
-        dayState.activeTimeEnd.minute
+        dayUiState.activeTimeEnd.hour,
+        dayUiState.activeTimeEnd.minute
     )
 
     // Validation:
@@ -81,7 +81,7 @@ fun ActiveTimeSetUp (
     val startTime = Time(startActiveTimePickerState.hour, startActiveTimePickerState.minute)
     val endTime = Time(endActiveTimePickerState.hour, endActiveTimePickerState.minute)
 
-    val tasks = dayState.tasks
+    val tasks = dayUiState.tasks
     // Check whether the start- and end time have correct values
     isStartTimeEarlierThanEndTime = (startTime.compareTo(endTime) == -1)
     if (!tasks.isEmpty()) {

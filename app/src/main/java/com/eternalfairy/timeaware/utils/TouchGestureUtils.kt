@@ -2,7 +2,7 @@ package com.eternalfairy.timeaware.utils
 
 import android.util.Log
 import androidx.compose.ui.geometry.Offset
-import com.eternalfairy.timeaware.data.Time
+import com.eternalfairy.timeaware.db.Time
 import kotlin.math.atan2
 import kotlin.math.floor
 import kotlin.math.sqrt

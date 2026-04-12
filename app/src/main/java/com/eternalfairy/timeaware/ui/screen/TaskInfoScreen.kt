@@ -30,16 +30,16 @@ import com.eternalfairy.timeaware.ui.component.CardDisplayType
 import com.eternalfairy.timeaware.ui.component.DropDownItem
 import com.eternalfairy.timeaware.ui.component.TaskCard
 import com.eternalfairy.timeaware.ui.component.TaskDropdownMenu
+import com.eternalfairy.timeaware.ui.data.DayUiState
+import com.eternalfairy.timeaware.ui.data.TaskUiState
 import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
-import com.eternalfairy.timeaware.ui.viewmodel.room.DayState
-import com.eternalfairy.timeaware.ui.viewmodel.room.TaskUiState
 
 @Composable
 fun TaskInfoScreen(
     modifier: Modifier = Modifier,
     displayType: CardDisplayType,
-    dayState: DayState,
+    dayUiState: DayUiState,
     taskUiState: TaskUiState,
     onDeleteTask: () -> Unit,
     onBack: () -> Unit,
@@ -125,7 +125,7 @@ fun TaskInfoScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
                 date = taskDetails.date,
-                dayState = dayState,
+                dayUiState = dayUiState,
                 displayType = displayType,
                 endTime = taskDetails.endTime,
                 startTime = taskDetails.startTime,

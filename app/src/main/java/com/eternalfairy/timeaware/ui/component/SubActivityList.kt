@@ -11,10 +11,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.eternalfairy.timeaware.data.Time
+import com.eternalfairy.timeaware.db.Time
+import com.eternalfairy.timeaware.ui.data.ActivityUiState
+import com.eternalfairy.timeaware.ui.data.VoiceNoteUiState
 import com.eternalfairy.timeaware.ui.theme.Teal12
-import com.eternalfairy.timeaware.ui.viewmodel.room.ActivityUiState
-import com.eternalfairy.timeaware.ui.viewmodel.room.VoiceNoteUiState
 import com.eternalfairy.timeaware.utils.TouchGestureUtils
 import java.time.LocalDateTime
 import java.util.UUID

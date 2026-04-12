@@ -31,8 +31,8 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.media3.exoplayer.ExoPlayer
 import com.eternalfairy.timeaware.R
+import com.eternalfairy.timeaware.ui.data.VoiceNoteUiState
 import com.eternalfairy.timeaware.ui.theme.Teal12
-import com.eternalfairy.timeaware.ui.viewmodel.room.VoiceNoteUiState
 import kotlinx.coroutines.delay
 import java.time.format.DateTimeFormatter
 import kotlin.math.floor

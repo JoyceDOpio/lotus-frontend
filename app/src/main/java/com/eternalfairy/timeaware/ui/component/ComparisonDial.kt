@@ -42,10 +42,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eternalfairy.timeaware.R
-import com.eternalfairy.timeaware.data.Time
+import com.eternalfairy.timeaware.db.Time
+import com.eternalfairy.timeaware.ui.data.DayUiState
 import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
-import com.eternalfairy.timeaware.ui.viewmodel.room.DayState
 import com.eternalfairy.timeaware.utils.DrawScopeUtils.drawClockCenter
 import com.eternalfairy.timeaware.utils.DrawScopeUtils.drawClockHand
 import com.eternalfairy.timeaware.utils.DrawScopeUtils.drawHourStepsAndLabels
@@ -66,7 +66,7 @@ fun ComparisonDial(
     paddingTop: Dp = 5.dp,
     paddingEnd: Dp = 10.dp,
     paddingBottom: Dp = 5.dp,
-    dayState: DayState,
+    dayUiState: DayUiState,
     drawClockHand: Boolean = false,
     onNavigateToTaskActivityComparison: () -> Unit,
     selectActivity: (UUID?) -> Unit,
@@ -74,8 +74,8 @@ fun ComparisonDial(
 ) {
     val textMeasurer = rememberTextMeasurer()
     // The actual start and end time of the day are for the cases when the activities start or end before or after the planned active time, respectively
-    val activeTimeStart: Time = dayState.actualActiveTimeStart ?: dayState.activeTimeStart
-    val activeTimeEnd: Time = dayState.actualActiveTimeEnd?.let {TouchGestureUtils.addMinutesToTime(1, dayState.actualActiveTimeEnd)} ?: dayState.activeTimeEnd //FIXME: I need to add this one minute at the end of the actual active time end for the activity to draw correctly - otherwise, the activity's title isn't drawn
+    val activeTimeStart: Time = dayUiState.actualActiveTimeStart ?: dayUiState.activeTimeStart
+    val activeTimeEnd: Time = dayUiState.actualActiveTimeEnd?.let {TouchGestureUtils.addMinutesToTime(1, dayUiState.actualActiveTimeEnd)} ?: dayUiState.activeTimeEnd //FIXME: I need to add this one minute at the end of the actual active time end for the activity to draw correctly - otherwise, the activity's title isn't drawn
 
     val totalMinutes: Int = TouchGestureUtils.calculateTotalNumberOfMinutes(
         Time(
@@ -112,8 +112,8 @@ fun ComparisonDial(
 
     var clockTime by remember { mutableStateOf(Time(LocalTime.now().hour, LocalTime.now().minute)) }
 
-    val tasks = dayState.tasks
-    val activities = dayState.activities
+    val tasks = dayUiState.tasks
+    val activities = dayUiState.activities
 
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
@@ -214,7 +214,7 @@ fun ComparisonDial(
                         translationX = offset.x * scale,
                         translationY = offset.y * scale
                     )
-                    .pointerInput(dayState) {
+                    .pointerInput(dayUiState) {
                         detectTransformGestures(
                             onGesture = { centroid, pan, zoom, _ ->
                                 Log.i("TaskDial", "onGesture")
@@ -225,7 +225,7 @@ fun ComparisonDial(
                             }
                         )
                     }
-                    .pointerInput(dayState) {
+                    .pointerInput(dayUiState) {
                         detectTapGestures(
                             onTap = { offset ->
                                 // Clear the task- and activity UI states

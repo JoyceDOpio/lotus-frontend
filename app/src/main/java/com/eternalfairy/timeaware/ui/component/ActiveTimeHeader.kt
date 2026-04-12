@@ -16,12 +16,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.eternalfairy.timeaware.data.Time
+import com.eternalfairy.timeaware.db.Time
+import com.eternalfairy.timeaware.ui.data.DayUiState
+import com.eternalfairy.timeaware.ui.data.UserInput
 import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.theme.TERTIARY_TEXT_COLOR
-import com.eternalfairy.timeaware.ui.viewmodel.room.DayState
-import com.eternalfairy.timeaware.ui.viewmodel.room.UserInput
 import com.eternalfairy.timeaware.utils.TouchGestureUtils
 import kotlinx.coroutines.delay
 import java.time.LocalDate
@@ -33,12 +33,12 @@ const val MINUTES_IN_HOUR = 60
 fun ActiveTimeHeader (
 //    componentHeight: Dp = 90.dp,
     componentWidth: Dp = 400.dp,
-    dayState: DayState,
+    dayUiState: DayUiState,
     userInput: UserInput,
     modifier: Modifier = Modifier
 ) {
-    val startTime = dayState.activeTimeStart
-    val endTime = dayState.activeTimeEnd
+    val startTime = dayUiState.activeTimeStart
+    val endTime = dayUiState.activeTimeEnd
     val today = LocalDate.now()
 
     fun calculateTimeIntervalInMinutes(start: Time?, end: Time?): Int {

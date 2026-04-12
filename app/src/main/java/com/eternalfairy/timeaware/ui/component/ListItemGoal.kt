@@ -19,7 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.eternalfairy.timeaware.data.room.Goal
+import com.eternalfairy.timeaware.ui.data.GoalUiState
 import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
 import java.util.UUID
@@ -27,7 +27,7 @@ import java.util.UUID
 @Composable
 fun ListItemGoal(
     modifier: Modifier = Modifier,
-    goal: Goal,
+    goal: GoalUiState,
     onNavigateToGoalInfo: () -> Unit,
     selectGoal: (UUID?) -> Unit
 ){

@@ -55,13 +55,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eternalfairy.timeaware.R
-import com.eternalfairy.timeaware.data.room.Task
-import com.eternalfairy.timeaware.data.Time
+import com.eternalfairy.timeaware.db.Time
+import com.eternalfairy.timeaware.ui.data.DayUiState
+import com.eternalfairy.timeaware.ui.data.TaskUiState
+import com.eternalfairy.timeaware.ui.data.UserInput
 import com.eternalfairy.timeaware.ui.theme.COMMENT_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
-import com.eternalfairy.timeaware.ui.viewmodel.room.DayState
-import com.eternalfairy.timeaware.ui.viewmodel.room.UserInput
 import com.eternalfairy.timeaware.utils.AngleMode
 import com.eternalfairy.timeaware.utils.DrawScopeUtils.drawClockCenter
 import com.eternalfairy.timeaware.utils.DrawScopeUtils.drawClockHand
@@ -86,24 +86,24 @@ fun MoveToCalendarDial(
     paddingTop: Dp = 5.dp,
     paddingEnd: Dp = 10.dp,
     paddingBottom: Dp = 5.dp,
-    dayState: DayState,
+    dayUiState: DayUiState,
     userInput: UserInput,
     onPressActiveTime: () -> Unit,
     minimalDuration: Int,
-    tasks: List<Task>,
-    taskToBeMovedToCalendar: Task
+    tasks: List<TaskUiState>,
+    taskToBeMovedToCalendar: TaskUiState
 ) {
     // Text
     val dateNotAvailableText = "DATE NOT AVAILABLE"// TODO: Read string from resource
 
     val textMeasurer = rememberTextMeasurer()
-    val activeTimeStart: Time = dayState.activeTimeStart
-    val activeTimeEnd: Time = dayState.activeTimeEnd
+    val activeTimeStart: Time = dayUiState.activeTimeStart
+    val activeTimeEnd: Time = dayUiState.activeTimeEnd
     var taskMode: TaskMode by remember { mutableStateOf(TaskMode.EditStartTime) }
     var angleMode: AngleMode by remember { mutableStateOf(AngleMode.None) }
 
-    var nextTask by remember { mutableStateOf<Task?>(null) }
-    var previousTask by remember { mutableStateOf<Task?>(null) }
+    var nextTask by remember { mutableStateOf<TaskUiState?>(null) }
+    var previousTask by remember { mutableStateOf<TaskUiState?>(null) }
     var clockTime by remember { mutableStateOf(Time(LocalTime.now().hour, LocalTime.now().minute)) }
     var taskClockTime by remember { mutableStateOf(if (taskToBeMovedToCalendar.startTime != null && taskToBeMovedToCalendar.endTime != null) Time(taskToBeMovedToCalendar.startTime!!.hour, taskToBeMovedToCalendar.startTime!!.minute) else Time(LocalTime.now().hour, LocalTime.now().minute)) }
 
@@ -174,7 +174,7 @@ fun MoveToCalendarDial(
     // The angles which the dragged task should "jump to" should the dragging end while the dragged task still overlaps another task
     var jumpToStartAngle: Float? by remember { mutableStateOf(null) }
     var jumpToEndAngle: Float? by remember { mutableStateOf(null) }
-    var overlappedTask by remember { mutableStateOf<Task?>(null) }
+    var overlappedTask by remember { mutableStateOf<TaskUiState?>(null) }
 
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
@@ -186,7 +186,7 @@ fun MoveToCalendarDial(
     // ZOOMING ANG PANNING
     var transformMode by remember { mutableStateOf(false) }
 
-    fun checkIfTouchWithinTask(angle: Float, task: Task): Boolean {
+    fun checkIfTouchWithinTask(angle: Float, task: TaskUiState): Boolean {
         // The task stores the appropriate angle values, i.e. values corresponding to how the circle is drawn (the 0 degree starts at the right-hand side (east) of the circle). We want to 'correct' these angles as if 0 degree starts at the top of the circle (north)
         var isTouchWithinTask: Boolean
         val taskStartAngle = TouchGestureUtils.calculateAngleFromTime (
@@ -454,7 +454,7 @@ fun MoveToCalendarDial(
                             translationX = offset.x * scale,
                             translationY = offset.y * scale
                         )
-                        .pointerInput(dayState, userInput, tasks) {
+                        .pointerInput(dayUiState, userInput, tasks) {
                             val viewConfig = viewConfiguration
 
                             awaitEachGesture {
@@ -504,7 +504,7 @@ fun MoveToCalendarDial(
                                 } while (pressed)
                             }
                         }
-                        .pointerInput(dayState, userInput, tasks) {
+                        .pointerInput(dayUiState, userInput, tasks) {
                             detectTapGestures(onDoubleTap = { offset ->
                                 // On double tap switch mode to EditTimeRange
                                 val distance = TouchGestureUtils.distance(offset, center)
@@ -546,7 +546,7 @@ fun MoveToCalendarDial(
                                 }
                             })
                         }
-                        .pointerInput(dayState, userInput, tasks) {
+                        .pointerInput(dayUiState, userInput, tasks) {
                             detectDragGestures(
                                 onDragStart = { offset ->
                                     // Get the starting coordinates and determine if the touch is within the dial

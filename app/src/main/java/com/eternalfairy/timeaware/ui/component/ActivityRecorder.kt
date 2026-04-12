@@ -60,8 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.eternalfairy.timeaware.R
-import com.eternalfairy.timeaware.data.Time
-import com.eternalfairy.timeaware.data.room.VoiceNote
+import com.eternalfairy.timeaware.db.Time
 import com.eternalfairy.timeaware.service.ServiceHelper
 import com.eternalfairy.timeaware.service.StopwatchService
 import com.eternalfairy.timeaware.service.StopwatchService.Companion.MAIN_ACTIVITY_NOTIFICATION_ID
@@ -70,12 +69,13 @@ import com.eternalfairy.timeaware.service.StopwatchService.Companion.RESUME
 import com.eternalfairy.timeaware.service.StopwatchService.Companion.START
 import com.eternalfairy.timeaware.service.StopwatchService.Companion.STOP
 import com.eternalfairy.timeaware.service.StopwatchService.Companion.SUB_ACTIVITY_NOTIFICATION_ID
+import com.eternalfairy.timeaware.ui.data.ActivityUiState
+import com.eternalfairy.timeaware.ui.data.DayUiState
+import com.eternalfairy.timeaware.ui.data.VoiceNoteUiState
 import com.eternalfairy.timeaware.ui.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.timeaware.ui.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.timeaware.ui.theme.MINUTE_LABEL_COLOR
 import com.eternalfairy.timeaware.ui.theme.SECONDARY_HEADER_TEXT_COLOR
-import com.eternalfairy.timeaware.ui.viewmodel.room.ActivityUiState
-import com.eternalfairy.timeaware.ui.viewmodel.room.DayState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -84,6 +84,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
@@ -103,7 +104,7 @@ enum class ButtonState {
 fun ActivityRecorder(
     context: Context,
     modifier: Modifier = Modifier,
-    dayState: DayState,
+    dayUiState: DayUiState,
     recordedMainActivityUiState: ActivityUiState,
     recordedSubActivityUiState: ActivityUiState,
     stopwatchService: StopwatchService,
@@ -113,7 +114,7 @@ fun ActivityRecorder(
     saveDay: () -> Unit,
     saveRecordedMainActivity: () -> Unit,
     saveRecordedSubActivity: () -> Unit,
-    saveVoiceNote: (VoiceNote) -> Unit,
+    saveVoiceNote: (VoiceNoteUiState) -> Unit,
     setActualActiveTimeEnd: (Time) -> Unit,
     setActualActiveTimeStart: (Time) -> Unit,
     setRecordedMainActivityDate: (LocalDate) -> Unit,
@@ -163,8 +164,8 @@ fun ActivityRecorder(
     )
     var showPermissionRationale by remember { mutableStateOf(false) }
 
-    val activeTimeStart: Time = dayState.activeTimeStart
-    val activeTimeEnd: Time = dayState.activeTimeEnd
+    val activeTimeStart: Time = dayUiState.activeTimeStart
+    val activeTimeEnd: Time = dayUiState.activeTimeEnd
     val initialState: ActivityState = if (isMainActivityTimerRunning) {
         ActivityState.Started
     } else {
@@ -185,8 +186,8 @@ fun ActivityRecorder(
     fun startSubActivity(mainActivityId: UUID) {
         // Create the sub-activity
         val activityStartTime = Time(
-            LocalDateTime.now().hour,
-            LocalDateTime.now().minute
+            OffsetDateTime.now().hour,
+            OffsetDateTime.now().minute
         )
 
         setRecordedSubActivityStartTime(activityStartTime)
@@ -203,8 +204,8 @@ fun ActivityRecorder(
     fun stopSubActivity() {
         // Finish the activity
         val activityEndTime = Time(
-            LocalDateTime.now().hour,
-            LocalDateTime.now().minute
+            OffsetDateTime.now().hour,
+            OffsetDateTime.now().minute
         )
 
         setRecordedSubActivityEndTime(activityEndTime)
@@ -350,8 +351,8 @@ fun ActivityRecorder(
 
                                     // Finish the activity
                                     val activityEndTime = Time(
-                                        LocalDateTime.now().hour,
-                                        LocalDateTime.now().minute
+                                        OffsetDateTime.now().hour,
+                                        OffsetDateTime.now().minute
                                     )
 
                                     setRecordedMainActivityEndTime(activityEndTime)
@@ -582,7 +583,7 @@ fun ActivityRecorder(
                                                     // Check if permission for audio recording is granted
                                                     if (permissionState.status.isGranted) {
                                                         // Create file name
-                                                        val date = LocalDate.now()
+                                                        val date = OffsetDateTime.now()
                                                             .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
                                                         val timestamp = System.currentTimeMillis()
                                                         val voiceNoteId = UUID.randomUUID()
@@ -627,7 +628,7 @@ fun ActivityRecorder(
 
                                                             val duration =
                                                                 System.currentTimeMillis() - timestamp
-                                                            val voiceNote = VoiceNote(
+                                                            val voiceNote = VoiceNoteUiState(
                                                                 uri = filePath,
                                                                 timestamp = timestamp,
                                                                 id = voiceNoteId,
@@ -882,7 +883,7 @@ fun ActivityRecorder(
                                             // Check if permission for audio recording is granted
                                             if (permissionState.status.isGranted) {
                                                 // Create file name
-                                                val date = LocalDate.now()
+                                                val date = OffsetDateTime.now()
                                                     .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
                                                 val timestamp = System.currentTimeMillis()
                                                 val voiceNoteId = UUID.randomUUID()
@@ -926,7 +927,7 @@ fun ActivityRecorder(
 
                                                     val duration =
                                                         System.currentTimeMillis() - timestamp
-                                                    val voiceNote = VoiceNote(
+                                                    val voiceNote = VoiceNoteUiState(
                                                         uri = filePath,
                                                         timestamp = timestamp,
                                                         id = voiceNoteId,

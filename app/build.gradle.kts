@@ -84,6 +84,7 @@ android {
 //        named("debug") {
 //            kotlin .directories.add("additionalSourceDirectory/kotlin")
 //        }
+
     }
     buildFeatures {
         compose = true
@@ -186,6 +187,17 @@ dependencies {
 
     // Google ads
     implementation("com.google.android.gms:play-services-ads:25.0.0")
+
+    // Material 3
+    implementation(platform("androidx.compose:compose-bom:2026.03.00"))
+    implementation("androidx.compose.material3:material3")
+    implementation ("androidx.compose.material:material-icons-extended")
+
+    // Powersync
+    implementation(libs.powersync.core)
+
+    // Dotenv
+    implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
 }
 
 configurations.implementation{
