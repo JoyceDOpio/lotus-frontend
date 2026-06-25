@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Time Aware"
+rootProject.name = "Lotus"
 include(":app")

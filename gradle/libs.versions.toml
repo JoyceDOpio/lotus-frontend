@@ -1,7 +1,7 @@
 [versions]
 accompanistPermissions = "0.37.3"
 #agp = "8.13.2"
-agp = "9.1.0"
+agp = "9.1.1"
 foundation = "1.10.4"
 hiltAndroid = "2.59.2"
 hiltNavigationCompose = "1.3.0"
@@ -10,7 +10,7 @@ coreKtx = "1.17.0"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
-kotlinxSerializationJson = "1.10.0"
+kotlinxSerializationJson = "1.11.0"
 lifecycleRuntimeKtx = "2.10.0"
 activityCompose = "1.12.4"
 composeBom = "2026.02.01"
@@ -26,10 +26,10 @@ composeMaterial = "1.5.6"
 material3WindowSizeClass = "1.4.0"
 media3Exoplayer = "1.9.2"
 navVersion = "2.9.7"
-roomCompiler = "2.8.4"
+#roomCompiler = "2.8.4"
 emoji2 = "1.6.0"
-roomCompilerVersion = "2.8.4"
-roomRuntime = "2.8.4"
+#roomCompilerVersion = "2.8.4"
+#roomRuntime = "2.8.4"
 uiGraphics = "1.10.4"
 adaptive = "1.2.0"
 lifecycleService = "2.10.0"
@@ -50,9 +50,9 @@ androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", versi
 androidx-media3-session = { module = "androidx.media3:media3-session", version.ref = "media3Exoplayer" }
 androidx-media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3Exoplayer" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navVersion" }
-androidx-room-compiler-v284 = { module = "androidx.room:room-compiler", version.ref = "roomCompilerVersion" }
-androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "roomRuntime" }
-androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomRuntime" }
+#androidx-room-compiler-v284 = { module = "androidx.room:room-compiler", version.ref = "roomCompilerVersion" }
+#androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "roomRuntime" }
+#androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomRuntime" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
 hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hiltAndroid" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -70,7 +70,7 @@ androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 androidx-material3-android = { group = "androidx.compose.material3", name = "material3-android", version.ref = "androidxMaterial3AndroidVersion" }
 androidx-compose-material = { group = "androidx.wear.compose", name = "compose-material", version.ref = "composeMaterial" }
-androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "roomCompiler" }
+#androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "roomCompiler" }
 androidx-emoji2 = { group = "androidx.emoji2", name = "emoji2", version.ref = "emoji2" }
 androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics", version.ref = "uiGraphics" }
 androidx-compose-adaptive = { group = "androidx.compose.material3.adaptive", name = "adaptive", version.ref = "adaptive" }

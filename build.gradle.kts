@@ -17,5 +17,5 @@ plugins {
     id("com.google.dagger.hilt.android") version "2.59.2" apply false
 
 //    id("androidx.room") version "$room_version" apply false
-    id("androidx.room") version "2.8.4" apply false
+//    id("androidx.room") version "2.8.4" apply false
 }

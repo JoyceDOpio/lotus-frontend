@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
 //    alias(libs.plugins.jetbrains.kotlin.android)
@@ -12,15 +14,36 @@ plugins {
 
     id("dagger.hilt.android.plugin")
 
-    id("androidx.room")
+//    id("androidx.room")
+//    id("kotlinx-serialization")
 }
 
+//// Creates a variable called keystorePropertiesFile, and initializes it to the
+//// keystore.properties file.
+//def keystorePropertiesFile = rootProject.file("keystore.properties")
+//
+//// Initializes a new Properties() object called keystoreProperties.
+//def keystoreProperties = new Properties()
+//
+//// Loads the keystore.properties file into the keystoreProperties object.
+//keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+
 android {
-    namespace = "com.eternalfairy.timeaware"
+    namespace = "com.eternalfairy.lotus"
     compileSdk = 36
 
+//    signingConfigs {
+//        config {
+//            POSTHOG_HOST_URL keystoreProperties['POSTHOG_HOST_URL']
+//            POSTHOG_PROJECT_TOKEN keystoreProperties['POSTHOG_PROJECT_TOKEN']
+//            POWERSYNC_URL file(keystoreProperties['POWERSYNC_URL'])
+//            SUPABASE_KEY keystoreProperties['SUPABASE_KEY']
+//            SUPABASE_URL keystoreProperties['SUPABASE_URL']
+//        }
+//    }
+
     defaultConfig {
-        applicationId = "com.eternalfairy.timeaware"
+        applicationId = "com.eternalfairy.lotus"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
@@ -30,19 +53,15 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+    }
 
-//        javaCompileOptions {
-//            annotationProcessorOptions {
-//                arguments["room.schemaLocation"] =
-//                    "$projectDir/schemas"
-//            }
-//        }
+    val keystoreProperties = Properties()
+    val keystorePropertiesFile = File(rootDir, "keystore.properties")
 
-//        ksp {
-//            arg("room.schemaLocation", "$projectDir/schemas")
-//        }
-
-
+    if (keystorePropertiesFile.exists() && keystorePropertiesFile.isFile) {
+        keystorePropertiesFile.inputStream().use {
+            keystoreProperties.load(it)
+        }
     }
 
     buildTypes {
@@ -51,6 +70,32 @@ android {
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
+            )
+
+            buildConfigField(
+                type = "String",
+                name = "POSTHOG_HOST_URL",
+                value = keystoreProperties.getProperty("POSTHOG_HOST_URL")
+            )
+            buildConfigField(
+                type = "String",
+                name = "POSTHOG_PROJECT_TOKEN",
+                value = keystoreProperties.getProperty("POSTHOG_PROJECT_TOKEN")
+            )
+            buildConfigField(
+                type = "String",
+                name = "POWERSYNC_URL",
+                value = keystoreProperties.getProperty("POWERSYNC_URL")
+            )
+            buildConfigField(
+                type = "String",
+                name = "SUPABASE_KEY",
+                value = keystoreProperties.getProperty("SUPABASE_KEY")
+            )
+            buildConfigField(
+                type = "String",
+                name = "SUPABASE_URL",
+                value = keystoreProperties.getProperty("SUPABASE_URL")
             )
         }
     }
@@ -88,6 +133,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
@@ -103,9 +149,9 @@ android {
 //    }
 }
 
-room {
-    schemaDirectory("$projectDir/schemas")
-}
+//room {
+//    schemaDirectory("$projectDir/schemas")
+//}
 
 kotlin {
     compilerOptions {
@@ -126,7 +172,7 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.material3.android)
     implementation(libs.androidx.compose.material)
-    implementation(libs.androidx.room.compiler)
+//    implementation(libs.androidx.room.compiler)
     implementation(libs.androidx.emoji2)
     implementation(libs.androidx.compose.foundation.layout)
     implementation(libs.androidx.compose.ui.unit)
@@ -148,12 +194,12 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
 
     //Room
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
+//    implementation(libs.androidx.room.runtime)
+//    implementation(libs.androidx.room.ktx)
 
 //    ksp(libs.androidx.room.compiler.v284)
 //    ksp("androidx.room:room-compiler:2.5.0")
-    ksp("androidx.room:room-compiler:2.8.4")
+//    ksp("androidx.room:room-compiler:2.8.4")
 
     // View Model
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -179,11 +225,11 @@ dependencies {
 //    implementation(libs.androidx.material3.adaptive.navigation.suite)
     implementation("androidx.compose.material3:material3-adaptive-navigation-suite")
 
-    // Supabase
-    implementation(platform("io.github.jan-tennert.supabase:bom:3.4.1"))
-    implementation("io.github.jan-tennert.supabase:postgrest-kt")
-    implementation("io.ktor:ktor-client-android:3.4.1")
-//    implementation("oi.github.jan-tennert.supabase:auth-kt")
+//    // Supabase
+//    implementation(platform("io.github.jan-tennert.supabase:bom:3.4.1"))
+//    implementation("io.github.jan-tennert.supabase:postgrest-kt")
+//    implementation("io.ktor:ktor-client-android:3.4.1")
+////    implementation("oi.github.jan-tennert.supabase:auth-kt")
 
     // Google ads
     implementation("com.google.android.gms:play-services-ads:25.0.0")
@@ -193,11 +239,26 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation ("androidx.compose.material:material-icons-extended")
 
-    // Powersync
+    // PowerSync
     implementation(libs.powersync.core)
 
     // Dotenv
     implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
+
+    // PostHog
+    implementation("com.posthog:posthog-android:3.+")
+
+    // Encryption
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
+    // Retrofit
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+//    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.retrofit2:converter-moshi:2.9.0")
+    implementation("com.squareup.okhttp3:okhttp:4.11.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.8.0")
 }
 
 configurations.implementation{

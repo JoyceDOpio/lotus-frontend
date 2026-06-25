@@ -1,0 +1,27 @@
+package com.eternalfairy.lotus.model.dao.postgres
+
+import com.eternalfairy.lotus.model.data.VoiceNote
+import retrofit2.http.Body
+import retrofit2.http.DELETE
+import retrofit2.http.GET
+import retrofit2.http.POST
+import retrofit2.http.PUT
+import retrofit2.http.Path
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
+
+interface VoiceNoteApi {
+    @OptIn(ExperimentalUuidApi::class)
+    @DELETE("/voice-note/{id}")
+    suspend fun deleteVoiceNote(@Path("id") id: Uuid)
+
+    @OptIn(ExperimentalUuidApi::class)
+    @GET("/voice-note/{id}")
+    suspend fun getVoiceNote(@Path("id") id: Uuid): VoiceNote?
+
+    @POST("/voice-note")
+    suspend fun insertVoiceNote(@Body voiceNote: VoiceNote)
+
+    @PUT("/voice-note")
+    suspend fun updateVoiceNote(@Body voiceNote: VoiceNote)
+}
