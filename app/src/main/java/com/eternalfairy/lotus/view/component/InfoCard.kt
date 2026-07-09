@@ -24,12 +24,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eternalfairy.lotus.R
-import com.eternalfairy.lotus.model.data.Time
 import com.eternalfairy.lotus.view.data.ActivityUiState
 import com.eternalfairy.lotus.view.data.DayUiState
 import com.eternalfairy.lotus.view.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils
+import com.eternalfairy.lotus.viewmodel.PlannerViewModel
 import kotlinx.coroutines.delay
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.format
+import kotlinx.datetime.format.DateTimeFormat
+import kotlinx.datetime.format.DayOfWeekNames
+import kotlinx.datetime.format.MonthNames
+import kotlinx.datetime.format.char
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -39,30 +45,79 @@ enum class CardDisplayType {
     Full
 }
 
+enum class CardInfoType {
+    Activity,
+    Task
+}
+
+// Used to display activity and task info
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun TaskCard (
+fun InfoCard (
     modifier: Modifier = Modifier,
     verticalArrangement: Arrangement.Vertical = Arrangement.Top,
     horizontalAlignment: Alignment.Horizontal = Alignment.Start,
+    viewModel: PlannerViewModel,
 //    date: OffsetDateTime?,
-    date: LocalDate?,
-    dayUiState: DayUiState,
-    endTime: Time?,
-    startTime: Time?,
-    pinned: Boolean? = null,
-    title: String,
+//    date: LocalDate?,
+//    dayUiState: DayUiState,
+//    endTime: Time?,
+//    startTime: Time?,
+//    pinned: Boolean? = null,
+//    title: String,
     displayType: CardDisplayType = CardDisplayType.Full,
-    subActivities: List<ActivityUiState> = emptyList(),
+    infoType: CardInfoType = CardInfoType.Task,
+//    subActivities: List<ActivityUiState> = emptyList(),
     content: @Composable () -> Unit
 ) {
-    val weekDayFormatter = DateTimeFormatter.ofPattern("EEEE")
-    val dateFormatter = DateTimeFormatter.ofPattern("d. MMMM")
+    val state = viewModel.state
+
+    val date = state.selectedDate
+    val dayUiState = state.selectedDay
+    val endTime = when(infoType) {
+        CardInfoType.Activity -> state.editedActivity.endTime
+        CardInfoType.Task -> state.editedTask.endTime
+    }
+    val startTime = when(infoType) {
+        CardInfoType.Activity -> state.editedActivity.startTime
+        CardInfoType.Task -> state.editedTask.startTime
+    }
+    val pinned = when(infoType) {
+        CardInfoType.Activity -> null
+        CardInfoType.Task -> state.editedTask.pinned
+    }
+    val title = when(infoType) {
+        CardInfoType.Activity -> state.editedActivity.title
+        CardInfoType.Task -> state.editedTask.title
+    }
+    val subActivities = when(infoType) {
+        CardInfoType.Activity -> state.subActivities
+        CardInfoType.Task -> emptyList()
+    }
+
+    val dayOfWeekNames = listOf(
+        "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
+    )
+//    val weekDayFormatter = DateTimeFormatter.ofPattern("EEEE")
+    val weekDayFormatter: DateTimeFormat<kotlinx.datetime.LocalDate> = kotlinx.datetime.LocalDate.Format {
+        dayOfWeek(DayOfWeekNames(dayOfWeekNames))
+    }
+//    val dateFormatter = DateTimeFormatter.ofPattern("d. MMMM")
+    val monthNames = listOf(
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    )
+    val dateFormatter: DateTimeFormat<kotlinx.datetime.LocalDate> = kotlinx.datetime.LocalDate.Format {
+        day()
+        char('.')
+        char(' ')
+        monthName(MonthNames(monthNames))
+    }
     // A value to use in case an activity has not been finished yet
     var endTimeValue = endTime
 
     if (endTimeValue == null) {
-        endTimeValue = Time(LocalDateTime.now().hour, LocalDateTime.now().minute)
+        endTimeValue = LocalTime(LocalDateTime.now().hour, LocalDateTime.now().minute)
     }
 
     val activeTimeStart = dayUiState.actualActiveTimeStart ?: dayUiState.activeTimeStart
@@ -77,7 +132,7 @@ fun TaskCard (
     if (!subActivities.isEmpty()) {
         for (subActivity in subActivities) {
             val subActivityTotalMinutes = TouchGestureUtils.calculateTotalNumberOfMinutes(
-                subActivity.startTime,
+                subActivity.startTime!!,
                 subActivity.endTime ?: endTimeValue
             )
             totalMinutes -= subActivityTotalMinutes
@@ -109,7 +164,7 @@ fun TaskCard (
             // Update the clock every minute
             while (true) {
                 delay(1000L * SECONDS_IN_MINUTE)
-                endTimeValue = Time(LocalDateTime.now().hour, LocalDateTime.now().minute)
+                endTimeValue = LocalTime(LocalDateTime.now().hour, LocalDateTime.now().minute)
             }
         }
     }

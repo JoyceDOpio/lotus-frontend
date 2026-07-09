@@ -2,9 +2,11 @@ package com.eternalfairy.lotus.view.component
 
 import android.Manifest
 import android.content.Context
+import android.os.Build
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -60,7 +62,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.eternalfairy.lotus.R
-import com.eternalfairy.lotus.model.data.Time
 import com.eternalfairy.lotus.view.service.ServiceHelper
 import com.eternalfairy.lotus.view.service.StopwatchService
 import com.eternalfairy.lotus.view.service.StopwatchService.Companion.MAIN_ACTIVITY_NOTIFICATION_ID
@@ -69,25 +70,28 @@ import com.eternalfairy.lotus.view.service.StopwatchService.Companion.RESUME
 import com.eternalfairy.lotus.view.service.StopwatchService.Companion.START
 import com.eternalfairy.lotus.view.service.StopwatchService.Companion.STOP
 import com.eternalfairy.lotus.view.service.StopwatchService.Companion.SUB_ACTIVITY_NOTIFICATION_ID
-import com.eternalfairy.lotus.view.data.ActivityUiState
-import com.eternalfairy.lotus.view.data.DayUiState
 import com.eternalfairy.lotus.view.data.VoiceNoteUiState
+import com.eternalfairy.lotus.view.screen.planner.PlannerUiEvent
 import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.lotus.view.theme.MINUTE_LABEL_COLOR
 import com.eternalfairy.lotus.view.theme.SECONDARY_HEADER_TEXT_COLOR
+import com.eternalfairy.lotus.viewmodel.PlannerViewModel
+import com.eternalfairy.lotus.viewmodel.utils.AudioRecorder
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.time.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.LocalDate
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
-import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 enum class ActivityState {
     Idle,
@@ -99,43 +103,53 @@ enum class ButtonState {
     Paused
 }
 
-@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
+@RequiresApi(Build.VERSION_CODES.S)
+@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class,
+    ExperimentalUuidApi::class
+)
 @Composable
 fun ActivityRecorder(
+    audioRecorder: AudioRecorder,
     context: Context,
+    viewModel: PlannerViewModel,
     modifier: Modifier = Modifier,
-    dayUiState: DayUiState,
-    recordedMainActivityUiState: ActivityUiState,
-    recordedSubActivityUiState: ActivityUiState,
+//    dayUiState: DayUiState,
+//    recordedMainActivityUiState: ActivityUiState,
+//    recordedSubActivityUiState: ActivityUiState,
     stopwatchService: StopwatchService,
-    clearRecordedMainActivity: () -> Unit,
-    clearRecordedSubActivity: () -> Unit,
+//    clearRecordedMainActivity: () -> Unit,
+//    clearRecordedSubActivity: () -> Unit,
     onNavigateToActivityNoteEdit: () -> Unit,
-    saveDay: () -> Unit,
-    saveRecordedMainActivity: () -> Unit,
-    saveRecordedSubActivity: () -> Unit,
-    saveVoiceNote: (VoiceNoteUiState) -> Unit,
-    setActualActiveTimeEnd: (Time) -> Unit,
-    setActualActiveTimeStart: (Time) -> Unit,
-    setRecordedMainActivityDate: (LocalDate) -> Unit,
-    setRecordedMainActivityEndTime: (Time) -> Unit,
-    setRecordedMainActivityId: (UUID) -> Unit,
-    setRecordedMainActivityStartTime: (Time) -> Unit,
-    setRecordedMainActivityTitle: (String) -> Unit,
-    setRecordedSubActivityEndTime: (Time) -> Unit,
-    setRecordedSubActivityId: (UUID) -> Unit,
-    setRecordedSubActivityMainActivityId: (UUID) -> Unit,
-    setRecordedSubActivityStartTime: (Time) -> Unit,
-    setRecordedSubActivityTitle: (String) -> Unit,
-    startRecording: (String) -> Unit,
-    stopRecording: () -> Unit
+//    saveDay: () -> Unit,
+//    saveRecordedMainActivity: () -> Unit,
+//    saveRecordedSubActivity: () -> Unit,
+//    saveVoiceNote: (VoiceNoteUiState) -> Unit,
+//    setActualActiveTimeEnd: (Time) -> Unit,
+//    setActualActiveTimeStart: (Time) -> Unit,
+//    setRecordedMainActivityDate: (LocalDate) -> Unit,
+//    setRecordedMainActivityEndTime: (Time) -> Unit,
+//    setRecordedMainActivityId: (UUID) -> Unit,
+//    setRecordedMainActivityStartTime: (Time) -> Unit,
+//    setRecordedMainActivityTitle: (String) -> Unit,
+//    setRecordedSubActivityEndTime: (Time) -> Unit,
+//    setRecordedSubActivityId: (UUID) -> Unit,
+//    setRecordedSubActivityMainActivityId: (UUID) -> Unit,
+//    setRecordedSubActivityStartTime: (Time) -> Unit,
+//    setRecordedSubActivityTitle: (String) -> Unit,
+//    startRecording: (String) -> Unit,
+//    stopRecording: () -> Unit
 ) {
+    val state = viewModel.state
+
     val mainActivityHeader = "ACTIVITY"// TODO: Read text from string resource
     val subActivityHeader = "SUB-ACTIVITY"// TODO: Read text from string resource
-    val recordedMainActivityDetails = recordedMainActivityUiState
-    val recordedSubActivityDetails = recordedSubActivityUiState
+    val recordedMainActivityUiState = state.recordedActivityMain
+//    val recordedSubActivityDetails = recordedSubActivityUiState
+    val recordedSubActivityUiState = state.recordedActivitySub
     val isMainActivityTimerRunning  = (recordedMainActivityUiState.id != null)
     val isSubActivityTimerRunning  = (recordedSubActivityUiState.id != null)
+
+    val dayUiState = state.selectedDay
 
     var isRecordingVoiceNote by remember { mutableStateOf(false) }
     var timerStartVoiceNote by remember { mutableLongStateOf(0L) }
@@ -164,8 +178,8 @@ fun ActivityRecorder(
     )
     var showPermissionRationale by remember { mutableStateOf(false) }
 
-    val activeTimeStart: Time = dayUiState.activeTimeStart
-    val activeTimeEnd: Time = dayUiState.activeTimeEnd
+    val activeTimeStart: LocalTime = dayUiState.activeTimeStart
+    val activeTimeEnd: LocalTime = dayUiState.activeTimeEnd
     val initialState: ActivityState = if (isMainActivityTimerRunning) {
         ActivityState.Started
     } else {
@@ -183,48 +197,57 @@ fun ActivityRecorder(
     var isSubActivityButtonEnabled = if (isSubActivityTimerRunning) recordedSubActivityUiState.title != "" else isMainActivityTimerRunning
     var pauseButtonState = if (isSubActivityTimerRunning) ButtonState.Paused else ButtonState.Playing
 
-    fun startSubActivity(mainActivityId: UUID) {
+    fun startSubActivity(mainActivityId: Uuid) {
         // Create the sub-activity
-        val activityStartTime = Time(
+        val activityStartTime = LocalTime(
             OffsetDateTime.now().hour,
             OffsetDateTime.now().minute
         )
 
-        setRecordedSubActivityStartTime(activityStartTime)
+//        setRecordedSubActivityStartTime(activityStartTime)
+        viewModel.onEvent(PlannerUiEvent.RecordedSubActivityStartTimeChanged(activityStartTime))
 
-        val activityId = UUID.randomUUID()
+        val activityId = Uuid.generateV4()
 
-        setRecordedSubActivityId(activityId)
-        setRecordedSubActivityMainActivityId(mainActivityId)
-        saveRecordedSubActivity()
+//        setRecordedSubActivityId(activityId)
+        viewModel.onEvent(PlannerUiEvent.RecordedSubActivityIdChanged(activityId))
+//        setRecordedSubActivityMainActivityId(mainActivityId)
+        viewModel.onEvent(PlannerUiEvent.RecordedSubActivityMainActivityIdChanged(mainActivityId))
+//        saveRecordedSubActivity()
+        viewModel.onEvent(PlannerUiEvent.StartSubActivity)
 
         showSubActivity = true
     }
 
     fun stopSubActivity() {
         // Finish the activity
-        val activityEndTime = Time(
+        val activityEndTime = LocalTime(
             OffsetDateTime.now().hour,
             OffsetDateTime.now().minute
         )
 
-        setRecordedSubActivityEndTime(activityEndTime)
+//        setRecordedSubActivityEndTime(activityEndTime)
+        viewModel.onEvent(PlannerUiEvent.RecordedSubActivityEndTimeChanged(activityEndTime))
         // Update the activity
-        saveRecordedSubActivity()
-        // Clear the recorded activity state
-        clearRecordedSubActivity()
+//        saveRecordedSubActivity()
+        viewModel.onEvent((PlannerUiEvent.StopSubActivity))
+//        // Clear the recorded activity state
+//        clearRecordedSubActivity()
 
         // If the actual active time end is later than the planned active time end
         if (activityEndTime.compareTo(activeTimeEnd) == 1) {
-            setActualActiveTimeEnd(activityEndTime)
-            saveDay()
+//            setActualActiveTimeEnd(activityEndTime)
+//            saveDay()
+
+            viewModel.onEvent(PlannerUiEvent.ActualActiveTimeEndChanged(activityEndTime))
+            viewModel.onEvent(PlannerUiEvent.SaveDay)
         }
 
         showSubActivity = false
     }
 
     fun pauseMainActivity() {
-        startSubActivity(recordedMainActivityDetails.id!!)
+        startSubActivity(recordedMainActivityUiState.id!!)
         // Pause the main activity timer and start the sub-activity timer
         ServiceHelper.triggerForegroundService(
             context = context,
@@ -317,24 +340,33 @@ fun ActivityRecorder(
                             when (activityState) {
                                 ActivityState.Idle -> {
                                     // Start the main activity
-                                    val activityStartTime = Time(
+                                    val activityStartTime = LocalTime(
                                         LocalDateTime.now().hour,
                                         LocalDateTime.now().minute
                                     )
 
-                                    setRecordedMainActivityStartTime(activityStartTime)
+//                                    setRecordedMainActivityStartTime(activityStartTime)
+                                    viewModel.onEvent(PlannerUiEvent.RecordedMainActivityStartTimeChanged(activityStartTime))
                                     // For some reason the first activity that is recorded on a given day might be assigned the date from the previous day - we're setting that date to today just in case
-                                    setRecordedMainActivityDate(LocalDate.now())
+//                                    setRecordedMainActivityDate(LocalDate.now())
+                                    viewModel.onEvent(PlannerUiEvent.RecordedMainActivityDateChanged(LocalDate.parse(
+                                        java.time.LocalDate.now().toString())))
                                     // If the actual active time start is earlier than the planned active time start
                                     if (activityStartTime.compareTo(activeTimeStart) == -1) {
-                                        setActualActiveTimeStart(activityStartTime)
-                                        saveDay()
+//                                        setActualActiveTimeStart(activityStartTime)
+//                                        saveDay()
+
+                                        viewModel.onEvent(PlannerUiEvent.ActualActiveTimeStartChanged(activityStartTime))
+                                        viewModel.onEvent(PlannerUiEvent.SaveDay)
                                     }
 
-                                    val activityId = UUID.randomUUID()
+                                    val activityId = Uuid.generateV4()
 
-                                    setRecordedMainActivityId(activityId)
-                                    saveRecordedMainActivity()
+//                                    setRecordedMainActivityId(activityId)
+//                                    saveRecordedMainActivity()
+
+                                    viewModel.onEvent(PlannerUiEvent.RecordedMainActivityIdChanged(activityId))
+                                    viewModel.onEvent(PlannerUiEvent.StartMainActivity)
 
                                     activityState = ActivityState.Started
                                     showMainActivityTimer = true
@@ -350,21 +382,28 @@ fun ActivityRecorder(
                                     if (isSubActivityTimerRunning) stopSubActivity()
 
                                     // Finish the activity
-                                    val activityEndTime = Time(
+                                    val activityEndTime = LocalTime(
                                         OffsetDateTime.now().hour,
                                         OffsetDateTime.now().minute
                                     )
 
-                                    setRecordedMainActivityEndTime(activityEndTime)
-                                    // Update the activity
-                                    saveRecordedMainActivity()
+//                                    setRecordedMainActivityEndTime(activityEndTime)
+//                                    // Update the activity
+//                                    saveRecordedMainActivity()
                                     // Clear the recorded activity state
-                                    clearRecordedMainActivity()
+//                                    clearRecordedMainActivity()
+
+                                    viewModel.onEvent(PlannerUiEvent.RecordedMainActivityEndTimeChanged(activityEndTime))
+                                    viewModel.onEvent(PlannerUiEvent.StopMainActivity)
 
                                     // If the actual active time end is later than the planned active time end
                                     if (activityEndTime.compareTo(activeTimeEnd) == 1) {
-                                        setActualActiveTimeEnd(activityEndTime)
-                                        saveDay()
+//                                        setActualActiveTimeEnd(activityEndTime)
+//                                        saveDay()
+
+                                        viewModel.onEvent(PlannerUiEvent.ActualActiveTimeEndChanged(activityEndTime))
+                                        viewModel.onEvent(PlannerUiEvent.SaveDay)
+
                                     }
 
                                     activityState = ActivityState.Idle
@@ -420,14 +459,21 @@ fun ActivityRecorder(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextField(
-                        value = recordedMainActivityDetails.title,
+                        value = state.recordedActivityMain.title,
+//                        onValueChange = { value ->
+//                            if (isMainActivityTimerRunning) {
+//                                // Save every change in the title value to the activity
+//                                setRecordedMainActivityTitle(value)
+//                                saveRecordedMainActivity()
+//                            } else {
+//                                setRecordedMainActivityTitle(value)
+//                            }
+//                        },
                         onValueChange = { value ->
+                            viewModel.onEvent(PlannerUiEvent.RecordedMainActivityTitleChanged(value))
+
                             if (isMainActivityTimerRunning) {
-                                // Save every change in the title value to the activity
-                                setRecordedMainActivityTitle(value)
-                                saveRecordedMainActivity()
-                            } else {
-                                setRecordedMainActivityTitle(value)
+                                viewModel.onEvent(PlannerUiEvent.EditRecordedMainActivity)
                             }
                         },
                         modifier = Modifier
@@ -477,8 +523,8 @@ fun ActivityRecorder(
                             horizontalArrangement = Arrangement.Start
                         ) {
                             var text = "%d:%02d".format(
-                                recordedMainActivityDetails.startTime.hour,
-                                recordedMainActivityDetails.startTime.minute
+                                recordedMainActivityUiState.startTime!!.hour,
+                                recordedMainActivityUiState.startTime!!.minute
                             )
 
                             Text(
@@ -586,7 +632,7 @@ fun ActivityRecorder(
                                                         val date = OffsetDateTime.now()
                                                             .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
                                                         val timestamp = System.currentTimeMillis()
-                                                        val voiceNoteId = UUID.randomUUID()
+                                                        val voiceNoteId = Uuid.generateV4()
                                                         val fileName =
                                                             date + "_" + voiceNoteId.toString()
                                                         var filePath = ""
@@ -606,7 +652,8 @@ fun ActivityRecorder(
                                                             filePath =
                                                                 directory.absolutePath + "/$fileName" + ".mp3"// FIXME: Z jakiegoś powodu nie mogę stworzyć foldera
 
-                                                            startRecording(filePath)
+//                                                            startRecording(filePath)
+                                                            audioRecorder.startRecording(filePath)
                                                             isRecordingVoiceNote = true
                                                         }
 
@@ -622,7 +669,8 @@ fun ActivityRecorder(
                                                         if (up != null) {
                                                             onPressCoroutineJob.cancel()
                                                             // Once the finger is lifted, stop recording, create a VoiceNote object and add it to the voice note list of the activity UI state
-                                                            stopRecording()
+//                                                            stopRecording()
+                                                            audioRecorder.stopRecording()
                                                             // Set variable to false
                                                             isRecordingVoiceNote = false
 
@@ -635,7 +683,11 @@ fun ActivityRecorder(
                                                                 activityId = recordedMainActivityUiState.id!!
                                                             )
 
-                                                            saveVoiceNote(voiceNote)
+//                                                            saveVoiceNote(voiceNote)
+
+                                                            viewModel.onEvent(PlannerUiEvent.RecordedVoiceNoteChanged(voiceNote))
+                                                            viewModel.onEvent(PlannerUiEvent.SaveVoiceNote)
+
                                                             // Reset the voice note timer
                                                             scope.launch {
                                                                 // Delay resetting so that the user doesn't see it
@@ -734,15 +786,18 @@ fun ActivityRecorder(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         TextField(
-                            value = recordedSubActivityDetails.title,
+                            value = recordedSubActivityUiState.title,
                             onValueChange = { value ->
                                 // If the title value is empty, disable the possibility to stop the activity
                                 // Disable the stop button, if title value is empty
                                 isSubActivityButtonEnabled = value != ""
 
                                 // Save every change in the title value to the activity
-                                setRecordedSubActivityTitle(value)
-                                saveRecordedSubActivity()
+//                                setRecordedSubActivityTitle(value)
+//                                saveRecordedSubActivity()
+
+                                viewModel.onEvent(PlannerUiEvent.RecordedSubActivityTitleChanged(value))
+                                viewModel.onEvent(PlannerUiEvent.EditRecordedSubActivity)
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -784,8 +839,8 @@ fun ActivityRecorder(
                         horizontalArrangement = Arrangement.Start
                     ) {
                         var text = "%d:%02d".format(
-                            recordedSubActivityDetails.startTime.hour,
-                            recordedSubActivityDetails.startTime.minute
+                            recordedSubActivityUiState.startTime!!.hour,
+                            recordedSubActivityUiState.startTime!!.minute
                         )
 
                         Text(
@@ -885,7 +940,7 @@ fun ActivityRecorder(
                                                 val date = OffsetDateTime.now()
                                                     .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
                                                 val timestamp = System.currentTimeMillis()
-                                                val voiceNoteId = UUID.randomUUID()
+                                                val voiceNoteId = Uuid.generateV4()
                                                 val fileName =
                                                     date + "_" + voiceNoteId.toString()
                                                 var filePath = ""
@@ -904,7 +959,7 @@ fun ActivityRecorder(
                                                     filePath =
                                                         directory.absolutePath + "/$fileName" + ".mp3"// FIXME: I can't create a folder
 
-                                                    startRecording(filePath)
+                                                    audioRecorder.startRecording(filePath)
                                                     isRecordingVoiceNote = true
                                                 }
 
@@ -920,7 +975,7 @@ fun ActivityRecorder(
                                                 if (up != null) {
                                                     onPressCoroutineJob.cancel()
                                                     // Once the finger is lifted, stop recording, create a VoiceNote object and add it to the voice note list of the activity UI state
-                                                    stopRecording()
+                                                    audioRecorder.stopRecording()
                                                     // Set variable to false
                                                     isRecordingVoiceNote = false
 
@@ -934,7 +989,10 @@ fun ActivityRecorder(
                                                         activityId = recordedSubActivityUiState.id!!
                                                     )
 
-                                                    saveVoiceNote(voiceNote)
+//                                                    saveVoiceNote(voiceNote)
+                                                    viewModel.onEvent(PlannerUiEvent.RecordedVoiceNoteChanged(voiceNote))
+                                                    viewModel.onEvent(PlannerUiEvent.SaveVoiceNote)
+
                                                     // Reset the voice note timer
                                                     scope.launch {
                                                         // Delay resetting so that the user doesn't see it

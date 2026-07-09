@@ -1,19 +1,17 @@
 package com.eternalfairy.lotus.view.data
 
-import com.eternalfairy.lotus.model.data.Time
-import java.time.LocalDate
-import java.util.UUID
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
-data class TaskUiState (
-//    val date: OffsetDateTime? = null,
-    val id: UUID? = null,
-    val createdAt: String? = null,
-    val userId: UUID? = null,
+data class TaskUiState @OptIn(ExperimentalUuidApi::class) constructor(
+    val id: Uuid? = null,
     val date: LocalDate? = null,
-    var startTime: Time? = null,
-    var endTime: Time? = null,
     var title: String = "",
-    var description: String? = null,
+    var description: String = "",
+    var startTime: LocalTime? = null,
+    var endTime: LocalTime? = null,
     var priority: Int? = null,
     val pinned: Boolean = false
 ) {
@@ -25,19 +23,7 @@ data class TaskUiState (
         // 0 the tasks have the same starting time
         // 1 if the task starts later than the task it is compared to
         if (this.startTime != null && comparedTo.startTime != null) {
-            return if (this.startTime!!.hour < comparedTo.startTime!!.hour) {
-                -1
-            } else if (this.startTime!!.hour > comparedTo.startTime!!.hour) {
-                1
-            } else {
-                if (this.startTime!!.minute < comparedTo.startTime!!.minute) {
-                    -1
-                } else if (this.startTime!!.minute > comparedTo.startTime!!.minute) {
-                    1
-                } else {
-                    0
-                }
-            }
+            return this.startTime!!.compareTo(comparedTo.startTime!!)
         }
 
         return 0

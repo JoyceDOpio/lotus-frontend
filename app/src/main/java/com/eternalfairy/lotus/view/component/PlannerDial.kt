@@ -59,13 +59,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eternalfairy.lotus.R
-import com.eternalfairy.lotus.model.data.Time
 import com.eternalfairy.lotus.view.data.DayUiState
 import com.eternalfairy.lotus.view.data.TaskUiState
 import com.eternalfairy.lotus.view.data.UserInput
 import com.eternalfairy.lotus.view.screen.DeleteScreen
 import com.eternalfairy.lotus.view.screen.TaskEditScreen
 import com.eternalfairy.lotus.view.screen.TaskInfoScreen
+import com.eternalfairy.lotus.view.screen.planner.PlannerUiEvent
 import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.lotus.view.utils.AngleMode
@@ -90,14 +90,14 @@ import com.eternalfairy.lotus.view.utils.TouchGestureUtils.createClockHoursArray
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils.distance
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils.sweepAngle
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils.translateAngle270To0
+import com.eternalfairy.lotus.viewmodel.PlannerViewModel
 import kotlinx.coroutines.delay
-import java.time.LocalDate
-import java.time.LocalTime
-import java.util.UUID
+import kotlinx.datetime.LocalTime
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlin.uuid.ExperimentalUuidApi
 
 const val SECONDS_IN_MINUTE = 60
 
@@ -114,6 +114,7 @@ enum class TaskMode {
     View// Default value
 }
 
+@OptIn(ExperimentalUuidApi::class)
 @Composable
 fun PlannerDial(
     componentHeight: Dp = 450.dp,
@@ -122,38 +123,47 @@ fun PlannerDial(
     paddingTop: Dp = 5.dp,
     paddingEnd: Dp = 10.dp,
     paddingBottom: Dp = 5.dp,
-    dayUiState: DayUiState,
     drawClockHand: Boolean = false,
-    lastTaskPriority: Int?,
-    taskUiState: TaskUiState,
-    userInput: UserInput,
-    deleteTask: () -> Unit,
-    onMoveToToDoList: () -> Unit,
+    viewModel: PlannerViewModel,
+//    dayUiState: DayUiState,
+//    lastTaskPriority: Int?,
+//    taskUiState: TaskUiState,
+//    userInput: UserInput,
+//    deleteTask: () -> Unit,
+//    onMoveToToDoList: () -> Unit,
+    onMoveToCalendar: () -> Unit,
     onPressActiveTime: () -> Unit,
-    onPinTask: (Boolean) -> Unit,
-    setTaskDescription: (String) -> Unit,
-    setTaskEndTime: (Time) -> Unit,
-    setTaskPriority: (Int) -> Unit,
-    setTaskStartTime: (Time) -> Unit,
-    setTaskTitle: (String) -> Unit,
-    saveTask: (TaskUiState) -> Unit,
-    saveTaskFromState: () -> Unit,
-    selectTask: (UUID?) -> Unit,
-//    setTaskDate: (OffsetDateTime?) -> Unit
-    setTaskDate: (LocalDate?) -> Unit
+//    onPinTask: (Boolean) -> Unit,
+//    setTaskDescription: (String) -> Unit,
+//    setTaskEndTime: (Time) -> Unit,
+//    setTaskPriority: (Int) -> Unit,
+//    setTaskStartTime: (Time) -> Unit,
+//    setTaskTitle: (String) -> Unit,
+//    saveTask: (TaskUiState) -> Unit,
+//    saveTaskFromState: () -> Unit,
+//    selectTask: (UUID?) -> Unit,
+////    setTaskDate: (OffsetDateTime?) -> Unit
+//    setTaskDate: (LocalDate?) -> Unit
 ) {
+    val state = viewModel.state
+
+    val day = state.selectedDay
+    val editedTask = state.editedTask
+    val selectedDate = state.selectedDate
+//    val selectedTask = state.selectedTask
+
     val textMeasurer = rememberTextMeasurer()
-    val activeTimeStart: Time = dayUiState.activeTimeStart
-    val activeTimeEnd: Time = dayUiState.activeTimeEnd
+    val activeTimeStart: LocalTime = state.selectedDay.activeTimeStart
+    val activeTimeEnd: LocalTime = state.selectedDay.activeTimeEnd
     var taskMode: TaskMode by remember { mutableStateOf(TaskMode.View) }
     var angleMode: AngleMode by remember { mutableStateOf(AngleMode.None) }
 
     val totalMinutes: Int = calculateTotalNumberOfMinutes(
-        Time(
+        LocalTime(
             activeTimeStart.hour,
             activeTimeStart.minute
         ),
-        Time(
+        LocalTime(
             activeTimeEnd.hour,
             activeTimeEnd.minute
         )
@@ -197,10 +207,14 @@ fun PlannerDial(
     var nextTask by remember { mutableStateOf<TaskUiState?>(null) }
     var previousTask by remember { mutableStateOf<TaskUiState?>(null) }
 
-    var clockTime by remember { mutableStateOf(Time(LocalTime.now().hour, LocalTime.now().minute)) }
-    var taskClockTime by remember { mutableStateOf(Time(LocalTime.now().hour, LocalTime.now().minute)) }
+    var clockTime by remember { mutableStateOf(
+        LocalTime.parse(java.time.LocalTime.now().toString())
+    ) }
+    var taskClockTime by remember { mutableStateOf(
+        LocalTime.parse(java.time.LocalTime.now().toString())
+    ) }
 
-    val tasks = dayUiState.tasks.toMutableList()
+    val tasks = state.tasks.toMutableList()
 
     var showPopupWindow by remember { mutableStateOf(false) }
     var popupState by remember { mutableStateOf(TaskModePopup.Info) }
@@ -232,16 +246,16 @@ fun PlannerDial(
 
         for (task in tasks) {
             val taskStartAngle = calculateAngleFromTime (
-                activeTimeStart,
-                activeTimeEnd,
-                task.startTime!!,
-                minuteAngle
+                activeTimeStart = activeTimeStart,
+//                activeTimeEnd,
+                time = task.startTime!!,
+                minuteAngle = minuteAngle
             )
             val taskEndAngle = calculateAngleFromTime (
-                activeTimeStart,
-                activeTimeEnd,
-                task.endTime!!,
-                minuteAngle
+                activeTimeStart = activeTimeStart,
+//                activeTimeEnd,
+                time = task.endTime!!,
+                minuteAngle = minuteAngle
             )
             isTouchWithinAnyTask = checkIfTouchWithinAngleRange(angle, taskStartAngle, taskEndAngle)
 
@@ -257,7 +271,8 @@ fun PlannerDial(
 
             // We found the task
             if (isTouchWithinAnyTask) {
-                selectTask(task.id)
+//                selectTask(task.id)
+                viewModel.onEvent(PlannerUiEvent.SelectedTaskIdChanged(task.id))
 
                 touchedTask = task.copy()
             }
@@ -282,14 +297,14 @@ fun PlannerDial(
             val taskToBeMovedStartAngle =
                 calculateAngleFromTime(
                     activeTimeStart = activeTimeStart,
-                    activeTimeEnd,
+//                    activeTimeEnd,
                     time = taskToBeMoved.startTime!!,
                     minuteAngle = minuteAngle
                 )
             val taskToBeMovedEndAngle =
                 calculateAngleFromTime(
                     activeTimeStart = activeTimeStart,
-                    activeTimeEnd,
+//                    activeTimeEnd,
                     time = taskToBeMoved.endTime!!,
                     minuteAngle = minuteAngle
                 )
@@ -351,7 +366,7 @@ fun PlannerDial(
                                     val adjacentTaskEndAngle =
                                         calculateAngleFromTime(
                                             activeTimeStart = activeTimeStart,
-                                            activeTimeEnd,
+//                                            activeTimeEnd,
                                             time = adjacentTask.endTime!!,
                                             minuteAngle = minuteAngle
                                         )
@@ -419,14 +434,14 @@ fun PlannerDial(
             val taskToBeMovedStartAngle =
                 calculateAngleFromTime(
                     activeTimeStart = activeTimeStart,
-                    activeTimeEnd,
+//                    activeTimeEnd,
                     time = taskToBeMoved.startTime!!,
                     minuteAngle = minuteAngle
                 ) + 0.33f// It seems that during the TouchGestureUtils.calculateAngleFromTime() conversion around 0.33f is lost (subtracted from the angle). This makes it difficult for the task to move forward, so we're adding the 0.33f back. If I add this value back in the TouchGestureUtils.calculateAngleFromTime() method, the task will have difficulty moving backward (in the moveTaskBackward() method).
             val taskToBeMovedEndAngle =
                 calculateAngleFromTime(
                     activeTimeStart = activeTimeStart,
-                    activeTimeEnd,
+//                    activeTimeEnd,
                     time = taskToBeMoved.endTime!!,
                     minuteAngle = minuteAngle
                 ) + 0.33f
@@ -480,7 +495,7 @@ fun PlannerDial(
                                     // Re-adjust the angle change - calculate by how much the tasks are overlapping
                                     val adjacentTaskStartAngle = calculateAngleFromTime(
                                             activeTimeStart = activeTimeStart,
-                                            activeTimeEnd,
+//                                            activeTimeEnd,
                                             time = adjacentTask.startTime!!,
                                             minuteAngle = minuteAngle
                                         ) + 0.33f// It seems that during the TouchGestureUtils.calculateAngleFromTime() conversion around 0.33f is lost (subtracted from the angle). This makes it difficult for the task to move forward, so we're adding the 0.33f back. If I add this value back in the TouchGestureUtils.calculateAngleFromTime() method, the task will have difficulty moving backward (in the moveTaskBackward() method).
@@ -521,7 +536,8 @@ fun PlannerDial(
         touchNearTheDialEdge = false
         drawNewTaskTimeRange = false
         touchWithinTaskArea = false
-        selectTask(null)
+//        selectTask(null)
+        viewModel.onEvent(PlannerUiEvent.SelectedTaskIdChanged(null))
     }
 
     // Reset the start and end angles of where the finger touched the dial
@@ -534,7 +550,8 @@ fun PlannerDial(
 
     fun resetTask() {
         touchedTask = null
-        selectTask(null)
+//        selectTask(null)
+        viewModel.onEvent(PlannerUiEvent.SelectedTaskIdChanged(null))
         nextTask = null
         previousTask = null
     }
@@ -555,16 +572,17 @@ fun PlannerDial(
     LaunchedEffect(true) {
         while (true) {
             delay(1000L * SECONDS_IN_MINUTE)
-            clockTime = Time(LocalTime.now().hour, LocalTime.now().minute)
+            clockTime = LocalTime.parse(java.time.LocalTime.now().toString())
         }
     }
 
     // Clear the task UI state when the component is loaded for the first time
     LaunchedEffect(Unit) {
-        selectTask(null)// TODO: This should clear the task UI state after coming back from the TaskInfoScreen, but it will not do anything when the user drags task along the dial, since then the component is not drawn for the first time (instead, it's redrawn). This could be solved if for example I cleared the task UI state based on the component's state
+//        selectTask(null)// TODO: This should clear the task UI state after coming back from the TaskInfoScreen, but it will not do anything when the user drags task along the dial, since then the component is not drawn for the first time (instead, it's redrawn). This could be solved if for example I cleared the task UI state based on the component's state
+        viewModel.onEvent(PlannerUiEvent.SelectedTaskIdChanged(null))
     }
 
-    LaunchedEffect(userInput.selectedDate) {
+    LaunchedEffect(selectedDate) {
         // Resets the zoom among others
         reset()
     }
@@ -691,7 +709,7 @@ fun PlannerDial(
                         translationX = offset.x * scale,
                         translationY = offset.y * scale
                     )
-                    .pointerInput(dayUiState, taskUiState, userInput) {
+                    .pointerInput(day, editedTask, selectedDate) {
                         val viewConfig = viewConfiguration
 
                         awaitEachGesture {
@@ -751,7 +769,7 @@ fun PlannerDial(
                             } while (pressed)
                         }
                     }
-                    .pointerInput(dayUiState, taskUiState, userInput) {
+                    .pointerInput(day, editedTask, selectedDate) {
                         detectTapGestures(
                             onTap = { offset ->
                                 val distance = distance(offset, center)
@@ -801,26 +819,33 @@ fun PlannerDial(
                                                 minuteAngle = minuteAngle
                                             )
 
-                                            setTaskStartTime(clockTaskStartTime)
-                                            setTaskEndTime(clockTaskEndTime)
+//                                            setTaskStartTime(clockTaskStartTime)
+//                                            setTaskEndTime(clockTaskEndTime)
+                                            viewModel.onEvent(PlannerUiEvent.TaskStartTimeChanged(clockTaskStartTime))
+                                            viewModel.onEvent(PlannerUiEvent.TaskEndTimeChanged(clockTaskEndTime))
+
+
                                             // Set the task's date
-                                            setTaskDate(userInput.selectedDate)
-                                            saveTaskFromState()
+//                                            setTaskDate(userInput.selectedDate)
+//                                            saveTaskFromState()
+                                            viewModel.onEvent(PlannerUiEvent.TaskDateChanged(selectedDate))
+                                            viewModel.onEvent(PlannerUiEvent.SaveTask)
 
                                             // Reset the dial
                                             reset()
                                         }
                                     } else if (taskMode == TaskMode.Create) {
-                                        Log.i("PlannerDial", "taskUiState $taskUiState")
+//                                        Log.i("PlannerDial", "selectedTask $selectedTask")
+                                        Log.i("PlannerDial", "editedTask $editedTask")
 
                                         // Check whether the touch is within the new task area
                                         touchWithinTaskArea = checkIfTouchWithinTaskArea(
-                                            angle,
+                                            angle = angle,
                                             clockStart = activeTimeStart,
-                                            clockEnd = activeTimeEnd,
+//                                            clockEnd = activeTimeEnd,
                                             minuteAngle = minuteAngle,
-                                            taskStart = taskUiState.startTime!!,
-                                            taskEnd = taskUiState.endTime!!
+                                            taskStart = editedTask.startTime!!,
+                                            taskEnd = editedTask.endTime!!
                                         )
 
                                         if (touchWithinTaskArea) {
@@ -856,16 +881,16 @@ fun PlannerDial(
                                     if (touchWithinTaskArea) {
                                         taskMode = TaskMode.EditTimeRange
                                         val taskStartAngle = calculateAngleFromTime(
-                                            activeTimeStart,
-                                            activeTimeEnd,
-                                            touchedTask!!.startTime!!,
-                                            minuteAngle
+                                            activeTimeStart = activeTimeStart,
+//                                            activeTimeEnd,
+                                            time = touchedTask!!.startTime!!,
+                                            minuteAngle = minuteAngle
                                         )
                                         val taskEndAngle = calculateAngleFromTime(
-                                            activeTimeStart,
-                                            activeTimeEnd,
-                                            touchedTask!!.endTime!!,
-                                            minuteAngle
+                                            activeTimeStart = activeTimeStart,
+//                                            activeTimeEnd,
+                                            time = touchedTask!!.endTime!!,
+                                            minuteAngle = minuteAngle
                                         )
                                         tmpStartAngle = taskStartAngle
                                         tmpEndAngle = taskEndAngle
@@ -990,7 +1015,7 @@ fun PlannerDial(
 //                        }
                         )
                     }
-                    .pointerInput(dayUiState, taskUiState, userInput) {
+                    .pointerInput(day, editedTask, selectedDate) {
                         detectDragGesturesAfterLongPress(
                             onDragStart = { offset ->
                                 Log.i("PlannerDial", "detectDragGesturesAfterLongPress() onDragEnd")
@@ -1002,7 +1027,8 @@ fun PlannerDial(
                                 startAngle = angle
 
                                 // Clear the task UI state
-                                selectTask(null)
+//                                selectTask(null)
+                                viewModel.onEvent(PlannerUiEvent.SelectedTaskIdChanged(null))
 
                                 // If the touch is within a task area, we will want to drag that task along the dial. Therefore, the mode will be changed to EDIT_TIME_START.
                                 touchInsideTheDial = checkIfTouchInsideDial(
@@ -1031,17 +1057,17 @@ fun PlannerDial(
                                         taskMode = TaskMode.EditStartTime
 
                                         tmpStartAngle = calculateAngleFromTime(
-                                            activeTimeStart,
-                                            activeTimeEnd,
-                                            touchedTask!!.startTime!!,
-                                            minuteAngle
+                                            activeTimeStart = activeTimeStart,
+//                                            activeTimeEnd,
+                                            time = touchedTask!!.startTime!!,
+                                            minuteAngle = minuteAngle
                                         )
 
                                         tmpEndAngle = calculateAngleFromTime(
-                                            activeTimeStart,
-                                            activeTimeEnd,
-                                            touchedTask!!.endTime!!,
-                                            minuteAngle
+                                            activeTimeStart = activeTimeStart,
+//                                            activeTimeEnd,
+                                            time = touchedTask!!.endTime!!,
+                                            minuteAngle = minuteAngle
                                         )
 
                                         draggedTaskDuration = calculateTotalNumberOfMinutes(
@@ -1175,7 +1201,7 @@ fun PlannerDial(
                                                             val taskStartAngle =
                                                                 calculateAngleFromTime(
                                                                     activeTimeStart = activeTimeStart,
-                                                                    activeTimeEnd,
+//                                                                    activeTimeEnd,
                                                                     time = task.startTime!!,
                                                                     minuteAngle = minuteAngle
                                                                 )
@@ -1186,7 +1212,7 @@ fun PlannerDial(
                                                             val taskEndAngle =
                                                                 calculateAngleFromTime(
                                                                     activeTimeStart = activeTimeStart,
-                                                                    activeTimeEnd,
+//                                                                    activeTimeEnd,
                                                                     time = task.endTime!!,
                                                                     minuteAngle = minuteAngle
                                                                 )
@@ -1196,8 +1222,8 @@ fun PlannerDial(
                                                                 )
                                                             val duration =
                                                                 calculateTotalNumberOfMinutes(
-                                                                    task.startTime!!,
-                                                                    task.endTime!!
+                                                                    start = task.startTime!!,
+                                                                    end = task.endTime!!
                                                                 )
                                                             var taskMiddleAngle =
                                                                 taskStartAngle + ((duration * minuteAngle) * 0.5f)
@@ -1392,15 +1418,19 @@ fun PlannerDial(
                                     )
 
                                     // Update the task's start- and end times
-                                    setTaskStartTime(taskNewStartTime)
-                                    setTaskEndTime(taskNewEndTime)
-                                    saveTaskFromState()
+//                                    setTaskStartTime(taskNewStartTime)
+//                                    setTaskEndTime(taskNewEndTime)
+//                                    saveTaskFromState()
+                                    viewModel.onEvent(PlannerUiEvent.TaskStartTimeChanged(taskNewStartTime))
+                                    viewModel.onEvent(PlannerUiEvent.TaskEndTimeChanged(taskNewEndTime))
+                                    viewModel.onEvent(PlannerUiEvent.SaveTask)
+
                                     reset()
                                 }
                             }
                         )
                     }
-                    .pointerInput(dayUiState, taskUiState, userInput) {
+                    .pointerInput(day, editedTask, selectedDate) {
                         detectDragGestures(
                             onDragStart = { offset ->
                                 Log.i("PlannerDial", "1499 detectDragGestures() onDragStart")
@@ -1442,10 +1472,10 @@ fun PlannerDial(
                                         // Find the next and previous tasks, if any
                                         for (task in tasks) {
                                             val taskEndAngle = calculateAngleFromTime(
-                                                activeTimeStart,
-                                                activeTimeEnd,
-                                                task.endTime!!,
-                                                minuteAngle
+                                                activeTimeStart = activeTimeStart,
+//                                                activeTimeEnd,
+                                                time = task.endTime!!,
+                                                minuteAngle = minuteAngle
                                             )
                                             val taskEndAngleTranslated =
                                                 translateAngle270To0(taskEndAngle)
@@ -1496,7 +1526,7 @@ fun PlannerDial(
                                         if (taskMode == TaskMode.View) {
                                             drawNewTaskTimeRange = true
 
-                                            Log.i("PlannerDial", "1605 taskUiState $taskUiState")
+//                                            Log.i("PlannerDial", "1605 taskUiState $taskUiState")
 
                                             // The startAngle value should be filled in detectDragGestures.onDragStart()
                                             val startAngleTranslated = translateAngle270To0(startAngle!!)
@@ -1553,11 +1583,11 @@ fun PlannerDial(
                                                     angleMode = AngleMode.Start
                                                     boundaryAngleTranslated = translateAngle270To0(
                                                         calculateAngleFromTime(
-                                                            activeTimeStart,
-                                                            activeTimeEnd,
+                                                            activeTimeStart = activeTimeStart,
+//                                                            activeTimeEnd,
                                                             // We're using the end time angle as a boundary
-                                                            taskUiState.endTime!!,
-                                                            minuteAngle
+                                                            time = editedTask.endTime!!,
+                                                            minuteAngle = minuteAngle
                                                         )
                                                     )
                                                 }
@@ -1567,11 +1597,11 @@ fun PlannerDial(
                                                     angleMode = AngleMode.End
                                                     boundaryAngleTranslated = translateAngle270To0(
                                                         calculateAngleFromTime(
-                                                            activeTimeStart,
-                                                            activeTimeEnd,
+                                                            activeTimeStart = activeTimeStart,
+//                                                            activeTimeEnd,
                                                             // We're using the start time angle as a boundary
-                                                            taskUiState.startTime!!,
-                                                            minuteAngle
+                                                            time = editedTask.startTime!!,
+                                                            minuteAngle = minuteAngle
                                                         )
                                                     )
                                                 }
@@ -1594,10 +1624,10 @@ fun PlannerDial(
                                                         if (previousTask != null) {
                                                             val previousTaskEndAngle =
                                                                 calculateAngleFromTime(
-                                                                    activeTimeStart,
-                                                                    activeTimeEnd,
-                                                                    previousTask!!.endTime!!,
-                                                                    minuteAngle
+                                                                    activeTimeStart = activeTimeStart,
+//                                                                    activeTimeEnd,
+                                                                    time = previousTask!!.endTime!!,
+                                                                    minuteAngle = minuteAngle
                                                                 )
                                                             val previousTaskEndAngleTranslated =
                                                                 translateAngle270To0(
@@ -1624,10 +1654,10 @@ fun PlannerDial(
                                                         if (nextTask != null) {
                                                             val nextTaskStartAngle =
                                                                 calculateAngleFromTime(
-                                                                    activeTimeStart,
-                                                                    activeTimeEnd,
-                                                                    nextTask!!.startTime!!,
-                                                                    minuteAngle
+                                                                    activeTimeStart = activeTimeStart,
+//                                                                    activeTimeEnd,
+                                                                    time = nextTask!!.startTime!!,
+                                                                    minuteAngle = minuteAngle
                                                                 )
                                                             val nextTaskStartAngleTranslated =
                                                                 translateAngle270To0(
@@ -1704,14 +1734,14 @@ fun PlannerDial(
                                             tasks.find { task -> task.id == touchedTask!!.id }
                                                 ?.apply {
                                                     startTime = calculateTimeFromAngle(
-                                                        tmpStartAngle!!,
-                                                        minuteAngle,
-                                                        activeTimeStart
+                                                        angle = tmpStartAngle!!,
+                                                        minuteAngle = minuteAngle,
+                                                        clockStart = activeTimeStart
                                                     )
                                                     endTime = calculateTimeFromAngle(
-                                                        tmpEndAngle!!,
-                                                        minuteAngle,
-                                                        activeTimeStart
+                                                        angle = tmpEndAngle!!,
+                                                        minuteAngle = minuteAngle,
+                                                        clockStart = activeTimeStart
                                                     )
                                                 }
 
@@ -1732,7 +1762,7 @@ fun PlannerDial(
                                                 if (task.id != touchedTask!!.id) {
                                                     val taskStartAngle = calculateAngleFromTime(
                                                         activeTimeStart = activeTimeStart,
-                                                        activeTimeEnd,
+//                                                        activeTimeEnd,
                                                         time = task.startTime!!,
                                                         minuteAngle = minuteAngle
                                                     )
@@ -1742,7 +1772,7 @@ fun PlannerDial(
                                                         )
                                                     val taskEndAngle = calculateAngleFromTime(
                                                         activeTimeStart = activeTimeStart,
-                                                        activeTimeEnd,
+//                                                        activeTimeEnd,
                                                         time = task.endTime!!,
                                                         minuteAngle = minuteAngle
                                                     )
@@ -1751,8 +1781,8 @@ fun PlannerDial(
                                                             taskEndAngle
                                                         )
                                                     val duration = calculateTotalNumberOfMinutes(
-                                                        task.startTime!!,
-                                                        task.endTime!!
+                                                        start = task.startTime!!,
+                                                        end = task.endTime!!
                                                     )
                                                     var taskMiddleAngle =
                                                         taskStartAngle + ((duration * minuteAngle) * 0.5f)
@@ -1931,7 +1961,9 @@ fun PlannerDial(
                                         minuteAngle = minuteAngle
                                     )
 
-                                    setTaskStartTime(clockTaskStartTime)
+//                                    setTaskStartTime(clockTaskStartTime)
+                                    viewModel.onEvent(PlannerUiEvent.TaskStartTimeChanged(clockTaskStartTime))
+
 
                                     val clockTaskEndTime = calculateTimeFromAngle(
                                         angle = tmpEndAngle!!,
@@ -1939,13 +1971,17 @@ fun PlannerDial(
                                         minuteAngle = minuteAngle
                                     )
 
-                                    setTaskEndTime(clockTaskEndTime)
+//                                    setTaskEndTime(clockTaskEndTime)
+                                    viewModel.onEvent(PlannerUiEvent.TaskEndTimeChanged(clockTaskEndTime))
+
 
                                     // Reset the angle mode
                                     angleMode = AngleMode.None
                                     // Set new startAngle and endAngle values
                                     startAngle = tmpStartAngle
-                                    setTaskDate(userInput.selectedDate)
+
+//                                    setTaskDate(userInput.selectedDate)
+                                    viewModel.onEvent(PlannerUiEvent.TaskDateChanged(selectedDate))
                                 }
                                 else if (taskMode == TaskMode.EditStartTime) {
                                     // Calculate the time represented by the angle
@@ -1964,7 +2000,7 @@ fun PlannerDial(
                                                 if (task.id != touchedTask!!.id) {
                                                     val taskStartAngle = calculateAngleFromTime(
                                                         activeTimeStart = activeTimeStart,
-                                                        activeTimeEnd,
+//                                                        activeTimeEnd,
                                                         time = task.startTime!!,
                                                         minuteAngle = minuteAngle
                                                     )
@@ -1974,7 +2010,7 @@ fun PlannerDial(
                                                         )
                                                     val taskEndAngle = calculateAngleFromTime(
                                                         activeTimeStart = activeTimeStart,
-                                                        activeTimeEnd,
+//                                                        activeTimeEnd,
                                                         time = task.endTime!!,
                                                         minuteAngle = minuteAngle
                                                     )
@@ -2027,7 +2063,7 @@ fun PlannerDial(
                                                 if (task.id != touchedTask!!.id) {
                                                     val taskStartAngle = calculateAngleFromTime(
                                                         activeTimeStart = activeTimeStart,
-                                                        activeTimeEnd,
+//                                                        activeTimeEnd,
                                                         time = task.startTime!!,
                                                         minuteAngle = minuteAngle
                                                     )
@@ -2037,7 +2073,7 @@ fun PlannerDial(
                                                         )
                                                     val taskEndAngle = calculateAngleFromTime(
                                                         activeTimeStart = activeTimeStart,
-                                                        activeTimeEnd,
+//                                                        activeTimeEnd,
                                                         time = task.endTime!!,
                                                         minuteAngle = minuteAngle
                                                     )
@@ -2091,7 +2127,7 @@ fun PlannerDial(
 
                                             val taskBeforeEndAngle = calculateAngleFromTime(
                                                 activeTimeStart = activeTimeStart,
-                                                activeTimeEnd = activeTimeEnd,
+//                                                activeTimeEnd = activeTimeEnd,
                                                 time = taskBefore.endTime!!,
                                                 minuteAngle = minuteAngle
                                             )
@@ -2100,7 +2136,7 @@ fun PlannerDial(
                                             )
                                             val taskAfterStartAngle = calculateAngleFromTime(
                                                 activeTimeStart = activeTimeStart,
-                                                activeTimeEnd = activeTimeEnd,
+//                                                activeTimeEnd = activeTimeEnd,
                                                 time = taskAfter.startTime!!,
                                                 minuteAngle = minuteAngle
                                             )
@@ -2186,7 +2222,7 @@ fun PlannerDial(
                                             val taskBefore = tasks[taskBeforeIndex]
                                             val taskBeforeEndAngle = calculateAngleFromTime(
                                                 activeTimeStart = activeTimeStart,
-                                                activeTimeEnd,
+//                                                activeTimeEnd,
                                                 time = taskBefore.endTime!!,
                                                 minuteAngle = minuteAngle
                                             )
@@ -2221,7 +2257,7 @@ fun PlannerDial(
                                             val taskAfter = tasks[taskAfterIndex]
                                             val taskAfterStartAngle = calculateAngleFromTime(
                                                 activeTimeStart = activeTimeStart,
-                                                activeTimeEnd,
+//                                                activeTimeEnd,
                                                 time = taskAfter.startTime!!,
                                                 minuteAngle = minuteAngle
                                             )
@@ -2272,7 +2308,8 @@ fun PlannerDial(
 
                                     // Update the task's start- and end times in the database
                                     for (task in tasks) {
-                                        saveTask(task)
+//                                        saveTask(task)
+                                        viewModel.onEvent(PlannerUiEvent.SaveTask)
                                     }
 
                                     reset()
@@ -2296,7 +2333,7 @@ fun PlannerDial(
                         activeTimeStart,
                         activeTimeEnd
                     )
-                val activeTimeHourSteps: Array<Time> = createClockHoursArray(
+                val activeTimeHourSteps: Array<LocalTime> = createClockHoursArray(
                     activeTimeStart,
                     activeTimeEnd
                 )
@@ -2358,16 +2395,16 @@ fun PlannerDial(
                     else {
                         // We have to offset these angles because startMinute * taskDialState.minuteAngle returns a biased angle
                         val taskStartAngle = calculateAngleFromTime (
-                            activeTimeStart,
-                            activeTimeEnd,
-                            task.startTime!!,
-                            minuteAngle
+                            activeTimeStart = activeTimeStart,
+//                            activeTimeEnd,
+                            time = task.startTime!!,
+                            minuteAngle = minuteAngle
                         )
                         val taskEndAngle = calculateAngleFromTime (
-                            activeTimeStart,
-                            activeTimeEnd,
-                            task.endTime!!,
-                            minuteAngle
+                            activeTimeStart = activeTimeStart,
+//                            activeTimeEnd,
+                            time = task.endTime!!,
+                            minuteAngle = minuteAngle
                         )
                         val taskDuration = calculateTotalNumberOfMinutes(
                             task.startTime!!,
@@ -2430,7 +2467,8 @@ fun PlannerDial(
                             showPopupWindow = false
                         },
                         onDelete = {
-                            deleteTask()
+//                            deleteTask()
+                            viewModel.onEvent(PlannerUiEvent.DeleteTask)
                             reset()
                             showPopupWindow = false
                         }
@@ -2438,28 +2476,30 @@ fun PlannerDial(
                 }
                 TaskModePopup.Edit -> {
                     TaskEditScreen(
-                        dayUiState = dayUiState,
-                        lastTaskPriority = lastTaskPriority ?: 0,
-                        taskUiState = taskUiState,
+//                        dayUiState = dayUiState,
+//                        lastTaskPriority = lastTaskPriority ?: 0,
+//                        taskUiState = taskUiState,
+                        viewModel = viewModel,
                         onBack = {
                             showPopupWindow = false
                             popupState = TaskModePopup.Info
                             // Reset the dial
                             reset()
                         },
-                        saveTask = saveTaskFromState,
-                        setTaskEndTime = setTaskEndTime,
-                        setTaskDescription = setTaskDescription,
-                        setTaskPriority = setTaskPriority,
-                        setTaskStartTime = setTaskStartTime,
-                        setTaskTitle = setTaskTitle
+//                        saveTask = saveTaskFromState,
+//                        setTaskEndTime = setTaskEndTime,
+//                        setTaskDescription = setTaskDescription,
+//                        setTaskPriority = setTaskPriority,
+//                        setTaskStartTime = setTaskStartTime,
+//                        setTaskTitle = setTaskTitle
                     )
                 }
                 TaskModePopup.Info -> {
                     TaskInfoScreen(
                         displayType = CardDisplayType.Popup,
-                        dayUiState = dayUiState,
-                        taskUiState = taskUiState,
+//                        dayUiState = dayUiState,
+//                        taskUiState = taskUiState,
+                        viewModel = viewModel,
                         onDeleteTask = {
                             popupState = TaskModePopup.Delete
                         },
@@ -2472,11 +2512,11 @@ fun PlannerDial(
                         onMoveToCalendar = {//FIXME: What is this doing here?
 //                    val task = toDoTasks.find { task -> task.id == taskUiState.id }
                         },
-                        onMoveToToDoList = onMoveToToDoList,
+//                        onMoveToToDoList = onMoveToToDoList,
                         onNavigateToTaskEdit = {
                             popupState = TaskModePopup.Edit
                         },
-                        onPinTask = onPinTask
+//                        onPinTask = onPinTask
                     )
                 }
             }

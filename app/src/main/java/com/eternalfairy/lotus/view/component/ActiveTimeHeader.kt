@@ -16,7 +16,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.eternalfairy.lotus.model.data.Time
 import com.eternalfairy.lotus.view.data.DayUiState
 import com.eternalfairy.lotus.view.data.UserInput
 import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
@@ -24,7 +23,8 @@ import com.eternalfairy.lotus.view.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.lotus.view.theme.TERTIARY_TEXT_COLOR
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils
 import kotlinx.coroutines.delay
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import java.time.LocalDateTime
 
 const val MINUTES_IN_HOUR = 60
@@ -32,16 +32,16 @@ const val MINUTES_IN_HOUR = 60
 @Composable
 fun ActiveTimeHeader (
 //    componentHeight: Dp = 90.dp,
+    modifier: Modifier = Modifier,
     componentWidth: Dp = 400.dp,
     dayUiState: DayUiState,
-    userInput: UserInput,
-    modifier: Modifier = Modifier
+    selectedDate: LocalDate
 ) {
     val startTime = dayUiState.activeTimeStart
     val endTime = dayUiState.activeTimeEnd
-    val today = LocalDate.now()
+    val today = LocalDate.parse(java.time.LocalDate.now().toString())
 
-    fun calculateTimeIntervalInMinutes(start: Time?, end: Time?): Int {
+    fun calculateTimeIntervalInMinutes(start: LocalTime?, end: LocalTime?): Int {
         var minutes = 0
 
         if(start != null && end != null) {
@@ -54,7 +54,7 @@ fun ActiveTimeHeader (
     }
 
     var minutesLeft = calculateTimeIntervalInMinutes(
-        Time(
+        LocalTime(
             LocalDateTime.now().hour,
             LocalDateTime.now().minute
         ),
@@ -66,11 +66,11 @@ fun ActiveTimeHeader (
         while (true) {
             delay(1000L * SECONDS_IN_MINUTE)
             minutesLeft = calculateTimeIntervalInMinutes(
-                Time(
+                start = LocalTime(
                     LocalDateTime.now().hour,
                     LocalDateTime.now().minute
                 ),
-                endTime
+                end = endTime
             )
         }
     }
@@ -105,7 +105,7 @@ fun ActiveTimeHeader (
             )
         }
 
-        if (userInput.selectedDate == today) {
+        if (selectedDate == today) {
             Row(
                 modifier = modifier
                     .fillMaxWidth()

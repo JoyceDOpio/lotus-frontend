@@ -1,12 +1,13 @@
 package com.eternalfairy.lotus.view.data
 
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
-data class VoiceNoteUiState (
-    val id: UUID? = null,
-    val uri: String = "",
+data class VoiceNoteUiState @OptIn(ExperimentalUuidApi::class) constructor(
+    val id: Uuid? = null,
+    val uri: String? = null,
     val duration: Long = 0L,
     val recordedAt: Long? = null,
-    val activityId: UUID? = null,
+    val activityId: Uuid? = null,
     val lastPlayedPosition: Long = 0L
 )

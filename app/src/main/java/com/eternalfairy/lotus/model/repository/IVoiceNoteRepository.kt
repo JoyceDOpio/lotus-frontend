@@ -15,4 +15,7 @@ interface IVoiceNoteRepository {
 
     @OptIn(ExperimentalUuidApi::class)
     suspend fun getVoiceNote(id: Uuid): ApiResponse<VoiceNote>
+
+    @OptIn(ExperimentalUuidApi::class)
+    suspend fun getVoiceNotesOfActivity(activityId: Uuid): ApiResponse<List<VoiceNote>>
 }

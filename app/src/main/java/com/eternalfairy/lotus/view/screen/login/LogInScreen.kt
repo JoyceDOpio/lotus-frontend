@@ -46,8 +46,7 @@ fun LogInScreen (
     viewModel: AuthViewModel,
     onSwitchScreen: () -> Unit
 ) {
-    var email by remember { mutableStateOf("") }// TODO: Add input validation
-    var password by remember { mutableStateOf("") }// TODO: Add input validation
+    val state = viewModel.state
     var showPassword by remember { mutableStateOf(false) }
 
     // Texts
@@ -59,7 +58,7 @@ fun LogInScreen (
     val textButtonSignUpText = "Don't have an account?"// TODO: Read from resource
 
     fun validateForm(): Boolean {
-        return email != "" && password != ""
+        return state.logInEmail != "" && state.logInPassword != ""
     }
 
     Column (
@@ -80,8 +79,10 @@ fun LogInScreen (
 
         // E-mail
         OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
+            value = state.logInEmail,
+            onValueChange = {
+                viewModel.onEvent(AuthUiEvent.LogInEmailChanged(it))
+            },
             modifier = Modifier
                 .padding(vertical = 5.dp)
                 .fillMaxWidth(),
@@ -107,8 +108,8 @@ fun LogInScreen (
 
         // Password
         OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
+            value = state.logInPassword,
+            onValueChange = { viewModel.onEvent(AuthUiEvent.LogInPasswordChanged(it)) },
             modifier = Modifier
                 .padding(vertical = 5.dp)
                 .fillMaxWidth(),

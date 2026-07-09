@@ -27,20 +27,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.eternalfairy.lotus.R
-import com.eternalfairy.lotus.model.data.Time
 import com.eternalfairy.lotus.view.data.ActivityUiState
 import com.eternalfairy.lotus.view.data.VoiceNoteUiState
 import com.eternalfairy.lotus.view.theme.Teal12
-import com.eternalfairy.lotus.viewmodel.AudioViewModel
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils
+import com.eternalfairy.lotus.viewmodel.AudioViewModel
+import kotlinx.datetime.LocalTime
 import java.time.LocalDateTime
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 @Composable
 fun SubActivityListItem (
     ordinalNumber: Int,
     subActivity: ActivityUiState,
-    onDelete: (UUID) -> Unit,
+    onDelete: (Uuid) -> Unit,
     onDeleteVoiceNote: (VoiceNoteUiState) -> Unit,
     onEdit: (ActivityUiState) -> Unit,
     updateLastPlayedPosition: (Long, Int) -> Unit
@@ -52,7 +54,7 @@ fun SubActivityListItem (
     var endTimeValue = subActivity.endTime
 
     if (endTimeValue == null) {
-        endTimeValue = Time(LocalDateTime.now().hour, LocalDateTime.now().minute)
+        endTimeValue = LocalTime(LocalDateTime.now().hour, LocalDateTime.now().minute)
     }
 
     // Texts
@@ -98,7 +100,7 @@ fun SubActivityListItem (
 
                         // Sub-activity duration
                         val totalMinutes = TouchGestureUtils.calculateTotalNumberOfMinutes(
-                            subActivity.startTime, endTimeValue)
+                            subActivity.startTime!!, endTimeValue)
                         val hours = totalMinutes / TouchGestureUtils.MINUTES_IN_HOUR
                         val minutes = totalMinutes % TouchGestureUtils.MINUTES_IN_HOUR
                         val timeDurationText = if (hours == 0) {

@@ -42,8 +42,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eternalfairy.lotus.R
-import com.eternalfairy.lotus.model.data.Time
-import com.eternalfairy.lotus.view.data.DayUiState
+import com.eternalfairy.lotus.view.screen.planner.PlannerUiEvent
 import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.lotus.view.utils.DrawScopeUtils.drawClockCenter
@@ -53,11 +52,14 @@ import com.eternalfairy.lotus.view.utils.DrawScopeUtils.drawMinuteSteps
 import com.eternalfairy.lotus.view.utils.DrawScopeUtils.drawTask
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils.TOUCH_STROKE
+import com.eternalfairy.lotus.viewmodel.PlannerViewModel
 import kotlinx.coroutines.delay
-import java.time.LocalTime
-import java.util.UUID
+import java.time.LocalDate
+import kotlinx.datetime.LocalTime
 import kotlin.math.min
+import kotlin.uuid.ExperimentalUuidApi
 
+@OptIn(ExperimentalUuidApi::class)
 @Composable
 fun ComparisonDial(
     componentHeight: Dp = 450.dp,
@@ -66,23 +68,30 @@ fun ComparisonDial(
     paddingTop: Dp = 5.dp,
     paddingEnd: Dp = 10.dp,
     paddingBottom: Dp = 5.dp,
-    dayUiState: DayUiState,
+    viewModel: PlannerViewModel,
+//    dayUiState: DayUiState,
     drawClockHand: Boolean = false,
     onNavigateToTaskActivityComparison: () -> Unit,
-    selectActivity: (UUID?) -> Unit,
-    selectTask: (UUID?) -> Unit,
+//    selectActivity: (UUID?) -> Unit,
+//    selectTask: (UUID?) -> Unit,
 ) {
+    val state = viewModel.state
+
+    val activities = state.activities
+    val dayUiState = state.selectedDay
+    val tasks = state.tasks
+
     val textMeasurer = rememberTextMeasurer()
     // The actual start and end time of the day are for the cases when the activities start or end before or after the planned active time, respectively
-    val activeTimeStart: Time = dayUiState.actualActiveTimeStart ?: dayUiState.activeTimeStart
-    val activeTimeEnd: Time = dayUiState.actualActiveTimeEnd?.let {TouchGestureUtils.addMinutesToTime(1, dayUiState.actualActiveTimeEnd)} ?: dayUiState.activeTimeEnd //FIXME: I need to add this one minute at the end of the actual active time end for the activity to draw correctly - otherwise, the activity's title isn't drawn
+    val activeTimeStart: LocalTime = dayUiState.actualActiveTimeStart ?: dayUiState.activeTimeStart
+    val activeTimeEnd: LocalTime = dayUiState.actualActiveTimeEnd?.let {TouchGestureUtils.addMinutesToTime(1, dayUiState.actualActiveTimeEnd)} ?: dayUiState.activeTimeEnd //FIXME: I need to add this one minute at the end of the actual active time end for the activity to draw correctly - otherwise, the activity's title isn't drawn
 
     val totalMinutes: Int = TouchGestureUtils.calculateTotalNumberOfMinutes(
-        Time(
+        LocalTime(
             activeTimeStart.hour,
             activeTimeStart.minute
         ),
-        Time(
+        LocalTime(
             activeTimeEnd.hour,
             activeTimeEnd.minute
         )
@@ -96,7 +105,7 @@ fun ComparisonDial(
     var touchNearTheDialEdge by remember { mutableStateOf(false) }
     var touchInsideTheDial by remember { mutableStateOf(false) }
     var center by remember { mutableStateOf(Offset.Zero) }
-    // Task area padding from the end of the dial's outer radius
+    // Time area padding from the end of the dial's outer radius
     val taskPadding = 40f
     val clockHandPadding = 0f
 
@@ -110,10 +119,10 @@ fun ComparisonDial(
     // The radius of the clock center (the one that displays time)
     var centerRadius by remember { mutableFloatStateOf(0f) }
 
-    var clockTime by remember { mutableStateOf(Time(LocalTime.now().hour, LocalTime.now().minute)) }
-
-    val tasks = dayUiState.tasks
-    val activities = dayUiState.activities
+    var clockTime by remember { mutableStateOf(LocalTime(
+        java.time.LocalTime.now().hour,
+        java.time.LocalTime.now().minute
+    )) }
 
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
@@ -123,7 +132,7 @@ fun ComparisonDial(
         label = ""
     )
 
-    fun selectTaskAndActivity(time: Time) {
+    fun selectTaskAndActivity(time: LocalTime) {
         // Select task
         for (task in tasks) {
             val isTouchedTimeInTaskRange = TouchGestureUtils.checkIfTimeInRange(
@@ -132,16 +141,17 @@ fun ComparisonDial(
                 rangeEnd = task.endTime!!
             )
             TouchGestureUtils.checkIfTouchWithinTaskArea(
-                angle,
+                angle = angle,
                 clockStart = activeTimeStart,
-                clockEnd = activeTimeEnd,
+//                clockEnd = activeTimeEnd,
                 minuteAngle = minuteAngle,
                 taskStart = task.startTime!!,
                 taskEnd = task.endTime!!
             )
 
             if (isTouchedTimeInTaskRange) {
-                selectTask(task.id)
+//                selectTask(task.id)
+                viewModel.onEvent(PlannerUiEvent.SelectedTaskIdChanged(task.id))
             }
         }
 
@@ -149,12 +159,16 @@ fun ComparisonDial(
         for (activity in activities) {
             val isTouchedTimeInActivityRange = TouchGestureUtils.checkIfTimeInRange(
                 time = time,
-                rangeStart = activity.startTime,
-                rangeEnd = activity.endTime ?: Time(LocalTime.now().hour, LocalTime.now().minute)//TODO: Test me
+                rangeStart = activity.startTime!!,
+                rangeEnd = activity.endTime ?: LocalTime(
+                    java.time.LocalTime.now().hour,
+                    java.time.LocalTime.now().minute
+                )//TODO: Test me
             )
 
             if (isTouchedTimeInActivityRange) {
-                selectActivity(activity.id)
+//                selectActivity(activity.id)
+                viewModel.onEvent(PlannerUiEvent.SelectedActivityIdChanged(activity.id))
             }
         }
     }
@@ -163,13 +177,17 @@ fun ComparisonDial(
     LaunchedEffect(true) {
         while (true) {
             delay(1000L * SECONDS_IN_MINUTE)
-            clockTime = Time(LocalTime.now().hour, LocalTime.now().minute)
+            clockTime = LocalTime(
+                java.time.LocalTime.now().hour,
+                java.time.LocalTime.now().minute
+            )
         }
     }
 
     // Clear the task UI state when the component is loaded for the first time
     LaunchedEffect(Unit) {
-        selectTask(null)// TODO: This should clear the task UI state after coming back from the TaskInfoScreen, but it will not do anything when the user drags task along the dial, since then the component is not drawn for the first time (instead, it's redrawn). This could be solved if for example I cleared the task UI state based on the component's state
+//        selectTask(null)// TODO: This should clear the task UI state after coming back from the TaskInfoScreen, but it will not do anything when the user drags task along the dial, since then the component is not drawn for the first time (instead, it's redrawn). This could be solved if for example I cleared the task UI state based on the component's state
+        viewModel.onEvent(PlannerUiEvent.SelectedTaskIdChanged(null))
     }
 
     Column(
@@ -229,8 +247,10 @@ fun ComparisonDial(
                         detectTapGestures(
                             onTap = { offset ->
                                 // Clear the task- and activity UI states
-                                selectTask(null)
-                                selectActivity(null)
+//                                selectTask(null)
+//                                selectActivity(null)
+                                viewModel.onEvent(PlannerUiEvent.SelectedTaskIdChanged(null))
+                                viewModel.onEvent(PlannerUiEvent.SelectedActivityIdChanged(null))
 
                                 Log.i("TaskDial", "detectTapGestures onTap")
                                 val distance = TouchGestureUtils.distance(offset, center)
@@ -282,7 +302,7 @@ fun ComparisonDial(
                         activeTimeStart,
                         activeTimeEnd
                     )
-                val activeTimeHourSteps: Array<Time> = TouchGestureUtils.createClockHoursArray(
+                val activeTimeHourSteps: Array<LocalTime> = TouchGestureUtils.createClockHoursArray(
                     activeTimeStart,
                     activeTimeEnd
                 )
@@ -290,20 +310,26 @@ fun ComparisonDial(
                 for (activity in activities) {
                     // We have to offset these angles because startMinute * activityDialState.minuteAngle returns a biased angle
                     val activityStartAngle = TouchGestureUtils.calculateAngleFromTime (
-                        activeTimeStart,
-                        activeTimeEnd,
-                        activity.startTime,
-                        minuteAngle
+                        activeTimeStart = activeTimeStart,
+//                        activeTimeEnd,
+                        time = activity.startTime!!,
+                        minuteAngle = minuteAngle
                     )
                     val activityEndAngle = TouchGestureUtils.calculateAngleFromTime (
-                        activeTimeStart,
-                        activeTimeEnd,
-                        activity.endTime ?: Time(LocalTime.now().hour, LocalTime.now().minute),//TODO: Test me
-                        minuteAngle
+                        activeTimeStart = activeTimeStart,
+//                        activeTimeEnd,
+                        time = activity.endTime ?: LocalTime(
+                            java.time.LocalTime.now().hour,
+                            java.time.LocalTime.now().minute
+                        ),//TODO: Test me
+                        minuteAngle = minuteAngle
                     )
                     val activityDuration = TouchGestureUtils.calculateTotalNumberOfMinutes(
-                        activity.startTime,
-                        activity.endTime ?: Time(LocalTime.now().hour, LocalTime.now().minute)//TODO: Test me
+                        activity.startTime!!,
+                        activity.endTime ?: LocalTime(
+        java.time.LocalTime.now().hour,
+        java.time.LocalTime.now().minute
+    )//TODO: Test me
                     )
 
                     drawTask(
@@ -335,16 +361,16 @@ fun ComparisonDial(
                 for (task in tasks) {
                     // We have to offset these angles because startMinute * taskDialState.minuteAngle returns a biased angle
                     val taskStartAngle = TouchGestureUtils.calculateAngleFromTime (
-                        activeTimeStart,
-                        activeTimeEnd,
-                        task.startTime!!,
-                        minuteAngle
+                        activeTimeStart = activeTimeStart,
+//                        activeTimeEnd,
+                        time = task.startTime!!,
+                        minuteAngle = minuteAngle
                     )
                     val taskEndAngle = TouchGestureUtils.calculateAngleFromTime (
-                        activeTimeStart,
-                        activeTimeEnd,
-                        task.endTime!!,
-                        minuteAngle
+                        activeTimeStart = activeTimeStart,
+//                        activeTimeEnd,
+                        time = task.endTime!!,
+                        minuteAngle = minuteAngle
                     )
                     val taskDuration = TouchGestureUtils.calculateTotalNumberOfMinutes(
                         task.startTime!!,

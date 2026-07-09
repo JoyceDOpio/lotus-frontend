@@ -17,12 +17,12 @@ interface IActivityRepository {
     @OptIn(ExperimentalUuidApi::class)
     suspend fun getActivity(id: Uuid): ApiResponse<Activity>
 
-    suspend fun getMainRecordedActivity(): ApiResponse<Activity>
+    suspend fun getRecordedActivityMain(): ApiResponse<Activity>
 
     suspend fun getMainActivitiesPerDay(date: LocalDate): ApiResponse<List<Activity>>
 
     @OptIn(ExperimentalUuidApi::class)
     suspend fun getSubActivitiesPerMainActivity(mainActivityId: Uuid): ApiResponse<List<Activity>>
 
-    suspend fun getSubRecordedActivity(): ApiResponse<Activity>
+    suspend fun getRecordedActivitySub(): ApiResponse<Activity>
 }

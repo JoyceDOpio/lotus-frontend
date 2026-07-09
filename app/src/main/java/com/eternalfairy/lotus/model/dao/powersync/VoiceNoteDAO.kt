@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.flow
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 @Singleton
 class VoiceNoteDAO @Inject constructor(
@@ -26,14 +28,13 @@ class VoiceNoteDAO @Inject constructor(
         }
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     suspend fun insertVoiceNote(voiceNote: VoiceNote) {
         try {
             dataSource.getDatabase().writeTransaction { transaction ->
                 transaction.execute(
-                    sql = "INSERT INTO voice_notes (created_at, user_id, uri, duration, timestamp, activity_id) VALUES (?, ?, ?, ?, ?, ?)",
+                    sql = "INSERT INTO voice_notes (created_at, user_id, uri, duration, timestamp, activity_id) VALUES (?, ?, ?, ?)",
                     parameters = listOf(
-                        voiceNote.createdAt,
-                        voiceNote.userId,
                         voiceNote.uri,
                         voiceNote.duration,
                         voiceNote.recordedAt,
@@ -46,6 +47,7 @@ class VoiceNoteDAO @Inject constructor(
         }
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     fun selectVoiceNotesPerActivity(activityId: String): Flow<List<VoiceNote>> {
         return flow {
             try {
@@ -54,13 +56,11 @@ class VoiceNoteDAO @Inject constructor(
                     parameters = listOf(activityId)
                 ) { cursor ->
                     VoiceNote(
-                        id = UUID.fromString(cursor.getString("id")),
-                        createdAt = cursor.getString("created_at"),
-                        userId = UUID.fromString(cursor.getString("user_id")),
+                        id = Uuid.parse(cursor.getString("id")),
                         uri = cursor.getString("uri"),
                         duration = cursor.getString("duration"),
                         recordedAt = cursor.getString("timestamp"),
-                        activityId = UUID.fromString(cursor.getString("activity_id"))
+                        activityId = Uuid.parse(cursor.getString("activity_id"))
                     )
                 }
             } catch (e: Exception) {
@@ -69,6 +69,7 @@ class VoiceNoteDAO @Inject constructor(
         }
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     fun selectVoiceNoteById(id: String): Flow<VoiceNote?> {
         return flow {
             try {
@@ -77,13 +78,11 @@ class VoiceNoteDAO @Inject constructor(
                     parameters = listOf(id)
                 ) { cursor ->
                     VoiceNote(
-                        id = UUID.fromString(cursor.getString("id")),
-                        createdAt = cursor.getString("created_at"),
-                        userId = UUID.fromString(cursor.getString("user_id")),
+                        id = Uuid.parse(cursor.getString("id")),
                         uri = cursor.getString("uri"),
                         duration = cursor.getString("duration"),
                         recordedAt = cursor.getString("timestamp"),
-                        activityId = UUID.fromString(cursor.getString("activity_id"))
+                        activityId = Uuid.parse(cursor.getString("activity_id"))
                     )
                 }
                 emit(voiceNote)

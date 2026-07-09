@@ -16,6 +16,5 @@
 .cxx
 *.properties
 local.properties
-keystore.properties
 .kotlinq/
 .env

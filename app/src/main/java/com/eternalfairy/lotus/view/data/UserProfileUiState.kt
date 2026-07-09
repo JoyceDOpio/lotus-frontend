@@ -1,10 +1,10 @@
 package com.eternalfairy.lotus.view.data
 
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
-data class UserProfileUiState (
-    val id: UUID? = null,
-    var firstName: String,
-    var lastName: String,
-    var email: String
+
+data class UserProfileUiState @OptIn(ExperimentalUuidApi::class) constructor(
+    val id: Uuid? = null,
+    var name: String
 )

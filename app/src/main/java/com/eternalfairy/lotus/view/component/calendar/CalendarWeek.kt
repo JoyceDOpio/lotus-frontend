@@ -63,11 +63,12 @@ fun CalendarWeek(
     paddingTop: Dp = 5.dp,
     paddingEnd: Dp = 10.dp,
     paddingBottom: Dp = 5.dp,
-    userInput: UserInput,
+//    userInput: UserInput,
+    selectedDate: LocalDate,
 //    onSetDate: (OffsetDateTime) -> Unit
-    onSetDate: (LocalDate) -> Unit
+    onSetDate: (kotlinx.datetime.LocalDate) -> Unit
 ) {
-    var circledDate by remember { mutableStateOf(userInput.selectedDate) }
+    var circledDate by remember { mutableStateOf(selectedDate) }
     // The index of the circled date in a week
     var circledDateIndex by remember { mutableIntStateOf(0) }
     val today = LocalDate.now()
@@ -120,7 +121,7 @@ fun CalendarWeek(
         return getWeek(date.minusWeeks(1))
     }
 
-    var weeks by remember { mutableStateOf(listOf(getWeek(date = userInput.selectedDate))) }
+    var weeks by remember { mutableStateOf(listOf(getWeek(date = selectedDate))) }
 
     fun loadMore (direction: ListDirection) : Unit {
         // Append more data to the beginning of the list
@@ -158,7 +159,7 @@ fun CalendarWeek(
     fun setInitialCircledDateIndex () {
         weeks.forEachIndexed { weekIndex, week ->
             week.forEachIndexed { dayIndex, day ->
-                if (day == userInput.selectedDate) {
+                if (day == selectedDate) {
                     circledDateIndex = dayIndex
                 }
             }
@@ -177,7 +178,7 @@ fun CalendarWeek(
         circledDateIndex = index
         circledDate = date
 
-        onSetDate(date)
+        onSetDate(kotlinx.datetime.LocalDate.parse(date.toString()))
     }
 
     LaunchedEffect(true) {

@@ -36,25 +36,32 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eternalfairy.lotus.R
-import com.eternalfairy.lotus.model.data.Time
 import com.eternalfairy.lotus.view.data.DayUiState
+import com.eternalfairy.lotus.view.screen.planner.PlannerUiEvent
 import com.eternalfairy.lotus.view.theme.BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.theme.ERROR_TEXT_COLOR
 import com.eternalfairy.lotus.view.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.lotus.view.theme.SECONDARY_HEADER_TEXT_COLOR
 import com.eternalfairy.lotus.view.theme.SECONDARY_TEXT_COLOR
+import com.eternalfairy.lotus.viewmodel.PlannerViewModel
+import kotlinx.datetime.LocalTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActiveTimeSetUp (
     modifier: Modifier = Modifier,
-    dayUiState: DayUiState,
+//    dayUiState: DayUiState,
+    viewModel: PlannerViewModel,
     onBack: () -> Unit,
     onClickSaveActiveTime: () -> Unit,
-    setActiveTimeStart: (Time) -> Unit,
-    setActiveTimeEnd: (Time) -> Unit
+//    setActiveTimeStart: (LocalTime) -> Unit,
+//    setActiveTimeEnd: (LocalTime) -> Unit
 ){
+    val state = viewModel.state
+    val dayUiState = state.selectedDay
+    val tasks = state.tasks
+
     var showTimePicker by remember { mutableStateOf(false) }
     var showStartActiveTimePicker by remember { mutableStateOf(false) }
     val startActiveTimePickerState = rememberTimePickerState(
@@ -78,10 +85,11 @@ fun ActiveTimeSetUp (
     val activeTimeStartLaterThanFirstTaskWarning = "The active time start is later than the start of the first task"
     val activeTimeEndEarlierThanLastTaskWarning = "The active time end is earlier than the end of the last task"
 
-    val startTime = Time(startActiveTimePickerState.hour, startActiveTimePickerState.minute)
-    val endTime = Time(endActiveTimePickerState.hour, endActiveTimePickerState.minute)
+    val startTime = LocalTime(startActiveTimePickerState.hour, startActiveTimePickerState.minute)
+    val endTime = LocalTime(endActiveTimePickerState.hour, endActiveTimePickerState.minute)
 
-    val tasks = dayUiState.tasks
+//    val tasks = dayUiState.tasks
+
     // Check whether the start- and end time have correct values
     isStartTimeEarlierThanEndTime = (startTime.compareTo(endTime) == -1)
     if (!tasks.isEmpty()) {
@@ -101,9 +109,19 @@ fun ActiveTimeSetUp (
 
     fun onSaveCloseTimePicker() {
         if (showStartActiveTimePicker) {
-            setActiveTimeStart(Time(startActiveTimePickerState.hour, startActiveTimePickerState.minute))
+//            setActiveTimeStart(LocalTime(startActiveTimePickerState.hour, startActiveTimePickerState.minute))
+            viewModel.onEvent(
+                PlannerUiEvent.ActiveTimeStartChanged(
+                    LocalTime(startActiveTimePickerState.hour, startActiveTimePickerState.minute)
+                )
+            )
         } else {
-            setActiveTimeEnd(Time(endActiveTimePickerState.hour, endActiveTimePickerState.minute))
+//            setActiveTimeEnd(LocalTime(endActiveTimePickerState.hour, endActiveTimePickerState.minute))
+            viewModel.onEvent(
+                PlannerUiEvent.ActiveTimeEndChanged(
+                    LocalTime(endActiveTimePickerState.hour, endActiveTimePickerState.minute)
+                )
+            )
         }
 
         showTimePicker = false

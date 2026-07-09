@@ -7,7 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.eternalfairy.lotus.auth.AuthResponse
 import com.eternalfairy.lotus.auth.IAuthRepository
-import com.eternalfairy.lotus.view.screen.login.AuthState
+import com.eternalfairy.lotus.view.screen.login.AuthUiState
 import com.eternalfairy.lotus.view.screen.login.AuthUiEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -25,7 +25,7 @@ class AuthViewModel @Inject constructor(
         authenticate()
     }
 
-    var state by mutableStateOf(AuthState())
+    var state by mutableStateOf(AuthUiState())
     private val responseChannel = Channel<AuthResponse<Unit>>()
     val authResponses = responseChannel.receiveAsFlow()
 

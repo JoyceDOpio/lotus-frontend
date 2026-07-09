@@ -26,38 +26,45 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import com.eternalfairy.lotus.model.data.Time
-import com.eternalfairy.lotus.view.data.DayUiState
-import com.eternalfairy.lotus.view.data.TaskUiState
 import com.eternalfairy.lotus.view.screen.DeleteScreen
 import com.eternalfairy.lotus.view.screen.TaskEditScreen
 import com.eternalfairy.lotus.view.screen.TaskInfoScreen
+import com.eternalfairy.lotus.view.screen.planner.PlannerUiEvent
 import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.utils.TaskModePopup
+import com.eternalfairy.lotus.viewmodel.PlannerViewModel
 import kotlinx.coroutines.channels.Channel
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
 
+@OptIn(ExperimentalUuidApi::class)
 @Composable
 fun DragItemListTask(//TODO: Merge with DragItemListGoal
     componentHeight: Dp = 680.dp,
     componentWidth: Dp = 400.dp,
-    dayUiState: DayUiState,
-    items: List<TaskUiState>,
-    lastTaskPriority: Int?,
-    taskUiState: TaskUiState,
-    deleteTask: () -> Unit,
+    viewModel: PlannerViewModel,
+//    dayUiState: DayUiState,
+//    items: List<TaskUiState>,
+//    lastTaskPriority: Int?,
+//    taskUiState: TaskUiState,
+//    deleteTask: () -> Unit,
     onMoveToCalendar: () -> Unit,
-    onMoveToToDoList: () -> Unit,
-    onPinTask: (Boolean) -> Unit,
-    saveTask: (TaskUiState) -> Unit,
-    saveTaskFromState: () -> Unit,
-    selectTask: (UUID?) -> Unit,
-    setTaskDescription: (String) -> Unit,
-    setTaskEndTime: (Time) -> Unit,
-    setTaskPriority: (Int) -> Unit,
-    setTaskStartTime: (Time) -> Unit,
-    setTaskTitle: (String) -> Unit
+//    onMoveToToDoList: () -> Unit,
+//    onPinTask: (Boolean) -> Unit,
+//    saveTask: (TaskUiState) -> Unit,
+//    saveTaskFromState: () -> Unit,
+//    selectTask: (UUID?) -> Unit,
+//    setTaskDescription: (String) -> Unit,
+//    setTaskEndTime: (Time) -> Unit,
+//    setTaskPriority: (Int) -> Unit,
+//    setTaskStartTime: (Time) -> Unit,
+//    setTaskTitle: (String) -> Unit
 ) {
+    val state = viewModel.state
+    val dayUiState = state.selectedDay
+    val items = state.toDoTasks
+    val lastTaskPriority = state.lastTaskPriority
+    val taskUiState = state.editedTask
+
     var draggedItem: LazyListItemInfo? by remember { mutableStateOf(null) }
     var draggedItemIndex: Int? by remember { mutableStateOf(null) }
     var delta by remember { mutableStateOf(0f) }
@@ -88,26 +95,32 @@ fun DragItemListTask(//TODO: Merge with DragItemListGoal
             .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
             .background(COMPONENT_BACKGROUND_COLOR)
             .pointerInput(key1 = listState) {
-                detectDragGesturesAfterLongPress (
+                detectDragGesturesAfterLongPress(
                     onDragStart = { offset ->
                         listState.layoutInfo.visibleItemsInfo.firstOrNull() { item -> offset.y.toInt() in item.offset..(item.offset + item.size) }
-                            ?.also { (it.contentType as? Draggable)?.let { draggableItem ->
-                                draggedItem = it
-                                draggedItemIndex = draggableItem.index
-                            } }
+                            ?.also {
+                                (it.contentType as? Draggable)?.let { draggableItem ->
+                                    draggedItem = it
+                                    draggedItemIndex = draggableItem.index
+                                }
+                            }
                     },
                     onDrag = { change, dragAmount ->
                         change.consume()
                         delta += dragAmount.y
 
-                        val currentlyDraggedItemIndex = draggedItemIndex ?: return@detectDragGesturesAfterLongPress
-                        val currentlyDraggedItem = draggedItem ?: return@detectDragGesturesAfterLongPress
+                        val currentlyDraggedItemIndex =
+                            draggedItemIndex ?: return@detectDragGesturesAfterLongPress
+                        val currentlyDraggedItem =
+                            draggedItem ?: return@detectDragGesturesAfterLongPress
 
                         // Swap places if the middle of the dragged item reaches the border of the another item
                         val startOffset = currentlyDraggedItem.offset + delta
-                        val endOffset = currentlyDraggedItem.offset + currentlyDraggedItem.size + delta
+                        val endOffset =
+                            currentlyDraggedItem.offset + currentlyDraggedItem.size + delta
                         val middleOffset = startOffset + (endOffset - startOffset) / 2
-                        val targetItem = listState.layoutInfo.visibleItemsInfo.find { item -> middleOffset.toInt() in item.offset..item.offset + item.size && currentlyDraggedItemIndex != item.index && item.contentType is Draggable }
+                        val targetItem =
+                            listState.layoutInfo.visibleItemsInfo.find { item -> middleOffset.toInt() in item.offset..item.offset + item.size && currentlyDraggedItemIndex != item.index && item.contentType is Draggable }
 
                         if (targetItem != null) {
                             val targetIndex = (targetItem.contentType as Draggable).index
@@ -118,15 +131,18 @@ fun DragItemListTask(//TODO: Merge with DragItemListGoal
                             draggedItemIndex = targetIndex
                             delta += currentlyDraggedItem.offset - targetItem.offset
                         } else {
-                            val startOffsetToTop = startOffset - listState.layoutInfo.viewportStartOffset
-                            val endOffsetToBottom = startOffset - listState.layoutInfo.viewportEndOffset
+                            val startOffsetToTop =
+                                startOffset - listState.layoutInfo.viewportStartOffset
+                            val endOffsetToBottom =
+                                startOffset - listState.layoutInfo.viewportEndOffset
                             val scroll =
                                 when {
                                     startOffsetToTop < 0 -> startOffsetToTop.coerceAtMost(0f)
                                     endOffsetToBottom > 0 -> endOffsetToBottom.coerceAtLeast(0f)
                                     else -> 0f
                                 }
-                            val canScrollDown = currentlyDraggedItemIndex != itemsCopy.size - 1 && endOffsetToBottom > 0
+                            val canScrollDown =
+                                currentlyDraggedItemIndex != itemsCopy.size - 1 && endOffsetToBottom > 0
                             val canScrollUp = currentlyDraggedItemIndex != 0 && startOffsetToTop < 0
                             if (scroll != 0f && (canScrollUp || canScrollDown)) {
                                 scrollChannel.trySend(scroll)
@@ -135,7 +151,9 @@ fun DragItemListTask(//TODO: Merge with DragItemListGoal
                     },
                     onDragEnd = {
                         itemsCopy.forEachIndexed { index, item ->
-                            saveTask(item.copy(priority = index + 1))
+//                            saveTask(item.copy(priority = index + 1))
+                            viewModel.onEvent(PlannerUiEvent.TaskPriorityChanged(index + 1))
+                            viewModel.onEvent(PlannerUiEvent.SaveTask)
                         }
 
                         draggedItemIndex = null
@@ -178,7 +196,8 @@ fun DragItemListTask(//TODO: Merge with DragItemListGoal
                 ,
                 task = item,
                 onNavigateToTaskInfo = { showPopupWindow = true },
-                selectTask = selectTask
+//                selectTask = selectTask
+                selectTask = { viewModel.onEvent(PlannerUiEvent.SelectedTaskIdChanged(item.id)) }
             )
         }
     }
@@ -193,25 +212,27 @@ fun DragItemListTask(//TODO: Merge with DragItemListGoal
             when (taskState) {
                 TaskModePopup.Edit -> {
                     TaskEditScreen(
-                        dayUiState = dayUiState,
-                        lastTaskPriority = lastTaskPriority ?: 0,
-                        taskUiState = taskUiState,
+                        viewModel = viewModel,
+//                        dayUiState = dayUiState,
+//                        lastTaskPriority = lastTaskPriority ?: 0,
+//                        taskUiState = taskUiState,
                         onBack = {
                             taskState = TaskModePopup.Info
                         },
-                        saveTask = saveTaskFromState,
-                        setTaskEndTime = setTaskEndTime,
-                        setTaskDescription = setTaskDescription,
-                        setTaskPriority = setTaskPriority,
-                        setTaskStartTime = setTaskStartTime,
-                        setTaskTitle = setTaskTitle
+//                        saveTask = saveTaskFromState,
+//                        setTaskEndTime = setTaskEndTime,
+//                        setTaskDescription = setTaskDescription,
+//                        setTaskPriority = setTaskPriority,
+//                        setTaskStartTime = setTaskStartTime,
+//                        setTaskTitle = setTaskTitle
                     )
                 }
                 TaskModePopup.Info -> {
                     TaskInfoScreen(
                         displayType = CardDisplayType.Popup,
-                        dayUiState = dayUiState,
-                        taskUiState = taskUiState,
+                        viewModel = viewModel,
+//                        dayUiState = dayUiState,
+//                        taskUiState = taskUiState,
                         onDeleteTask = {
                             taskState = TaskModePopup.Delete
                         },
@@ -219,11 +240,11 @@ fun DragItemListTask(//TODO: Merge with DragItemListGoal
                             showPopupWindow = false
                         },
                         onMoveToCalendar = onMoveToCalendar,
-                        onMoveToToDoList = onMoveToToDoList,
+//                        onMoveToToDoList = onMoveToToDoList,
                         onNavigateToTaskEdit = {
                             taskState = TaskModePopup.Edit
                         },
-                        onPinTask = onPinTask
+//                        onPinTask = onPinTask
                     )
                 }
 
@@ -234,8 +255,10 @@ fun DragItemListTask(//TODO: Merge with DragItemListGoal
                             showPopupWindow = false
                         },
                         onDelete = {
-                            deleteTask()
-                            selectTask(null)
+//                            deleteTask()
+//                            selectTask(null)
+                            viewModel.onEvent(PlannerUiEvent.DeleteTask)
+
                             showPopupWindow = false
                         }
                     )

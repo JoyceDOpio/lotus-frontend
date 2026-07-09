@@ -76,7 +76,8 @@ private fun CalendarCell (
     date: LocalDate? = null,
     isSelected: Boolean = false,
     isToday: Boolean = false,
-    onClick: (LocalDate) -> Unit = {},
+//    onClick: (LocalDate) -> Unit = {},
+    onClick: (kotlinx.datetime.LocalDate) -> Unit = {}
 ) {
     val formatter = DateTimeFormatter.ofPattern("d")
     val text = date?.format(formatter)
@@ -109,7 +110,7 @@ private fun CalendarCell (
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = ripple(bounded = true),
-                    onClick = { onClick(date) }
+                    onClick = { onClick(kotlinx.datetime.LocalDate.parse(date.toString())) }
                 )
         ) {
             Text (
@@ -144,7 +145,8 @@ fun CalendarGrid (
 //    paddingBottom: Dp = 5.dp,
     modifier: Modifier = Modifier,
     selectedDate: LocalDate,
-    onSetDate: (LocalDate) -> Unit,
+//    onSetDate: (LocalDate) -> Unit,
+    onSetDate: (kotlinx.datetime.LocalDate) -> Unit,
     yearMonth: YearMonth = YearMonth.now()
 ) {
     fun checkIfLeapYear(year: Int): Boolean {
@@ -252,7 +254,8 @@ fun CalendarMonth (
     paddingEnd: Dp = 10.dp,
     paddingBottom: Dp = 5.dp,
     selectedDate: LocalDate,
-    onSetDate: (LocalDate) -> Unit
+//    onSetDate: (LocalDate) -> Unit
+    onSetDate: (kotlinx.datetime.LocalDate) -> Unit
 ) {
     val listState = rememberLazyListState()
     val flingBehaviour = rememberSnapFlingBehavior(

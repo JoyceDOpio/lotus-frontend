@@ -22,6 +22,11 @@ class VoiceNoteDAO(
         return api.getVoiceNote(id)
     }
 
+    @OptIn(ExperimentalUuidApi::class)
+    override suspend fun getVoiceNotesOfActivity(activityId: Uuid): List<VoiceNote> {
+        return api.getVoiceNotesOfActivity(activityId)
+    }
+
     override suspend fun updateVoiceNote(voiceNote: VoiceNote) {
         return api.updateVoiceNote(voiceNote)
     }

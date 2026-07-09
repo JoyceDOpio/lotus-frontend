@@ -29,26 +29,30 @@ import androidx.compose.ui.unit.sp
 import com.eternalfairy.lotus.R
 import com.eternalfairy.lotus.view.component.CardDisplayType
 import com.eternalfairy.lotus.view.component.DropDownItem
-import com.eternalfairy.lotus.view.component.TaskCard
+import com.eternalfairy.lotus.view.component.InfoCard
 import com.eternalfairy.lotus.view.component.TaskDropdownMenu
-import com.eternalfairy.lotus.view.data.DayUiState
-import com.eternalfairy.lotus.view.data.TaskUiState
+import com.eternalfairy.lotus.view.screen.planner.PlannerUiEvent
 import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.theme.HEADER_TEXT_COLOR
+import com.eternalfairy.lotus.viewmodel.PlannerViewModel
 
 @Composable
 fun TaskInfoScreen(
     modifier: Modifier = Modifier,
     displayType: CardDisplayType,
-    dayUiState: DayUiState,
-    taskUiState: TaskUiState,
+    viewModel: PlannerViewModel,
+//    dayUiState: DayUiState,
+//    taskUiState: TaskUiState,
     onDeleteTask: () -> Unit,
     onBack: () -> Unit,
     onMoveToCalendar: () -> Unit,
-    onMoveToToDoList: () -> Unit,
+//    onMoveToToDoList: () -> Unit,
     onNavigateToTaskEdit: () -> Unit,
-    onPinTask: (Boolean) -> Unit
+//    onPinTask: (Boolean) -> Unit
 ) {
+    val state = viewModel.state
+    val lastTaskPriority = state.lastTaskPriority
+    val taskUiState = state.editedTask
 
     Scaffold (
         bottomBar = {
@@ -92,7 +96,16 @@ fun TaskInfoScreen(
                             text = if (taskUiState.date == null) "Move to calendar" else "Move to \"To Do\"",
                             iconId = if (taskUiState.date == null) R.drawable.calendar_month_24dp_5f6368_fill0_wght400_grad0_opsz24 else R.drawable.list_svgrepo_com,
                             onClick = {
-                                if (taskUiState.date == null) onMoveToCalendar() else onMoveToToDoList()
+                                if (taskUiState.date == null) {
+                                    onMoveToCalendar()
+                                } else {
+//                                    onMoveToToDoList()
+                                    viewModel.onEvent(PlannerUiEvent.TaskDateChanged(null))
+                                    viewModel.onEvent(PlannerUiEvent.TaskStartTimeChanged(null))
+                                    viewModel.onEvent(PlannerUiEvent.TaskEndTimeChanged(null))
+                                    viewModel.onEvent(PlannerUiEvent.TaskPriorityChanged(lastTaskPriority + 1))
+                                    viewModel.onEvent(PlannerUiEvent.SaveTask)
+                                }
                                 onBack()
                             }
                         ),
@@ -103,7 +116,8 @@ fun TaskInfoScreen(
                             onClick = {
                                 Log.i("TaskInfoScreen", "taskUiState $taskUiState")
                                 Log.i("TaskInfoScreen", "!taskUiState.pinned ${!taskUiState.pinned}")
-                                onPinTask(!taskUiState.pinned)
+//                                onPinTask(!taskUiState.pinned)
+                                viewModel.onEvent(PlannerUiEvent.TaskPinnedChanged(!taskUiState.pinned))
                                 Log.i("TaskInfoScreen", "taskUiState $taskUiState")
                                 onBack()
                             },
@@ -124,16 +138,17 @@ fun TaskInfoScreen(
                 .background(COMPONENT_BACKGROUND_COLOR)
                 .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
         ) {
-            TaskCard (
+            InfoCard (
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
-                date = taskUiState.date,
-                dayUiState = dayUiState,
+                viewModel = viewModel,
+//                date = taskUiState.date,
+//                dayUiState = dayUiState,
                 displayType = displayType,
-                endTime = taskUiState.endTime,
-                startTime = taskUiState.startTime,
-                pinned = taskUiState.pinned,
-                title = taskUiState.title
+//                endTime = taskUiState.endTime,
+//                startTime = taskUiState.startTime,
+//                pinned = taskUiState.pinned,
+//                title = taskUiState.title
             ) {
                 Row (
                     modifier = modifier

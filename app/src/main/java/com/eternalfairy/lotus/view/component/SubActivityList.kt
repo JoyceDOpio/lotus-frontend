@@ -11,22 +11,30 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.eternalfairy.lotus.model.data.Time
 import com.eternalfairy.lotus.view.data.ActivityUiState
-import com.eternalfairy.lotus.view.data.VoiceNoteUiState
+import com.eternalfairy.lotus.view.screen.planner.PlannerUiEvent
 import com.eternalfairy.lotus.view.theme.Teal12
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils
+import com.eternalfairy.lotus.viewmodel.PlannerViewModel
+import kotlinx.datetime.LocalTime
 import java.time.LocalDateTime
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 @Composable
 fun SubActivityList (
-    mainActivityUiState: ActivityUiState,
-    onDeleteItem: (UUID) -> Unit,
+    viewModel: PlannerViewModel,
+//    mainActivityUiState: ActivityUiState,
+    onDeleteItem: (Uuid) -> Unit,
     onEditItem: (ActivityUiState) -> Unit,
-    removeVoiceNote: (VoiceNoteUiState) -> Unit,
-    updateLastPlayedPosition: (Long, Int) -> Unit
+//    removeVoiceNote: (VoiceNoteUiState) -> Unit,
+//    updateLastPlayedPosition: (Long, Int) -> Unit
 ) {
+    val state = viewModel.state
+    val mainActivity = state.selectedActivity
+    val subActivities = state.subActivities
+
     // Text
     val headerText = "SUB-ACTIVITIES"// TODO: Read from resource
 
@@ -46,9 +54,12 @@ fun SubActivityList (
             )
 
             var subActivitiesTotal = 0
-            for (subActivity in mainActivityUiState.subActivitiesUiState) {
-                val endTimeValue = subActivity.endTime ?: Time(LocalDateTime.now().hour, LocalDateTime.now().minute)
-                subActivitiesTotal += TouchGestureUtils.calculateTotalNumberOfMinutes(subActivity.startTime, endTimeValue)
+            for (subActivity in subActivities) {
+                val endTimeValue = subActivity.endTime ?: LocalTime(
+                    LocalDateTime.now().hour,
+                    LocalDateTime.now().minute
+                )
+                subActivitiesTotal += TouchGestureUtils.calculateTotalNumberOfMinutes(subActivity.startTime!!, endTimeValue)
             }
 
             Text (
@@ -63,12 +74,12 @@ fun SubActivityList (
                 .padding(vertical = 5.dp)
                 .fillMaxWidth()
         ) {
-            for ((index, subActivity) in mainActivityUiState.subActivitiesUiState.withIndex()) {
+            for ((index, subActivity) in subActivities.withIndex()) {
                 // Minutes between the current sub-activity and previous sub-activity/start of the main activity
                 val minutesBetween: Int = if (index == 0) {
-                    TouchGestureUtils.calculateTotalNumberOfMinutes(mainActivityUiState.startTime, mainActivityUiState.subActivitiesUiState[index ].startTime)
+                    TouchGestureUtils.calculateTotalNumberOfMinutes(mainActivity.startTime!!, subActivities[index].startTime!!)
                 } else {
-                    TouchGestureUtils.calculateTotalNumberOfMinutes(mainActivityUiState.subActivitiesUiState[index - 1].endTime!!, mainActivityUiState.subActivitiesUiState[index].startTime)
+                    TouchGestureUtils.calculateTotalNumberOfMinutes(subActivities[index - 1].endTime!!, subActivities[index].startTime!!)
                 }
 
                 Row (
@@ -98,8 +109,10 @@ fun SubActivityList (
                     subActivity = subActivity,
                     onDelete = onDeleteItem,
                     onEdit = onEditItem,
-                    onDeleteVoiceNote = removeVoiceNote,
-                    updateLastPlayedPosition = updateLastPlayedPosition
+//                    onDeleteVoiceNote = removeVoiceNote,
+                    onDeleteVoiceNote = { viewModel.onEvent(PlannerUiEvent.DeleteVoiceNote) },
+//                    updateLastPlayedPosition = updateLastPlayedPosition
+                    updateLastPlayedPosition = { position, itemIndex -> viewModel.updateLastPlayedPosition(position, itemIndex) }
                 )
             }
         }

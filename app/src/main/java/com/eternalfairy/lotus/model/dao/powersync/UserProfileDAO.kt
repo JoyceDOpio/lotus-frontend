@@ -5,9 +5,10 @@ import com.eternalfairy.lotus.model.data.UserProfile
 import com.powersync.db.getString
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 @Singleton
 class UserProfileDAO @Inject constructor(
@@ -30,12 +31,9 @@ class UserProfileDAO @Inject constructor(
         try {
             dataSource.getDatabase().writeTransaction { transaction ->
                 transaction.execute(
-                    sql = "INSERT INTO user_profiles (created_at, first_name, last_name, email) VALUES (?, ?, ?, ?)",
+                    sql = "INSERT INTO user_profiles (name) VALUES (?)",
                     parameters = listOf(
-                        userProfile.createdAt,
-                        userProfile.firstName,
-                        userProfile.lastName,
-                        userProfile.email
+                        userProfile.name
                     )
                 )
             }
@@ -44,6 +42,7 @@ class UserProfileDAO @Inject constructor(
         }
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     fun selectUserProfileById(id: String): Flow<UserProfile?> {
         return flow {
             try {
@@ -52,11 +51,8 @@ class UserProfileDAO @Inject constructor(
                     parameters = listOf(id)
                 ) { cursor ->
                     UserProfile(
-                        id = UUID.fromString(cursor.getString("id")),
-                        createdAt = cursor.getString("created_at"),
-                        firstName = cursor.getString("first_name"),
-                        lastName = cursor.getString("last_name"),
-                        email = cursor.getString("email")
+                        id = Uuid.parse(cursor.getString("id")),
+                        name = cursor.getString("name")
                     )
                 }
                 emit(activity)
@@ -70,11 +66,9 @@ class UserProfileDAO @Inject constructor(
     suspend fun updateUserProfile(userProfile: UserProfile) {
         try {
             dataSource.getDatabase().execute(
-                sql = "UPDATE user_profiles SET first_name = ?, last_name = ? WHERE id = ?",
+                sql = "UPDATE user_profiles SET name = ? WHERE id = ?",
                 parameters = listOf(
-                    userProfile.firstName,
-                    userProfile.lastName,
-                    userProfile.id
+                    userProfile.name
                 )
             )
         } catch (e: Exception) {

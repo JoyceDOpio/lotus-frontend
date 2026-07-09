@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
 import com.eternalfairy.lotus.auth.AuthApi
+import com.eternalfairy.lotus.auth.AuthInterceptor
 import com.eternalfairy.lotus.auth.AuthRepository
 import com.eternalfairy.lotus.auth.IAuthRepository
 import com.eternalfairy.lotus.model.dao.IActivityDAO
@@ -41,21 +42,40 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import jakarta.inject.Singleton
+import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.create
+
+//val tokenProvider: () -> String? = {
+//    /* Logic to fetch token (i.e. get from shared preferences) */
+//}
 
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
     @Provides
     @Singleton
-    fun provideAuthApi(): AuthApi {
+    fun provideOkHttpClient(preferences: SharedPreferences): OkHttpClient {
+        return OkHttpClient.Builder()
+            .addInterceptor(
+//                AuthInterceptor(tokenProvider)
+                AuthInterceptor({ preferences.getString("jwt", Context.MODE_PRIVATE.toString()) })
+            )
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideAuthApi(okHttpClient: OkHttpClient): AuthApi {
         return Retrofit.Builder()
             // The ip of the computer
             .baseUrl("http://172.27.176.1:8080")
+            .client(okHttpClient)
             // To automatically parse JSON
-            .addConverterFactory(MoshiConverterFactory.create())
+            .addConverterFactory(
+                MoshiConverterFactory.create()
+            )
             .build()
             .create()
     }

@@ -2,7 +2,7 @@ package com.eternalfairy.lotus.view.utils
 
 import android.util.Log
 import androidx.compose.ui.geometry.Offset
-import com.eternalfairy.lotus.model.data.Time
+import kotlinx.datetime.LocalTime
 import kotlin.math.atan2
 import kotlin.math.floor
 import kotlin.math.sqrt
@@ -38,12 +38,12 @@ object TouchGestureUtils {
 //    const val TOUCH_STROKE = 50f
     const val TOUCH_STROKE = 25f
 
-    fun addMinutesToTime(minutes: Int, time: Time): Time {
+    fun addMinutesToTime(minutes: Int, time: LocalTime): LocalTime {
         val totalMinutes = time.hour * 60 + time.minute + minutes
         val hour = totalMinutes / 60
         val minute = totalMinutes - hour * 60
 
-        return Time(hour, minute)
+        return LocalTime(hour, minute)
     }
 
     // Calculate the exact angle on the circle
@@ -68,7 +68,12 @@ object TouchGestureUtils {
     }
 
     // Calculate the angle the given time corresponds to on the dial (not translated)
-    fun calculateAngleFromTime (activeTimeStart: Time, activeTimeEnd: Time, time: Time, minuteAngle: Float): Float {
+    fun calculateAngleFromTime (
+        activeTimeStart: LocalTime,
+//        activeTimeEnd: LocalTime,
+        time: LocalTime,
+        minuteAngle: Float
+    ): Float {
 //        // It seems that calculating the angle might not return exactly 0 degrees for the start time and 360 degrees for the end time, so it's better to directly return 0f and 360f
 //        if (time.compareTo(activeTimeStart) == 0) return 270f
 //        if (time.compareTo(activeTimeEnd) == 0) return 360f
@@ -85,11 +90,11 @@ object TouchGestureUtils {
     }
 
     // Calculate the number of hour points between the start- and end time, e.g. between 6:20 AM and 11:12 AM there are 5 hour points: 7:00, 8:00, 9:00, 10:00 and 11:00.
-    fun calculateClockHoursBetween (start: Time, end: Time): Int {
+    fun calculateClockHoursBetween (start: LocalTime, end: LocalTime): Int {
         return end.hour.minus(start.hour)
     }
 
-    fun calculateClockTimeBasedOnMinutesFromStartTime (start: Time, minutes: Int): Time {
+    fun calculateClockTimeBasedOnMinutesFromStartTime (start: LocalTime, minutes: Int): LocalTime {
         var hour: Int = start.hour
         var minute: Float
         val totalMinutes = start.minute + minutes
@@ -97,7 +102,7 @@ object TouchGestureUtils {
         hour += (totalMinutes / 60)
         minute = totalMinutes % 60f
 
-        return Time(hour, minute.toInt())
+        return LocalTime(hour, minute.toInt())
     }
 
     // Gives the amount of minutes the angle corresponds to
@@ -113,7 +118,7 @@ object TouchGestureUtils {
     // 60 (number of minutes between 10:00 and 11:00),
     // 12 (number of minutes between 11:00 and 11:12)
     // ] will be returned
-    fun calculateMinutesBetweenHours (start: Time, end: Time): Array<Int> {
+    fun calculateMinutesBetweenHours (start: LocalTime, end: LocalTime): Array<Int> {
         var minutes = emptyArray<Int>()
 
         val numberOfClockHoursBetween: Int = calculateClockHoursBetween(start, end)
@@ -133,7 +138,7 @@ object TouchGestureUtils {
     }
 
     // Calculates an array of minutes, for example between 6:20 AM and 11:12 AM an array of [0, 40, 100, 160, 220, 280, 292] will be returned
-    fun calculateMinutesBetweenHoursAccumulated (start: Time, end: Time): Array<Int> {
+    fun calculateMinutesBetweenHoursAccumulated (start: LocalTime, end: LocalTime): Array<Int> {
         var minutesBetweenHoursAccumulated: Array<Int> = emptyArray()
         val minutesBetweenHours: Array<Int> = calculateMinutesBetweenHours(start, end)
         var minutesTotal = 0
@@ -147,7 +152,7 @@ object TouchGestureUtils {
         return minutesBetweenHoursAccumulated
     }
 
-    fun calculateTimeFromAngle (angle: Float, minuteAngle: Float, clockStart: Time): Time {
+    fun calculateTimeFromAngle (angle: Float, minuteAngle: Float, clockStart: LocalTime): LocalTime {
         // The minute the angle corresponds to
         val minute = calculateMinutes(
             translateAngle270To0(angle),
@@ -165,7 +170,7 @@ object TouchGestureUtils {
         return time
     }
 
-    fun calculateTotalNumberOfMinutes (start: Time, end: Time): Int {
+    fun calculateTotalNumberOfMinutes (start: LocalTime, end: LocalTime): Int {
         var minutes = 0
         val numberOfClockHoursBetween: Int = calculateClockHoursBetween(start, end)
 
@@ -187,7 +192,7 @@ object TouchGestureUtils {
         return minutes
     }
 
-    fun checkIfTimeInRange(time: Time, rangeStart: Time, rangeEnd: Time): Boolean {
+    fun checkIfTimeInRange(time: LocalTime, rangeStart: LocalTime, rangeEnd: LocalTime): Boolean {
         if (time.hour in rangeStart.hour..rangeEnd.hour) {
             return if (time.hour == rangeStart.hour && time.minute < rangeStart.minute) false
             else if (time.hour == rangeEnd.hour && time.minute > rangeEnd.minute) false
@@ -197,7 +202,7 @@ object TouchGestureUtils {
         return false
     }
 
-    fun checkIfTimeInTimeRange(time: Time, startTime: Time, endTime: Time): Boolean {
+    fun checkIfTimeInTimeRange(time: LocalTime, startTime: LocalTime, endTime: LocalTime): Boolean {
         return if (time.hour < startTime.hour || time.hour > endTime.hour) false
         else {
             when (time.hour) {
@@ -231,18 +236,25 @@ object TouchGestureUtils {
         return angleCorrected in startAngleCorrected..endAngleCorrected
     }
 
-    fun checkIfTouchWithinTaskArea(angle: Float, clockStart: Time, clockEnd: Time, minuteAngle: Float, taskStart: Time, taskEnd: Time): Boolean {
+    fun checkIfTouchWithinTaskArea(
+        angle: Float,
+        clockStart: LocalTime,
+//        clockEnd: LocalTime,
+        minuteAngle: Float,
+        taskStart: LocalTime,
+        taskEnd: LocalTime
+    ): Boolean {
         val taskStartAngle = calculateAngleFromTime (
-            clockStart,
-            clockEnd,
-            taskStart,
-            minuteAngle
+            activeTimeStart = clockStart,
+//            clockEnd,
+            time = taskStart,
+            minuteAngle = minuteAngle
         )
         val taskEndAngle = calculateAngleFromTime (
-            clockStart,
-            clockEnd,
-            taskEnd,
-            minuteAngle
+            activeTimeStart = clockStart,
+//            clockEnd,
+            time = taskEnd,
+            minuteAngle = minuteAngle
         )
         val isTouchWithinTaskArea =
             checkIfTouchWithinAngleRange(angle, taskStartAngle, taskEndAngle)
@@ -250,15 +262,15 @@ object TouchGestureUtils {
         return isTouchWithinTaskArea
     }
 
-    fun createClockHoursArray (start: Time, end: Time): Array<Time> {
-        var hours: Array<Time> = emptyArray()
+    fun createClockHoursArray (start: LocalTime, end: LocalTime): Array<LocalTime> {
+        var hours: Array<LocalTime> = emptyArray()
         val numberOfClockHoursBetween: Int = calculateClockHoursBetween(start, end)
 
         hours += start
         if (numberOfClockHoursBetween > 0) {
             for (i in 1..numberOfClockHoursBetween) {
                 val hour: Int = start.hour + i
-                hours += Time(hour, 0)
+                hours += LocalTime(hour, 0)
             }
         }
         if (end.minute > 0) {

@@ -87,16 +87,6 @@ android {
                 name = "POWERSYNC_URL",
                 value = keystoreProperties.getProperty("POWERSYNC_URL")
             )
-            buildConfigField(
-                type = "String",
-                name = "SUPABASE_KEY",
-                value = keystoreProperties.getProperty("SUPABASE_KEY")
-            )
-            buildConfigField(
-                type = "String",
-                name = "SUPABASE_URL",
-                value = keystoreProperties.getProperty("SUPABASE_URL")
-            )
         }
     }
     compileOptions {

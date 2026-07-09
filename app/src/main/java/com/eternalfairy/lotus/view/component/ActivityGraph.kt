@@ -60,19 +60,23 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.eternalfairy.lotus.R
-import com.eternalfairy.lotus.model.data.Time
 import com.eternalfairy.lotus.view.component.calendar.conditional
 import com.eternalfairy.lotus.view.data.DayUiState
+import com.eternalfairy.lotus.view.screen.planner.PlannerUiEvent
+import com.eternalfairy.lotus.view.screen.planner.PlannerUiState
 import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.lotus.view.theme.MINUTE_LABEL_COLOR
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils.TOUCH_STROKE
+import com.eternalfairy.lotus.viewmodel.PlannerViewModel
 import kotlinx.coroutines.delay
-import java.time.LocalTime
-import java.util.UUID
+import kotlinx.datetime.LocalTime
+import java.time.LocalDate
 import kotlin.math.ceil
 import kotlin.math.sqrt
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 enum class ActivityGraphDisplayType {
     Activity,
@@ -84,6 +88,7 @@ enum class TextAboveTaskAreaType {
     Horizontal
 }
 
+@OptIn(ExperimentalUuidApi::class)
 @Composable
 fun ActivityGraph (
     componentHeight: Dp = 180.dp,
@@ -92,23 +97,29 @@ fun ActivityGraph (
     paddingTop: Dp = 5.dp,
     paddingEnd: Dp = 10.dp,
     paddingBottom: Dp = 5.dp,
-    dayUiState: DayUiState,
+    viewModel: PlannerViewModel,
+//    state: PlannerUiState,
     drawClockHand: Boolean = false,
 //    height: Dp = 320.dp,// Minimum height is 300.dp - at 280.dp there is a problem with index out of bounds
     onNavigateToTaskActivityComparison: () -> Unit,
-    selectActivity: (UUID?) -> Unit,
-    selectTask: (UUID?) -> Unit
+//    selectActivity: (Uuid?) -> Unit,
+//    selectTask: (Uuid?) -> Unit
 ) {
-    val tasks = dayUiState.tasks
-    val activities = dayUiState.activities
+    val state = viewModel.state
+
+    val activities = state.activities
+    val dayUiState = state.selectedDay
+    val tasks = state.tasks
+
+//    val today = LocalDate.parse(LocalDate.now().toString())
 
     var canvasWidth by remember { mutableStateOf(0.dp) }
     var canvasHeight by remember { mutableFloatStateOf(0f) }
     var canvasHeightDp by remember { mutableStateOf(0.dp) }
 
     // The planned start and end time of the day
-    val activeTimeStart: Time = dayUiState.activeTimeStart
-    val activeTimeEnd: Time = dayUiState.activeTimeEnd
+    val activeTimeStart: LocalTime = dayUiState.activeTimeStart
+    val activeTimeEnd: LocalTime = dayUiState.activeTimeEnd
     // The actual start and end time of the day
     val actualActiveTimeStart = dayUiState.actualActiveTimeStart
     val actualActiveTimeEnd = dayUiState.actualActiveTimeEnd
@@ -135,7 +146,10 @@ fun ActivityGraph (
     val touchStroke: Float = TOUCH_STROKE
     var touchWithinAxis by remember { mutableStateOf(false) }
 
-    var clockTime by remember { mutableStateOf(Time(LocalTime.now().hour, LocalTime.now().minute)) }
+    var clockTime by remember { mutableStateOf(LocalTime(
+        java.time.LocalTime.now().hour,
+        java.time.LocalTime.now().minute)
+    ) }
 
     var magnifierSourceCenter by remember {
         mutableStateOf(Offset.Unspecified)
@@ -159,7 +173,7 @@ fun ActivityGraph (
             }
         }
 
-    fun calculateClockTimeFromAxis(minuteWidth: Float, touchOffsetX: Float, activeTimeStart: Time): Time {
+    fun calculateClockTimeFromAxis(minuteWidth: Float, touchOffsetX: Float, activeTimeStart: LocalTime): LocalTime {
         var hour = activeTimeStart.hour
         val totalMinutes = (touchOffsetX / minuteWidth) + activeTimeStart.minute
         val hoursToAdd = (totalMinutes / 60).toInt()
@@ -167,7 +181,7 @@ fun ActivityGraph (
 
         hour += hoursToAdd
 
-        return Time(hour, minutes)
+        return LocalTime(hour, minutes)
     }
 
     fun checkIfTouchWithinAxis(touchOffsetX: Offset, axisStart: Offset, axisEnd: Offset, touchStroke: Float): Boolean {
@@ -179,7 +193,7 @@ fun ActivityGraph (
         return false
     }
 
-    fun selectTaskAndActivity(time: Time) {
+    fun selectTaskAndActivity(time: LocalTime) {
         // Select task
         for (task in tasks) {
             val isTouchedTimeInTaskRange = TouchGestureUtils.checkIfTimeInRange(
@@ -188,7 +202,8 @@ fun ActivityGraph (
                 rangeEnd = task.endTime!!
             )
             if (isTouchedTimeInTaskRange) {
-                selectTask(task.id)
+//                selectTask(task.id)
+                viewModel.onEvent(PlannerUiEvent.SelectedTaskIdChanged(task.id))
             }
         }
 
@@ -196,26 +211,34 @@ fun ActivityGraph (
         for (activity in activities) {
             val isTouchedTimeInActivityRange = TouchGestureUtils.checkIfTimeInRange(
                 time = time,
-                rangeStart = activity.startTime,
-                rangeEnd = activity.endTime ?: Time(LocalTime.now().hour, LocalTime.now().minute)//TODO: Test me
+                rangeStart = activity.startTime!!,
+                rangeEnd = activity.endTime ?: LocalTime(
+                    java.time.LocalTime.now().hour,
+                    java.time.LocalTime.now().minute
+                )//TODO: Test me
             )
 
             if (isTouchedTimeInActivityRange) {
-                selectActivity(activity.id)
+//                selectActivity(activity.id)
+                viewModel.onEvent(PlannerUiEvent.SelectedActivityIdChanged(activity.id))
             }
         }
     }
 
     // Clear the activity UI state when the component is loaded
     LaunchedEffect(Unit) {
-        selectActivity(null)
+//        selectActivity(null)
+        viewModel.onEvent(PlannerUiEvent.SelectedActivityIdChanged(null))
     }
 
     // Update the clock every minute
     LaunchedEffect(true) {
         while (true) {
             delay(1000L * SECONDS_IN_MINUTE)
-            clockTime = Time(LocalTime.now().hour, LocalTime.now().minute)
+            clockTime = LocalTime(
+                java.time.LocalTime.now().hour,
+                java.time.LocalTime.now().minute
+            )
         }
     }
 
@@ -273,10 +296,12 @@ fun ActivityGraph (
                         detectTapGestures(
                             onTap = { offset ->
                                 // Clear the task- and activity UI states
-                                selectTask(null)
-                                selectActivity(null)
+//                                selectTask(null)
+//                                selectActivity(null)
+                                viewModel.onEvent(PlannerUiEvent.SelectedTaskIdChanged(null))
+                                viewModel.onEvent(PlannerUiEvent.SelectedActivityIdChanged(null))
 
-                                var time: Time? = null
+                                var time: LocalTime? = null
                                 touchWithinAxis = checkIfTouchWithinAxis(
                                     touchOffsetX = offset,
                                     axisStart = Offset(
@@ -355,11 +380,14 @@ fun ActivityGraph (
                     // We have to offset these angles because startMinute * taskDialState.minuteAngle returns a biased angle
                     val activityMinutesFromActiveTimeStart = TouchGestureUtils.calculateTotalNumberOfMinutes (
                         activeTimeStart,
-                        activity.startTime
+                        activity.startTime!!
                     )
                     val activityDuration = TouchGestureUtils.calculateTotalNumberOfMinutes(
-                        activity.startTime,
-                        activity.endTime ?: Time(LocalTime.now().hour, LocalTime.now().minute)
+                        activity.startTime!!,
+                        activity.endTime ?: LocalTime(
+                            java.time.LocalTime.now().hour,
+                            java.time.LocalTime.now().minute
+                        )
                     )
 
                     drawTask(
@@ -549,10 +577,10 @@ fun ActivityGraph (
 }
 
 fun DrawScope.drawClockHand(
-    activeTimeStart: Time,
+    activeTimeStart: LocalTime,
     axisHorizontalPadding: Float,
     canvasHeight: Float,
-    clockTime: Time,
+    clockTime: LocalTime,
     minuteWidth: Float
 ) {
     val minutesFromActiveTimeStart = TouchGestureUtils.calculateTotalNumberOfMinutes(activeTimeStart, clockTime)
@@ -593,15 +621,15 @@ fun DrawScope.drawClockHand(
 }
 
 fun DrawScope.drawGraph(
-    activeTimeStart: Time,
+    activeTimeStart: LocalTime,
     axisHorizontalPadding: Float,
     canvasHeight: Float,
-    clockTime: Time,
+    clockTime: LocalTime,
     drawClockHand: Boolean,
     minuteWidth: Float,
     minutesBetweenHoursAccumulatedTask: Array<Int>,
     minutesBetweenHoursAccumulatedActivity: Array<Int>,
-    activeTimeHourSteps: Array<Time>,
+    activeTimeHourSteps: Array<LocalTime>,
     textMeasurer: TextMeasurer,
     totalMinutesTask: Int,
     totalMinutesActivity: Int,
@@ -668,7 +696,7 @@ fun DrawScope.drawHourLabels(
     canvasHeight: Float,
     minuteWidth: Float,
     minutesBetweenHoursAccumulated: Array<Int>,
-    activeTimeHourSteps: Array<Time>,
+    activeTimeHourSteps: Array<LocalTime>,
     textMeasurer: TextMeasurer
 ) {
     val textStyle = TextStyle(

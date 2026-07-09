@@ -55,7 +55,7 @@ class ActivityRepository @Inject constructor(
         }
     }
 
-    override suspend fun getMainRecordedActivity(): ApiResponse<Activity> {
+    override suspend fun getRecordedActivityMain(): ApiResponse<Activity> {
         return try {
             val activity = dao.getMainRecordedActivity()
 
@@ -86,7 +86,7 @@ class ActivityRepository @Inject constructor(
         }
     }
 
-    override suspend fun getSubRecordedActivity(): ApiResponse<Activity> {
+    override suspend fun getRecordedActivitySub(): ApiResponse<Activity> {
         return try {
             val activity = dao.getSubRecordedActivity()
 

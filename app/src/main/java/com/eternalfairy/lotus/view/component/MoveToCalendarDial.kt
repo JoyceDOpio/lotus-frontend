@@ -55,7 +55,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eternalfairy.lotus.R
-import com.eternalfairy.lotus.model.data.Time
 import com.eternalfairy.lotus.view.data.DayUiState
 import com.eternalfairy.lotus.view.data.TaskUiState
 import com.eternalfairy.lotus.view.data.UserInput
@@ -71,13 +70,16 @@ import com.eternalfairy.lotus.view.utils.DrawScopeUtils.drawTask
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils.TOUCH_STROKE
 import kotlinx.coroutines.delay
-import java.time.LocalDate
-import java.time.LocalTime
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import java.time.LocalDateTime
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlin.uuid.ExperimentalUuidApi
 
+@OptIn(ExperimentalUuidApi::class)
 @Composable
 fun MoveToCalendarDial(
     componentHeight: Dp = 450.dp,
@@ -87,7 +89,7 @@ fun MoveToCalendarDial(
     paddingEnd: Dp = 10.dp,
     paddingBottom: Dp = 5.dp,
     dayUiState: DayUiState,
-    userInput: UserInput,
+    selectedDate: kotlinx.datetime.LocalDate,
     onCancel: () -> Unit,
     onPressActiveTime: () -> Unit,
     onSave: () -> Unit,
@@ -99,22 +101,22 @@ fun MoveToCalendarDial(
     val dateNotAvailableText = "DATE NOT AVAILABLE"// TODO: Read string from resource
 
     val textMeasurer = rememberTextMeasurer()
-    val activeTimeStart: Time = dayUiState.activeTimeStart
-    val activeTimeEnd: Time = dayUiState.activeTimeEnd
+    val activeTimeStart: LocalTime = dayUiState.activeTimeStart
+    val activeTimeEnd: LocalTime = dayUiState.activeTimeEnd
     var taskMode: TaskMode by remember { mutableStateOf(TaskMode.EditStartTime) }
     var angleMode: AngleMode by remember { mutableStateOf(AngleMode.None) }
 
     var nextTask by remember { mutableStateOf<TaskUiState?>(null) }
     var previousTask by remember { mutableStateOf<TaskUiState?>(null) }
-    var clockTime by remember { mutableStateOf(Time(LocalTime.now().hour, LocalTime.now().minute)) }
-    var taskClockTime by remember { mutableStateOf(if (taskToBeMovedToCalendar.startTime != null && taskToBeMovedToCalendar.endTime != null) Time(taskToBeMovedToCalendar.startTime!!.hour, taskToBeMovedToCalendar.startTime!!.minute) else Time(LocalTime.now().hour, LocalTime.now().minute)) }
+    var clockTime by remember { mutableStateOf(LocalTime(LocalDateTime.now().hour, LocalDateTime.now().minute)) }
+    var taskClockTime by remember { mutableStateOf(if (taskToBeMovedToCalendar.startTime != null && taskToBeMovedToCalendar.endTime != null) LocalTime(taskToBeMovedToCalendar.startTime!!.hour, taskToBeMovedToCalendar.startTime!!.minute) else LocalTime(LocalDateTime.now().hour, LocalDateTime.now().minute)) }
 
     val totalMinutes: Int = TouchGestureUtils.calculateTotalNumberOfMinutes(
-        Time(
+        LocalTime(
             activeTimeStart.hour,
             activeTimeStart.minute
         ),
-        Time(
+        LocalTime(
             activeTimeEnd.hour,
             activeTimeEnd.minute
         )
@@ -129,16 +131,16 @@ fun MoveToCalendarDial(
     // - values used to draw the angles - if I use the 'by remember { mutableFloatStateOf(...) }' structure for tmpStartAngle and tmpEndAngle, their values are not updated upon date change, but if I don't use 'by remember { mutableFloatStateOf(...) }' the dragging is not reflected in the task's area drawn
     // After the composable enters composition, the block inside remember is initialized, and it doesn't change unless you reset it with a new key.
     var tmpStartAngle by remember(tasks) { mutableFloatStateOf((TouchGestureUtils.calculateAngleFromTime(
-        activeTimeStart,
-        activeTimeEnd,
-        taskToBeMovedToCalendar.startTime!!,
-        minuteAngle
+        activeTimeStart = activeTimeStart,
+//        activeTimeEnd,
+        time = taskToBeMovedToCalendar.startTime!!,
+        minuteAngle = minuteAngle
     ))) }
     var tmpEndAngle by remember(tasks) { mutableFloatStateOf(TouchGestureUtils.calculateAngleFromTime(
-        activeTimeStart,
-        activeTimeEnd,
-        taskToBeMovedToCalendar.endTime!!,
-        minuteAngle
+        activeTimeStart = activeTimeStart,
+//        activeTimeEnd,
+        time = taskToBeMovedToCalendar.endTime!!,
+        minuteAngle = minuteAngle
     )) }
 
     // The width and height of the Canvas
@@ -192,16 +194,16 @@ fun MoveToCalendarDial(
         // The task stores the appropriate angle values, i.e. values corresponding to how the circle is drawn (the 0 degree starts at the right-hand side (east) of the circle). We want to 'correct' these angles as if 0 degree starts at the top of the circle (north)
         var isTouchWithinTask: Boolean
         val taskStartAngle = TouchGestureUtils.calculateAngleFromTime (
-            activeTimeStart,
-            activeTimeEnd,
-            task.startTime!!,
-            minuteAngle
+            activeTimeStart = activeTimeStart,
+//            activeTimeEnd,
+            time = task.startTime!!,
+            minuteAngle = minuteAngle
         )
         val taskEndAngle = TouchGestureUtils.calculateAngleFromTime (
-            activeTimeStart,
-            activeTimeEnd,
-            task.endTime!!,
-            minuteAngle
+            activeTimeStart = activeTimeStart,
+//            activeTimeEnd,
+            time = task.endTime!!,
+            minuteAngle = minuteAngle
         )
         isTouchWithinTask =
             TouchGestureUtils.checkIfTouchWithinAngleRange(angle, taskStartAngle, taskEndAngle)
@@ -224,7 +226,7 @@ fun MoveToCalendarDial(
 
         val slotStartAngle = TouchGestureUtils.calculateAngleFromTime(
             activeTimeStart = activeTimeStart,
-            activeTimeEnd = activeTimeEnd,
+//            activeTimeEnd = activeTimeEnd,
             time = slotStart,
             minuteAngle = minuteAngle
         )
@@ -234,7 +236,7 @@ fun MoveToCalendarDial(
             )
         val slotEndAngle = TouchGestureUtils.calculateAngleFromTime(
             activeTimeStart = activeTimeStart,
-            activeTimeEnd = activeTimeEnd,
+//            activeTimeEnd = activeTimeEnd,
             time = slotEnd,
             minuteAngle = minuteAngle
         )
@@ -293,13 +295,13 @@ fun MoveToCalendarDial(
 
         val slotStartAngle = TouchGestureUtils.calculateAngleFromTime(
             activeTimeStart = activeTimeStart,
-            activeTimeEnd = activeTimeEnd,
+//            activeTimeEnd = activeTimeEnd,
             time = slotStart,
             minuteAngle = minuteAngle
         )
         val slotEndAngle = TouchGestureUtils.calculateAngleFromTime(
             activeTimeStart = activeTimeStart,
-            activeTimeEnd = activeTimeEnd,
+//            activeTimeEnd = activeTimeEnd,
             time = slotEnd,
             minuteAngle = minuteAngle
         )
@@ -337,7 +339,7 @@ fun MoveToCalendarDial(
     LaunchedEffect(true) {
         while (true) {
             delay(1000L * SECONDS_IN_MINUTE)
-            clockTime = Time(LocalTime.now().hour, LocalTime.now().minute)
+            clockTime = LocalTime(LocalDateTime.now().hour, LocalDateTime.now().minute)
         }
     }
 
@@ -365,7 +367,7 @@ fun MoveToCalendarDial(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // If the user chose today or a day in the future, display the dial
-            if (!userInput.selectedDate.isBefore(LocalDate.now())) {
+            if (selectedDate >= LocalDate.parse(LocalDateTime.now().toString())) {
                 Row (
                     modifier = Modifier
                         .fillMaxWidth()
@@ -456,7 +458,7 @@ fun MoveToCalendarDial(
                             translationX = offset.x * scale,
                             translationY = offset.y * scale
                         )
-                        .pointerInput(dayUiState, userInput, tasks) {
+                        .pointerInput(dayUiState, selectedDate, tasks) {
                             val viewConfig = viewConfiguration
 
                             awaitEachGesture {
@@ -506,7 +508,7 @@ fun MoveToCalendarDial(
                                 } while (pressed)
                             }
                         }
-                        .pointerInput(dayUiState, userInput, tasks) {
+                        .pointerInput(dayUiState, selectedDate, tasks) {
                             detectTapGestures(
                                 onTap = { offset ->
                                     // On single tap save the task
@@ -575,7 +577,7 @@ fun MoveToCalendarDial(
                                 }
                             )
                         }
-                        .pointerInput(dayUiState, userInput, tasks) {
+                        .pointerInput(dayUiState, selectedDate, tasks) {
                             detectDragGestures(
                                 onDragStart = { offset ->
                                     // Get the starting coordinates and determine if the touch is within the dial
@@ -624,11 +626,11 @@ fun MoveToCalendarDial(
                                                     boundaryAngleTranslated =
                                                         TouchGestureUtils.translateAngle270To0(
                                                             TouchGestureUtils.calculateAngleFromTime(
-                                                                activeTimeStart,
-                                                                activeTimeEnd,
+                                                                activeTimeStart = activeTimeStart,
+//                                                                activeTimeEnd,
                                                                 // We're using the end time angle as a boundary
-                                                                taskToBeMovedToCalendar.endTime!!,
-                                                                minuteAngle
+                                                                time = taskToBeMovedToCalendar.endTime!!,
+                                                                minuteAngle = minuteAngle
                                                             )
                                                         )
                                                 } else if (currentAngleTranslated in (TouchGestureUtils.translateAngle270To0(
@@ -641,11 +643,11 @@ fun MoveToCalendarDial(
                                                     boundaryAngleTranslated =
                                                         TouchGestureUtils.translateAngle270To0(
                                                             TouchGestureUtils.calculateAngleFromTime(
-                                                                activeTimeStart,
-                                                                activeTimeEnd,
+                                                                activeTimeStart = activeTimeStart,
+//                                                                activeTimeEnd,
                                                                 // We're using the start time angle as a boundary - the end time angle is not to cross the start time angle, because we are not allowing the task to disappear
-                                                                taskToBeMovedToCalendar.startTime!!,
-                                                                minuteAngle
+                                                                time = taskToBeMovedToCalendar.startTime!!,
+                                                                minuteAngle = minuteAngle
                                                             )
                                                         )
                                                 }
@@ -667,10 +669,10 @@ fun MoveToCalendarDial(
                                                         if (previousTask != null) {
                                                             val previousTaskEndAngle =
                                                                 TouchGestureUtils.calculateAngleFromTime(
-                                                                    activeTimeStart,
-                                                                    activeTimeEnd,
-                                                                    previousTask!!.endTime!!,
-                                                                    minuteAngle
+                                                                    activeTimeStart = activeTimeStart,
+//                                                                    activeTimeEnd,
+                                                                    time = previousTask!!.endTime!!,
+                                                                    minuteAngle = minuteAngle
                                                                 )
                                                             val previousTaskEndAngleTranslated =
                                                                 TouchGestureUtils.translateAngle270To0(
@@ -708,10 +710,10 @@ fun MoveToCalendarDial(
                                                         if (nextTask != null) {
                                                             val nextTaskStartAngle =
                                                                 TouchGestureUtils.calculateAngleFromTime(
-                                                                    activeTimeStart,
-                                                                    activeTimeEnd,
-                                                                    nextTask!!.startTime!!,
-                                                                    minuteAngle
+                                                                    activeTimeStart = activeTimeStart,
+//                                                                    activeTimeEnd,
+                                                                    time = nextTask!!.startTime!!,
+                                                                    minuteAngle = minuteAngle
                                                                 )
                                                             val nextTaskStartAngleTranslated =
                                                                 TouchGestureUtils.translateAngle270To0(
@@ -886,19 +888,19 @@ fun MoveToCalendarDial(
                                             // Omit the task that we are moving to the calendar
                                             if (task.id != taskToBeMovedToCalendar.id) {
                                                 val taskStartAngle = TouchGestureUtils.calculateAngleFromTime(
-                                                    activeTimeStart,
-                                                    activeTimeEnd,
-                                                    task.startTime!!,
-                                                    minuteAngle
+                                                    activeTimeStart = activeTimeStart,
+//                                                    activeTimeEnd,
+                                                    time = task.startTime!!,
+                                                    minuteAngle = minuteAngle
                                                 )
                                                 val taskStartAngleTranslated = TouchGestureUtils.translateAngle270To0(taskStartAngle)
                                                 val taskEndAngleTranslated =
                                                     TouchGestureUtils.translateAngle270To0(
                                                         TouchGestureUtils.calculateAngleFromTime(
-                                                            activeTimeStart,
-                                                            activeTimeEnd,
-                                                            task.endTime!!,
-                                                            minuteAngle
+                                                            activeTimeStart = activeTimeStart,
+//                                                            activeTimeEnd,
+                                                            time = task.endTime!!,
+                                                            minuteAngle = minuteAngle
                                                         )
                                                     )
                                                 val taskDuration = TouchGestureUtils.calculateTotalNumberOfMinutes(
@@ -986,7 +988,7 @@ fun MoveToCalendarDial(
                         }
                 ) {
                     // Draw the clock hand only on today and when the time is still within the active time range
-                    if (!userInput.selectedDate.isAfter(LocalDate.now()) && TouchGestureUtils.checkIfTimeInRange(clockTime, activeTimeStart, activeTimeEnd)) {
+                    if (selectedDate <= LocalDate.parse(LocalDateTime.now().toString()) && TouchGestureUtils.checkIfTimeInRange(clockTime, activeTimeStart, activeTimeEnd)) {
                         drawClockHand(
                             activeTimeStart = activeTimeStart,
                             clockTime = clockTime,
@@ -1001,7 +1003,7 @@ fun MoveToCalendarDial(
                             activeTimeStart,
                             activeTimeEnd
                         )
-                    val activeTimeHourSteps: Array<Time> = TouchGestureUtils.createClockHoursArray(
+                    val activeTimeHourSteps: Array<LocalTime> = TouchGestureUtils.createClockHoursArray(
                         activeTimeStart,
                         activeTimeEnd
                     )
@@ -1041,16 +1043,16 @@ fun MoveToCalendarDial(
                         else {
                             // We have to offset these angles because startMinute * taskDialState.minuteAngle returns a biased angle
                             val taskStartAngle = TouchGestureUtils.calculateAngleFromTime (
-                                activeTimeStart,
-                                activeTimeEnd,
-                                task.startTime!!,
-                                minuteAngle
+                                activeTimeStart = activeTimeStart,
+//                                activeTimeEnd,
+                                time = task.startTime!!,
+                                minuteAngle = minuteAngle
                             )
                             val taskEndAngle = TouchGestureUtils.calculateAngleFromTime (
-                                activeTimeStart,
-                                activeTimeEnd,
-                                task.endTime!!,
-                                minuteAngle
+                                activeTimeStart = activeTimeStart,
+//                                activeTimeEnd,
+                                time = task.endTime!!,
+                                minuteAngle = minuteAngle
                             )
                             val taskDuration = TouchGestureUtils.calculateTotalNumberOfMinutes(
                                 task.startTime!!,

@@ -22,7 +22,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
-import com.eternalfairy.lotus.model.data.Time
 import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.theme.DeepTeal
 import com.eternalfairy.lotus.view.theme.HEADER_TEXT_COLOR
@@ -30,6 +29,7 @@ import com.eternalfairy.lotus.view.theme.HotPink
 import com.eternalfairy.lotus.view.theme.MINUTE_LABEL_COLOR
 import com.eternalfairy.lotus.view.theme.Orange
 import com.eternalfairy.lotus.view.theme.White
+import kotlinx.datetime.LocalTime
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -84,7 +84,7 @@ object DrawScopeUtils {
         textMeasurer: TextMeasurer,
         radius: Float,
         fontSize: TextUnit = 26.sp,
-        label: Time,
+        label: LocalTime,
     ) {
         // Draw clock center
         drawCircle(
@@ -126,9 +126,9 @@ object DrawScopeUtils {
     }
 
     fun DrawScope.drawClockHand(
-        activeTimeStart: Time,
+        activeTimeStart: LocalTime,
         startRadius: Float,
-        clockTime: Time,
+        clockTime: LocalTime,
         minuteAngle: Float,
         endRadius: Float
     ) {
@@ -169,7 +169,7 @@ object DrawScopeUtils {
         minutesBetweenHoursAccumulated: Array<Int>,
         minuteAngle: Float,
         outerRadius: Float,
-        activeTimeHourSteps: Array<Time>,
+        activeTimeHourSteps: Array<LocalTime>,
         textMeasurer: TextMeasurer
     ) {
         val textStyle = TextStyle(

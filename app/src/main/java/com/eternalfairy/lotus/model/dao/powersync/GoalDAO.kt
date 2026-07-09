@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.flow
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 @Singleton
 class GoalDAO @Inject constructor(
@@ -48,8 +50,6 @@ class GoalDAO @Inject constructor(
                 transaction.execute(
                     sql = "INSERT INTO goals (created_at, user_id, title, priority) VALUES (?, ?, ?, ?)",
                     parameters = listOf(
-                        goal.createdAt,
-                        goal.userId,
                         goal.title,
                         goal.priority
                     )
@@ -60,15 +60,14 @@ class GoalDAO @Inject constructor(
         }
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     fun selectGoals(): Flow<List<Goal>> {
         try {
             val goals = dataSource.getDatabase().watch(
                 sql = "SELECT * FROM goals"
             ) { cursor ->
                 Goal(
-                    id = UUID.fromString(cursor.getString("id")),
-                    createdAt = cursor.getString("created_at"),
-                    userId = UUID.fromString(cursor.getString("user_id")),
+                    id = Uuid.parse(cursor.getString("id")),
                     title = cursor.getString("title"),
                     priority = cursor.getString("priority").toInt()
                 )
@@ -80,6 +79,7 @@ class GoalDAO @Inject constructor(
         }
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     fun selectGoalById(id: String): Flow<Goal?> {
         return flow {
             try {
@@ -88,9 +88,7 @@ class GoalDAO @Inject constructor(
                     parameters = listOf(id)
                 ) { cursor ->
                     Goal(
-                        id = UUID.fromString(cursor.getString("id")),
-                        createdAt = cursor.getString("created_at"),
-                        userId = UUID.fromString(cursor.getString("user_id")),
+                        id = Uuid.parse(cursor.getString("id")),
                         title = cursor.getString("title"),
                         priority = cursor.getString("priority").toInt()
                     )
@@ -102,6 +100,7 @@ class GoalDAO @Inject constructor(
         }
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     suspend fun updateGoal(goal: Goal) {
         try {
             dataSource.getDatabase().execute(

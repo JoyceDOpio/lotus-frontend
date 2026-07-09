@@ -1,6 +1,6 @@
 package com.eternalfairy.lotus.view.screen.login
 
-data class AuthState(
+data class AuthUiState(
     val isLoading: Boolean = false,
     val signUpName: String = "",
     val signUpEmail: String = "",

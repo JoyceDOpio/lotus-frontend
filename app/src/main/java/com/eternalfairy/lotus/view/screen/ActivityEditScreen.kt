@@ -36,32 +36,49 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eternalfairy.lotus.R
-import com.eternalfairy.lotus.view.data.ActivityUiState
+import com.eternalfairy.lotus.view.screen.planner.PlannerUiEvent
 import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.theme.ERROR_TEXT_COLOR
 import com.eternalfairy.lotus.view.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.lotus.view.theme.SELECTION_COLOR
+import com.eternalfairy.lotus.viewmodel.PlannerViewModel
 
 enum class ActivityEditMode {
+    // Edit both the title and notes
     Full,
+    // Edut only notes
     Notes
+}
+
+enum class EditedActivityType {
+    Default,
+    Main,
+    Sub
 }
 @Composable
 fun ActivityEditScreen(// TODO: Merge with DayNoteEditScreen
     modifier: Modifier = Modifier,
-    activityEditState: ActivityUiState,
+    viewModel: PlannerViewModel,
+//    activityEditState: ActivityUiState,
     mode: ActivityEditMode = ActivityEditMode.Notes,
+    activityType: EditedActivityType = EditedActivityType.Default,
     onBack: () -> Unit,
-    saveActivity: () -> Unit,
-    setActivityNote: (String) -> Unit,
-    setActivityTitle: (String) -> Unit = {}
+//    saveActivity: () -> Unit,
+//    setActivityNote: (String) -> Unit,
+//    setActivityTitle: (String) -> Unit = {}
 ) {
     // Texts
     val labelText = "EDIT ACTIVITY"// TODO: Read text from string resource
     val titlePlaceholderText = "Title"// TODO: Read string from resource
     val notesPlaceholderText = "Notes"// TODO: Read string from resource
 
-    val activityDetails = activityEditState
+
+    val state = viewModel.state
+    val activityEditState = when(activityType) {
+        EditedActivityType.Default -> state.editedActivity
+        EditedActivityType.Main -> state.recordedActivityMain
+        EditedActivityType.Sub -> state.recordedActivitySub
+    }
 
     // Validation:
     // - title cannot be empty
@@ -96,11 +113,17 @@ fun ActivityEditScreen(// TODO: Merge with DayNoteEditScreen
                     // Save button
                     IconButton(onClick = {
                         if (mode == ActivityEditMode.Full) {
-                            if (activityDetails.title == "") isTitle = false
+                            if (activityEditState.title == "") isTitle = false
                         }
 
                         if (isTitle) {
-                            saveActivity()
+//                            saveActivity()
+                            when(activityType) {
+                                EditedActivityType.Default -> viewModel.onEvent(PlannerUiEvent.SaveActivity)
+                                EditedActivityType.Main -> viewModel.onEvent(PlannerUiEvent.EditRecordedMainActivity)
+                                EditedActivityType.Sub -> viewModel.onEvent(PlannerUiEvent.EditRecordedSubActivity)
+                            }
+
                             onBack()
                         }
                     }) {
@@ -139,9 +162,16 @@ fun ActivityEditScreen(// TODO: Merge with DayNoteEditScreen
             // Activity title
             if (mode == ActivityEditMode.Full) {
                 OutlinedTextField(
-                    value = activityDetails.title,
+                    value = activityEditState.title,
                     onValueChange = { value ->
-                        setActivityTitle(value)
+//                        setActivityTitle(value)
+
+                        when(activityType) {
+                            EditedActivityType.Default -> viewModel.onEvent(PlannerUiEvent.ActivityTitleChanged(value))
+                            EditedActivityType.Main -> viewModel.onEvent(PlannerUiEvent.RecordedMainActivityTitleChanged(value))
+                            EditedActivityType.Sub -> viewModel.onEvent(PlannerUiEvent.RecordedSubActivityTitleChanged(value))
+                        }
+
                         if (value != "") isTitle = true
                     },
                     modifier = Modifier
@@ -187,8 +217,14 @@ fun ActivityEditScreen(// TODO: Merge with DayNoteEditScreen
 
             // Activity note
             OutlinedTextField(
-                value = activityDetails.note,
-                onValueChange = setActivityNote,
+                value = activityEditState.note,
+                onValueChange = { value ->
+                    when(activityType) {
+                        EditedActivityType.Default -> viewModel.onEvent(PlannerUiEvent.ActivityNoteChanged(value))
+                        EditedActivityType.Main -> viewModel.onEvent(PlannerUiEvent.RecordedMainActivityNoteChanged(value))
+                        EditedActivityType.Sub -> viewModel.onEvent(PlannerUiEvent.RecordedSubActivityNoteChanged(value))
+                    }
+                },
                 modifier = Modifier
                     .padding(vertical = 5.dp)
                     .fillMaxWidth(),

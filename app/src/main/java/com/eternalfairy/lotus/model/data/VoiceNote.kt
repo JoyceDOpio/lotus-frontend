@@ -7,18 +7,11 @@ import kotlin.uuid.Uuid
 
 @Serializable
 data class VoiceNote @OptIn(ExperimentalUuidApi::class) constructor(
-//    @Serializable(with = UUIDSerializer::class)
-    val id: Uuid,
-//    @SerialName("created_at")
-//    val createdAt: String? = null,
-//    @SerialName("user_id")
-////    @Serializable(with = UUIDSerializer::class)
-//    val userId: String,
+    val id: Uuid? = null,
     val uri: String,
     val duration: String,
     @SerialName("recorded_at")
     val recordedAt: String,
     @SerialName("activity_id")
-//    @Serializable(with = UUIDSerializer::class)
     val activityId: Uuid
 )

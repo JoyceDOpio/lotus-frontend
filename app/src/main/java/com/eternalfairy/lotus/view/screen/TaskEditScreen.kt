@@ -48,10 +48,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eternalfairy.lotus.R
-import com.eternalfairy.lotus.model.data.Time
 import com.eternalfairy.lotus.view.component.TimePickerDialog
 import com.eternalfairy.lotus.view.data.DayUiState
 import com.eternalfairy.lotus.view.data.TaskUiState
+import com.eternalfairy.lotus.view.screen.planner.PlannerUiEvent
 import com.eternalfairy.lotus.view.theme.BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.theme.ERROR_TEXT_COLOR
@@ -60,23 +60,34 @@ import com.eternalfairy.lotus.view.theme.SECONDARY_HEADER_TEXT_COLOR
 import com.eternalfairy.lotus.view.theme.SECONDARY_TEXT_COLOR
 import com.eternalfairy.lotus.view.theme.SELECTION_COLOR
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils
+import com.eternalfairy.lotus.viewmodel.PlannerViewModel
+import kotlinx.datetime.LocalTime
 import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalUuidApi::class)
 @Composable
 fun TaskEditScreen(
     modifier: Modifier = Modifier,
-    dayUiState: DayUiState,
-    lastTaskPriority: Int,
-    taskUiState: TaskUiState,
+    viewModel: PlannerViewModel,
+//    dayUiState: DayUiState,
+//    lastTaskPriority: Int,
+//    taskUiState: TaskUiState,
     onBack: () -> Unit,
-    saveTask: () -> Unit,
-    setTaskStartTime: (Time) -> Unit,
-    setTaskEndTime: (Time) -> Unit,
-    setTaskDescription: (String) -> Unit,
-    setTaskPriority: (Int) -> Unit,
-    setTaskTitle: (String) -> Unit
+//    saveTask: () -> Unit,
+//    setTaskStartTime: (Time) -> Unit,
+//    setTaskEndTime: (Time) -> Unit,
+//    setTaskDescription: (String) -> Unit,
+//    setTaskPriority: (Int) -> Unit,
+//    setTaskTitle: (String) -> Unit
 ) {
+    val state = viewModel.state
+    val dayUiState = state.selectedDay
+    val taskUiState = state.editedTask
+    val tasks = state.tasks
+    val lastTaskPriority = state.lastTaskPriority
+
     // Texts
     val createLabelText = "CREATE A TASK"// TODO: Read string from resource
     val editLabelText = "EDIT TASK"// TODO: Read string from resource
@@ -85,7 +96,7 @@ fun TaskEditScreen(
     val titlePlaceholderText = "Title"// TODO: Read string from resource
     val descriptionPlaceholderText = "Description"// TODO: Read string from resource
 
-    fun getLabel(taskId: UUID?): String {
+    fun getLabel(taskId: Uuid?): String {
         if (taskId == null) {
             return createLabelText
         }
@@ -128,7 +139,8 @@ fun TaskEditScreen(
 
     // If the task is a TO-DO task, and it doesn't have a priority value, set the priority
     if (taskDetails.date == null && taskDetails.priority == null) {
-        setTaskPriority(lastTaskPriority + 1)
+//        setTaskPriority(lastTaskPriority + 1)
+        viewModel.onEvent(PlannerUiEvent.LastTaskPriorityChanged(lastTaskPriority + 1))
     }
 
     if (taskDetails.date != null) {
@@ -142,11 +154,11 @@ fun TaskEditScreen(
             initialMinute = taskDetails.endTime?.minute  ?: dayUiState.activeTimeEnd.minute
         )
 
-        val startTime = Time(startTimePickerState.hour, startTimePickerState.minute)
-        val endTime = Time(endTimePickerState.hour, endTimePickerState.minute)
+        val startTime = LocalTime(startTimePickerState.hour, startTimePickerState.minute)
+        val endTime = LocalTime(endTimePickerState.hour, endTimePickerState.minute)
 
         // Check whether the start- and end time don't overlap with another task
-        for (task in dayUiState.tasks) {
+        for (task in tasks) {
             if (task.id != taskDetails.id) {
                 isStartTimeOverlappingAnotherTask = ((startTime.compareTo(task.startTime!!) == 0 || startTime.compareTo(task.startTime!!) == 1)
                         && (startTime.compareTo(task.endTime!!) == -1 || startTime.compareTo(task.endTime!!) == 0))
@@ -163,8 +175,8 @@ fun TaskEditScreen(
     }
 
     fun onSaveCloseTimePicker() {
-        val startTime = Time(startTimePickerState?.hour ?: 0, startTimePickerState?.minute ?: 0)
-        val endTime = Time(endTimePickerState?.hour ?: 0, endTimePickerState?.minute ?: 0)
+        val startTime = LocalTime(startTimePickerState?.hour ?: 0, startTimePickerState?.minute ?: 0)
+        val endTime = LocalTime(endTimePickerState?.hour ?: 0, endTimePickerState?.minute ?: 0)
 
         // Check whether the start- and end time have correct values
         isStartTimeEarlierThanEndTime = (startTime.compareTo(endTime) == -1)
@@ -175,7 +187,7 @@ fun TaskEditScreen(
         isTaskOfMinimalDuration = TouchGestureUtils.calculateTotalNumberOfMinutes(startTime, endTime) >= minimalTaskDuration
 
         // Check whether the start- and end time don't overlap with another task
-        for (task in dayUiState.tasks) {
+        for (task in tasks) {
             if (task.id != taskDetails.id) {
                 isStartTimeOverlappingAnotherTask = ((startTime.compareTo(task.startTime!!) == 0 || startTime.compareTo(task.startTime!!) == 1)
                         && (startTime.compareTo(task.endTime!!) == -1 || startTime.compareTo(task.endTime!!) == 0))
@@ -185,8 +197,10 @@ fun TaskEditScreen(
             }
         }
 
-        setTaskStartTime(startTime)
-        setTaskEndTime(endTime)
+//        setTaskStartTime(startTime)
+//        setTaskEndTime(endTime)
+        viewModel.onEvent(PlannerUiEvent.TaskStartTimeChanged(startTime))
+        viewModel.onEvent(PlannerUiEvent.TaskEndTimeChanged(endTime))
 
         showTimePicker = false
         showStartTimePicker = false
@@ -233,7 +247,9 @@ fun TaskEditScreen(
                                 && !isAnotherTaskWithinStartAndEndTime
                                 && isTaskOfMinimalDuration
                             ) {
-                                saveTask()
+//                                saveTask()
+                                viewModel.onEvent(PlannerUiEvent.SaveTask)
+
                                 onBack()
                             }
                         }
@@ -439,9 +455,11 @@ fun TaskEditScreen(
 
             // Title field
             OutlinedTextField(
-                value = taskDetails.title,
+                value = taskUiState.title,
                 onValueChange = { value ->
-                    setTaskTitle(value)
+//                    setTaskTitle(value)
+                    viewModel.onEvent(PlannerUiEvent.TaskTitleChanged(value))
+
                     if (value != "") isTitle = true
                 },
                 modifier = Modifier
@@ -485,8 +503,8 @@ fun TaskEditScreen(
 
             // Description field
             OutlinedTextField(
-                value = taskDetails.description ?: "",
-                onValueChange = setTaskDescription,
+                value = taskUiState.description,
+                onValueChange = { viewModel.onEvent(PlannerUiEvent.TaskDescriptionChanged(it)) },
                 modifier = Modifier
                     .padding(vertical = 5.dp)
                     .fillMaxWidth()

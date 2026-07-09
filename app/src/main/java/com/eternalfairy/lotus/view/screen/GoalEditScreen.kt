@@ -38,28 +38,38 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eternalfairy.lotus.R
 import com.eternalfairy.lotus.view.data.GoalUiState
+import com.eternalfairy.lotus.view.screen.planner.PlannerUiEvent
 import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.theme.ERROR_TEXT_COLOR
 import com.eternalfairy.lotus.view.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.lotus.view.theme.SELECTION_COLOR
+import com.eternalfairy.lotus.viewmodel.PlannerViewModel
 import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 @Composable
 fun GoalEditScreen(
     modifier: Modifier = Modifier,
-    goalUiState: GoalUiState,
-    lastPriority: Int,
+    viewModel: PlannerViewModel,
+//    goalUiState: GoalUiState,
+//    lastPriority: Int,
     onBack: () -> Unit,
-    saveGoal: () -> Unit,
-    setGoalPriority: (Int) -> Unit,
-    setGoalTitle: (String) -> Unit
+//    saveGoal: () -> Unit,
+//    setGoalPriority: (Int) -> Unit,
+//    setGoalTitle: (String) -> Unit
 ) {
+    val state = viewModel.state
+    val goalUiState = state.selectedGoal
+    val lastPriority = state.lastGoalPriority
+
     // Texts
     val createLabelText = "CREATE A GOAL"// TODO: Read string from resource
     val editLabelText = "EDIT GOAL"// TODO: Read string from resource
     val titlePlaceholderText = "Title"// TODO: Read string from resource
 
-    fun getLabel(goalId: UUID?): String {
+    fun getLabel(goalId: Uuid?): String {
         if (goalId == null) {
             return createLabelText
         }
@@ -78,7 +88,8 @@ fun GoalEditScreen(
     val emptyTitleWarning = "The title cannot be empty"// TODO: Read string from resource
 
     if (goalUiState.priority == null) {
-        setGoalPriority(lastPriority + 1)
+//        setGoalPriority(lastPriority + 1)
+        viewModel.onEvent(PlannerUiEvent.LastGoalPriorityChanged(lastPriority + 1))
     }
 
     Scaffold (
@@ -109,7 +120,8 @@ fun GoalEditScreen(
                         if (goalDetails.title == "") isTitle = false
 
                         if (isTitle) {
-                            saveGoal()
+//                            saveGoal()
+                            viewModel.onEvent(PlannerUiEvent.SaveGoal)
                             onBack()
                         }
                     }) {
@@ -146,9 +158,11 @@ fun GoalEditScreen(
 
             // Title field
             OutlinedTextField(
-                value = goalDetails.title,
+                value = goalUiState.title,
                 onValueChange = { value ->
-                    setGoalTitle(value)
+//                    setGoalTitle(value)
+                    viewModel.onEvent(PlannerUiEvent.GoalTitleChanged(value))
+
                     if (value != "") isTitle = true
                 },
                 modifier = Modifier

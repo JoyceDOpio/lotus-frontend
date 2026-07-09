@@ -2,9 +2,7 @@ package com.eternalfairy.lotus.model.repository
 
 import com.eternalfairy.lotus.model.dao.IVoiceNoteDAO
 import com.eternalfairy.lotus.model.dao.postgres.ApiResponse
-import com.eternalfairy.lotus.model.dao.powersync.VoiceNoteDAO
 import com.eternalfairy.lotus.model.data.VoiceNote
-import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.uuid.ExperimentalUuidApi
@@ -51,6 +49,17 @@ class VoiceNoteRepository @Inject constructor(
             val voiceNote = dao.getVoiceNote(id)
 
             ApiResponse.Success(voiceNote)
+        } catch (e: Exception) {
+            ApiResponse.Error(e.message)
+        }
+    }
+
+    @OptIn(ExperimentalUuidApi::class)
+    override suspend fun getVoiceNotesOfActivity(activityId: Uuid): ApiResponse<List<VoiceNote>> {
+        return try {
+            val voiceNotes = dao.getVoiceNotesOfActivity(activityId)
+
+            ApiResponse.Success(voiceNotes)
         } catch (e: Exception) {
             ApiResponse.Error(e.message)
         }

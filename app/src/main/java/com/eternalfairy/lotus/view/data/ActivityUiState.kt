@@ -1,19 +1,19 @@
 package com.eternalfairy.lotus.view.data
 
-import com.eternalfairy.lotus.model.data.Time
-import java.time.LocalDate
-import java.util.UUID
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 typealias VoiceNotesUiState = List<VoiceNoteUiState>
-data class ActivityUiState (
-//    val date: OffsetDateTime = OffsetDateTime.now(),
-    val date: LocalDate = LocalDate.now(),
-    val id: UUID? = null,
+data class ActivityUiState @OptIn(ExperimentalUuidApi::class) constructor(
+    val id: Uuid? = null,
+    val date: LocalDate = LocalDate.parse(java.time.LocalDate.now().toString()),
     var title: String = "",
     var note: String = "",
-    var startTime: Time = Time(0, 0),// Default value: start of the day//TODO: Maybe I should change the default value to null
-    var endTime: Time? = null,
+    var startTime: LocalTime? = null,
+    var endTime: LocalTime? = null,
     var voiceNotesUiState: VoiceNotesUiState = emptyList(),
-    val mainActivityId: UUID? = null,
-    var subActivitiesUiState: List<ActivityUiState> = emptyList()
+    val mainActivityId: Uuid? = null,
+//    var subActivitiesUiState: List<ActivityUiState> = emptyList()
 )

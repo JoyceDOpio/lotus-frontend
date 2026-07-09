@@ -19,21 +19,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.eternalfairy.lotus.model.data.Time
 import com.eternalfairy.lotus.view.component.ActiveTimeSetUp
 import com.eternalfairy.lotus.view.component.ActivityRecorder
 import com.eternalfairy.lotus.view.component.MultiWindowSizeLayout
 import com.eternalfairy.lotus.view.component.PopupDialog
-import com.eternalfairy.lotus.view.data.ActivityUiState
-import com.eternalfairy.lotus.view.data.DayUiState
-import com.eternalfairy.lotus.view.data.GoalUiState
-import com.eternalfairy.lotus.view.data.TaskUiState
-import com.eternalfairy.lotus.view.data.UserInput
-import com.eternalfairy.lotus.view.data.VoiceNoteUiState
 import com.eternalfairy.lotus.view.screen.ActivityEditMode
 import com.eternalfairy.lotus.view.screen.ActivityEditScreen
 import com.eternalfairy.lotus.view.screen.DeleteScreen
 import com.eternalfairy.lotus.view.screen.DeleteType
+import com.eternalfairy.lotus.view.screen.EditedActivityType
 import com.eternalfairy.lotus.view.screen.GoalEditScreen
 import com.eternalfairy.lotus.view.screen.TaskEditScreen
 import com.eternalfairy.lotus.view.service.StopwatchService
@@ -41,8 +35,8 @@ import com.eternalfairy.lotus.view.theme.Teal74
 import com.eternalfairy.lotus.view.theme.White
 import com.eternalfairy.lotus.viewmodel.AudioViewModel
 import com.eternalfairy.lotus.viewmodel.PlannerViewModel
-import java.time.LocalDate
-import java.util.UUID
+import com.eternalfairy.lotus.viewmodel.utils.AudioRecorder
+import kotlin.uuid.ExperimentalUuidApi
 
 enum class SmallScreenState {
     // Comparison of task and activity
@@ -90,11 +84,12 @@ enum class PopupState {
 
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 @SuppressLint("ViewModelConstructorInComposable")
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalUuidApi::class)
 @Composable
 fun PlannerContainer(
+    audioRecorder: AudioRecorder,
     viewModel: PlannerViewModel,
-//    context: Context,
+    context: Context,
 //    activityEditState: ActivityUiState,
 //    activityUiState: ActivityUiState,
 //    dayUiState: DayUiState,
@@ -116,7 +111,7 @@ fun PlannerContainer(
 //    deleteVoiceNote: () -> Unit,
 //    onClickSaveActiveTime: () -> Unit,
     onLogout: () -> Unit,
-    onMoveToToDoList: () -> Unit,
+//    onMoveToToDoList: () -> Unit,
     onNavigateToLogin: () -> Unit,
 //    onPinTask: (Boolean) -> Unit,
 //    onSetSelectedDate: (OffsetDateTime) -> Unit,
@@ -170,7 +165,7 @@ fun PlannerContainer(
 ) {
     val state = viewModel.state
 
-    val isSubActivityTimerRunning  = (recordedSubActivityUiState.id != null)
+    val isSubActivityTimerRunning  = (state.recordedActivitySub.id != null)
     var showPopupWindow by remember { mutableStateOf(false) }
     var popupState by remember { mutableStateOf(PopupState.EditTask) }
     val audioViewModel: AudioViewModel = viewModel(factory = AudioViewModel.Factory)
@@ -196,7 +191,7 @@ fun PlannerContainer(
 //                adView = adView,
                 audioViewModel = audioViewModel,
                 plannerViewModel = viewModel,
-//                context = context,
+                context = context,
 //                dayUiState = dayUiState,
 //                goals = goals,
 //                goalUiState = goalUiState,
@@ -209,45 +204,51 @@ fun PlannerContainer(
 //                deleteGoal = deleteGoal,
 //                deleteTask = deleteTask,
 //                deleteVoiceNote = deleteVoiceNote,
-//                onDeleteActivity = { id ->
-//                    // Pass the id of the main activity to mark it for deletion
+                onDeleteActivity = { id ->
+                    // Pass the id of the main activity to mark it for deletion
 //                    selectActivityToBeDeleted(id)
-//                    popupState = PopupState.DeleteActivity
-//                    showPopupWindow = true
-//
-//                },
-//                onEditActivity = { id ->
-//                    // Pass the id of the main activity to mark it for editing
+                    viewModel.onEvent(PlannerUiEvent.ActivityToBeDeletedIdChanged(id))
+
+                    popupState = PopupState.DeleteActivity
+                    showPopupWindow = true
+
+                },
+                onEditActivity = { id ->
+                    // Pass the id of the main activity to mark it for editing
 //                    selectActivityToBeEdited(id)
-//                    popupState = PopupState.EditActivity
-//                    showPopupWindow = true
-//                },
-//                onDeleteTask = {
-//                    popupState = PopupState.DeleteTask
-//                    showPopupWindow = true
-//                },
-//                onEditTask = {
-//                    popupState = PopupState.EditTask
-//                    showPopupWindow = true
-//                },
-//                onDeleteVoiceNote = { id ->
+                    viewModel.onEvent(PlannerUiEvent.ActivityToBeEditedIdChanged(id))
+
+                    popupState = PopupState.EditActivity
+                    showPopupWindow = true
+                },
+                onDeleteTask = {
+                    popupState = PopupState.DeleteTask
+                    showPopupWindow = true
+                },
+                onEditTask = {
+                    popupState = PopupState.EditTask
+                    showPopupWindow = true
+                },
+                onDeleteVoiceNote = { id ->
 //                    selectVoiceNoteToBeDeleted(id)
-//                    popupState = PopupState.DeleteVoiceNote
-//                    showPopupWindow = true
-//                },
-                onLogout = onLogout,
-                onMoveToToDoList = onMoveToToDoList,
-                onNavigateToLogin = onNavigateToLogin,
+                    viewModel.onEvent(PlannerUiEvent.VoiceNoteToBeDeletedIdChanged(id))
+
+                    popupState = PopupState.DeleteVoiceNote
+                    showPopupWindow = true
+                },
+//                onLogout = onLogout,
+//                onNavigateToLogin = onNavigateToLogin,
+//                onMoveToToDoList = onMoveToToDoList,
 //                onPinTask = onPinTask,
-//                onPressActiveTime = {
-//                    popupState = PopupState.ActiveTimeSetup
-//                    showPopupWindow = true
-//                },
+                onPressActiveTime = {
+                    popupState = PopupState.ActiveTimeSetup
+                    showPopupWindow = true
+                },
 //                onSetSelectedDate = onSetSelectedDate,
-//                onShowPopupWindow = { state ->
-//                    popupState = state
-//                    showPopupWindow = true
-//                },
+                onShowPopupWindow = { state ->
+                    popupState = state
+                    showPopupWindow = true
+                },
 //                saveGoal = saveGoal,
 //                saveGoalFromState = saveGoalFromState,
 //                saveTask = saveTask,
@@ -269,31 +270,38 @@ fun PlannerContainer(
         },
         landscapePhone = {
             SmallScreenLandscape(
-                activityUiState = activityUiState,
+//                activityUiState = activityUiState,
 //                adView = adView,
                 audioViewModel = audioViewModel,
+                plannerViewModel = viewModel,
+//                onLogout = onLogout,
+//                onNavigateToLogin = onNavigateToLogin,
                 context = context,
-                dayUiState = dayUiState,
-                goals = goals,
-                goalUiState = goalUiState,
-                lastGoalPriority = lastGoalPriority,
-                lastTaskPriority = lastTaskPriority,
-                taskUiState = taskUiState,
-                toDoTasks = toDoTasks,
-                userInput = userInput,
-                deleteGoal = deleteGoal,
-                deleteTask = deleteTask,
-                deleteVoiceNote = deleteVoiceNote,
+//                dayUiState = dayUiState,
+//                goals = goals,
+//                goalUiState = goalUiState,
+//                lastGoalPriority = lastGoalPriority,
+//                lastTaskPriority = lastTaskPriority,
+//                taskUiState = taskUiState,
+//                toDoTasks = toDoTasks,
+//                userInput = userInput,
+//                deleteGoal = deleteGoal,
+//                deleteTask = deleteTask,
+//                deleteVoiceNote = deleteVoiceNote,
                 onDeleteActivity = { id ->
                     // Pass the id of the main activity to mark it for deletion
-                    selectActivityToBeDeleted(id)
+                    //                    selectActivityToBeDeleted(id)
+                    viewModel.onEvent(PlannerUiEvent.ActivityToBeDeletedIdChanged(id))
+
                     popupState = PopupState.DeleteActivity
                     showPopupWindow = true
 
                 },
                 onEditActivity = { id ->
                     // Pass the id of the main activity to mark it for editing
-                    selectActivityToBeEdited(id)
+//                    selectActivityToBeEdited(id)
+                    viewModel.onEvent(PlannerUiEvent.ActivityToBeEditedIdChanged(id))
+
                     popupState = PopupState.EditActivity
                     showPopupWindow = true
                 },
@@ -306,66 +314,75 @@ fun PlannerContainer(
                     showPopupWindow = true
                 },
                 onDeleteVoiceNote = { id ->
-                    selectVoiceNoteToBeDeleted(id)
+//                    selectVoiceNoteToBeDeleted(id)
+                    viewModel.onEvent(PlannerUiEvent.VoiceNoteToBeDeletedIdChanged(id))
+
                     popupState = PopupState.DeleteVoiceNote
                     showPopupWindow = true
                 },
-                onMoveToToDoList = onMoveToToDoList,
-                onPinTask = onPinTask,
+//                onMoveToToDoList = onMoveToToDoList,
+//                onPinTask = onPinTask,
                 onPressActiveTime = {
                     popupState = PopupState.ActiveTimeSetup
                     showPopupWindow = true
                 },
-                onSetSelectedDate = onSetSelectedDate,
+//                onSetSelectedDate = onSetSelectedDate,
                 onShowPopupWindow = { state ->
                     popupState = state
                     showPopupWindow = true
                 },
-                saveGoal = saveGoal,
-                saveGoalFromState = saveGoalFromState,
-                saveTask = saveTask,
-                saveTaskFromState = saveTaskFromState,
-                selectActivity = selectActivity,
-                selectGoal = selectGoal,
-                selectTask = selectTask,
-                selectVoiceNoteToBeDeleted = selectVoiceNoteToBeDeleted,
-                setGoalPriority = setGoalPriority,
-                setGoalTitle = setGoalTitle,
-                setTaskDate = setTaskDate,
-                setTaskDescription = setTaskDescription,
-                setTaskEndTime = setTaskEndTime,
-                setTaskPriority = setTaskPriority,
-                setTaskStartTime = setTaskStartTime,
-                setTaskTitle = setTaskTitle,
-                updateLastPlayedPosition = updateLastPlayedPosition
+//                saveGoal = saveGoal,
+//                saveGoalFromState = saveGoalFromState,
+//                saveTask = saveTask,
+//                saveTaskFromState = saveTaskFromState,
+//                selectActivity = selectActivity,
+//                selectGoal = selectGoal,
+//                selectTask = selectTask,
+//                selectVoiceNoteToBeDeleted = selectVoiceNoteToBeDeleted,
+//                setGoalPriority = setGoalPriority,
+//                setGoalTitle = setGoalTitle,
+//                setTaskDate = setTaskDate,
+//                setTaskDescription = setTaskDescription,
+//                setTaskEndTime = setTaskEndTime,
+//                setTaskPriority = setTaskPriority,
+//                setTaskStartTime = setTaskStartTime,
+//                setTaskTitle = setTaskTitle,
+//                updateLastPlayedPosition = updateLastPlayedPosition
             )
         },
         portraitTablet = {
             BigScreenPortrait(
-                activityUiState = activityUiState,
+//                activityUiState = activityUiState,
 //                adView = adView,
                 audioViewModel = audioViewModel,
+                plannerViewModel = viewModel,
+//                onLogout = onLogout,
+//                onNavigateToLogin = onNavigateToLogin,
                 context = context,
-                dayUiState = dayUiState,
-                goals = goals,
-                goalUiState = goalUiState,
-                lastGoalPriority = lastGoalPriority,
-                lastTaskPriority = lastTaskPriority,
-                taskUiState = taskUiState,
-                toDoTasks = toDoTasks,
-                userInput = userInput,
-                deleteGoal = deleteGoal,
-                deleteTask = deleteTask,
-                deleteVoiceNote = deleteVoiceNote,
+//                dayUiState = dayUiState,
+//                goals = goals,
+//                goalUiState = goalUiState,
+//                lastGoalPriority = lastGoalPriority,
+//                lastTaskPriority = lastTaskPriority,
+//                taskUiState = taskUiState,
+//                toDoTasks = toDoTasks,
+//                userInput = userInput,
+//                deleteGoal = deleteGoal,
+//                deleteTask = deleteTask,
+//                deleteVoiceNote = deleteVoiceNote,
                 onDeleteActivity = { id ->
                     // Pass the id of the main activity to mark it for deletion
-                    selectActivityToBeDeleted(id)
+//                    selectActivityToBeDeleted(id)
+                    viewModel.onEvent(PlannerUiEvent.ActivityToBeDeletedIdChanged(id))
+
                     popupState = PopupState.DeleteActivity
                     showPopupWindow = true
                 },
                 onEditActivity = { id ->
                     // Pass the id of the main activity to mark it for editing
-                    selectActivityToBeEdited(id)
+//                    selectActivityToBeEdited(id)
+                    viewModel.onEvent(PlannerUiEvent.ActivityToBeEditedIdChanged(id))
+
                     popupState = PopupState.EditActivity
                     showPopupWindow = true
                 },
@@ -378,66 +395,75 @@ fun PlannerContainer(
                     showPopupWindow = true
                 },
                 onDeleteVoiceNote = { id ->
-                    selectVoiceNoteToBeDeleted(id)
+//                    selectVoiceNoteToBeDeleted(id)
+                    viewModel.onEvent(PlannerUiEvent.VoiceNoteToBeDeletedIdChanged(id))
+
                     popupState = PopupState.DeleteVoiceNote
                     showPopupWindow = true
                 },
-                onMoveToToDoList = onMoveToToDoList,
-                onPinTask = onPinTask,
+//                onMoveToToDoList = onMoveToToDoList,
+//                onPinTask = onPinTask,
                 onPressActiveTime = {
                     popupState = PopupState.ActiveTimeSetup
                     showPopupWindow = true
                 },
-                onSetSelectedDate = onSetSelectedDate,
+//                onSetSelectedDate = onSetSelectedDate,
                 onShowPopupWindow = { state ->
                     popupState = state
                     showPopupWindow = true
                 },
-                saveGoal = saveGoal,
-                saveGoalFromState = saveGoalFromState,
-                saveTask = saveTask,
-                saveTaskFromState = saveTaskFromState,
-                selectActivity = selectActivity,
-                selectGoal = selectGoal,
-                selectTask = selectTask,
-                selectVoiceNoteToBeDeleted = selectVoiceNoteToBeDeleted,
-                setGoalPriority = setGoalPriority,
-                setGoalTitle = setGoalTitle,
-                setTaskDate = setTaskDate,
-                setTaskDescription = setTaskDescription,
-                setTaskEndTime = setTaskEndTime,
-                setTaskPriority = setTaskPriority,
-                setTaskStartTime = setTaskStartTime,
-                setTaskTitle = setTaskTitle,
-                updateLastPlayedPosition = updateLastPlayedPosition
+//                saveGoal = saveGoal,
+//                saveGoalFromState = saveGoalFromState,
+//                saveTask = saveTask,
+//                saveTaskFromState = saveTaskFromState,
+//                selectActivity = selectActivity,
+//                selectGoal = selectGoal,
+//                selectTask = selectTask,
+//                selectVoiceNoteToBeDeleted = selectVoiceNoteToBeDeleted,
+//                setGoalPriority = setGoalPriority,
+//                setGoalTitle = setGoalTitle,
+//                setTaskDate = setTaskDate,
+//                setTaskDescription = setTaskDescription,
+//                setTaskEndTime = setTaskEndTime,
+//                setTaskPriority = setTaskPriority,
+//                setTaskStartTime = setTaskStartTime,
+//                setTaskTitle = setTaskTitle,
+//                updateLastPlayedPosition = updateLastPlayedPosition
             )
         },
         landscapeTablet = {
             BigScreenLandscape(
-                activityUiState = activityUiState,
+//                activityUiState = activityUiState,
 //                adView = adView,
                 audioViewModel = audioViewModel,
+                plannerViewModel = viewModel,
+//                onLogout = onLogout,
+//                onNavigateToLogin = onNavigateToLogin,
                 context = context,
-                dayUiState = dayUiState,
-                goals = goals,
-                goalUiState = goalUiState,
-                lastGoalPriority = lastGoalPriority,
-                lastTaskPriority = lastTaskPriority,
-                taskUiState = taskUiState,
-                toDoTasks = toDoTasks,
-                userInput = userInput,
-                deleteGoal = deleteGoal,
-                deleteTask = deleteTask,
-                deleteVoiceNote = deleteVoiceNote,
+//                dayUiState = dayUiState,
+//                goals = goals,
+//                goalUiState = goalUiState,
+//                lastGoalPriority = lastGoalPriority,
+//                lastTaskPriority = lastTaskPriority,
+//                taskUiState = taskUiState,
+//                toDoTasks = toDoTasks,
+//                userInput = userInput,
+//                deleteGoal = deleteGoal,
+//                deleteTask = deleteTask,
+//                deleteVoiceNote = deleteVoiceNote,
                 onDeleteActivity = { id ->
                     // Pass the id of the main activity to mark it for deletion
-                    selectActivityToBeDeleted(id)
+//                    selectActivityToBeDeleted(id)
+                    viewModel.onEvent(PlannerUiEvent.ActivityToBeDeletedIdChanged(id))
+
                     popupState = PopupState.DeleteActivity
                     showPopupWindow = true
                 },
                 onEditActivity = { id ->
                     // Pass the id of the main activity to mark it for editing
-                    selectActivityToBeEdited(id)
+//                    selectActivityToBeEdited(id)
+                    viewModel.onEvent(PlannerUiEvent.ActivityToBeEditedIdChanged(id))
+
                     popupState = PopupState.EditActivity
                     showPopupWindow = true
                 },
@@ -450,38 +476,40 @@ fun PlannerContainer(
                     showPopupWindow = true
                 },
                 onDeleteVoiceNote = { id ->
-                    selectVoiceNoteToBeDeleted(id)
+//                    selectVoiceNoteToBeDeleted(id)
+                    viewModel.onEvent(PlannerUiEvent.VoiceNoteToBeDeletedIdChanged(id))
+
                     popupState = PopupState.DeleteVoiceNote
                     showPopupWindow = true
                 },
-                onMoveToToDoList = onMoveToToDoList,
-                onPinTask = onPinTask,
+//                onMoveToToDoList = onMoveToToDoList,
+//                onPinTask = onPinTask,
                 onPressActiveTime = {
                     popupState = PopupState.ActiveTimeSetup
                     showPopupWindow = true
                 },
-                onSetSelectedDate = onSetSelectedDate,
+//                onSetSelectedDate = onSetSelectedDate,
                 onShowPopupWindow = { state ->
                     popupState = state
                     showPopupWindow = true
                 },
-                saveGoal = saveGoal,
-                saveGoalFromState = saveGoalFromState,
-                saveTask = saveTask,
-                saveTaskFromState = saveTaskFromState,
-                selectActivity = selectActivity,
-                selectGoal = selectGoal,
-                selectTask = selectTask,
-                selectVoiceNoteToBeDeleted = selectVoiceNoteToBeDeleted,
-                setGoalPriority = setGoalPriority,
-                setGoalTitle = setGoalTitle,
-                setTaskDate = setTaskDate,
-                setTaskDescription = setTaskDescription,
-                setTaskEndTime = setTaskEndTime,
-                setTaskPriority = setTaskPriority,
-                setTaskStartTime = setTaskStartTime,
-                setTaskTitle = setTaskTitle,
-                updateLastPlayedPosition = updateLastPlayedPosition
+//                saveGoal = saveGoal,
+//                saveGoalFromState = saveGoalFromState,
+//                saveTask = saveTask,
+//                saveTaskFromState = saveTaskFromState,
+//                selectActivity = selectActivity,
+//                selectGoal = selectGoal,
+//                selectTask = selectTask,
+//                selectVoiceNoteToBeDeleted = selectVoiceNoteToBeDeleted,
+//                setGoalPriority = setGoalPriority,
+//                setGoalTitle = setGoalTitle,
+//                setTaskDate = setTaskDate,
+//                setTaskDescription = setTaskDescription,
+//                setTaskEndTime = setTaskEndTime,
+//                setTaskPriority = setTaskPriority,
+//                setTaskStartTime = setTaskStartTime,
+//                setTaskTitle = setTaskTitle,
+//                updateLastPlayedPosition = updateLastPlayedPosition
             )
         }
     )
@@ -496,19 +524,37 @@ fun PlannerContainer(
                 PopupState.ActiveTimeSetup -> {
                     // Show active time setup
                     ActiveTimeSetUp(
-                        dayUiState = dayUiState,
+//                        dayUiState = dayUiState,
+//                        dayUiState = state.selectedDay,
+                        viewModel = viewModel,
                         onBack = { showPopupWindow = false },
                         onClickSaveActiveTime = {
-                            onClickSaveActiveTime()
+//                            onClickSaveActiveTime()
+                            viewModel.onEvent(PlannerUiEvent.SaveDay)
                             showPopupWindow = false
                         },
-                        setActiveTimeStart = setActiveTimeStart,
-                        setActiveTimeEnd = setActiveTimeEnd
+//                        setActiveTimeStart = setActiveTimeStart,
+//                        setActiveTimeStart = {
+//                            viewModel.onEvent(
+//                                PlannerUiEvent.ActiveTimeStartChanged(
+//                                    it
+//                                )
+//                            )
+//                        },
+////                        setActiveTimeEnd = setActiveTimeEnd
+//                        setActiveTimeEnd = {
+//                            viewModel.onEvent(
+//                                PlannerUiEvent.ActiveTimeEndChanged(
+//                                    it
+//                                )
+//                            )
+//                        }
                     )
                 }
 
                 PopupState.ActivityRecorder -> {
                     ActivityRecorder(
+                        audioRecorder = audioRecorder,
                         context = context,
                         modifier = Modifier
                             .padding(
@@ -516,33 +562,34 @@ fun PlannerContainer(
                                 vertical = 5.dp
                             )
                         ,
-                        dayUiState = dayUiState,
-                        recordedMainActivityUiState = recordedMainActivityUiState,
-                        recordedSubActivityUiState = recordedSubActivityUiState,
+//                        dayUiState = dayUiState,
+//                        recordedMainActivityUiState = recordedMainActivityUiState,
+//                        recordedSubActivityUiState = recordedSubActivityUiState,
                         stopwatchService = stopwatchService,
-                        clearRecordedMainActivity = clearMainRecordedActivity,
-                        clearRecordedSubActivity = clearSubRecordedActivity,
+                        viewModel = viewModel,
+//                        clearRecordedMainActivity = clearMainRecordedActivity,
+//                        clearRecordedSubActivity = clearSubRecordedActivity,
                         onNavigateToActivityNoteEdit = {
                             popupState = PopupState.EditActivityNotes
                         },
-                        saveRecordedMainActivity = saveMainRecordedActivity,
-                        saveRecordedSubActivity = saveSubRecordedActivity,
-                        saveDay = saveDay,
-                        saveVoiceNote = saveVoiceNote,
-                        setActualActiveTimeEnd = setActualActiveTimeEnd,
-                        setActualActiveTimeStart = setActualActiveTimeStart,
-                        setRecordedMainActivityDate = setRecordedMainActivityDate,
-                        setRecordedMainActivityEndTime = setRecordedMainActivityEndTime,
-                        setRecordedMainActivityId = setRecordedMainActivityId,
-                        setRecordedMainActivityStartTime = setRecordedMainActivityStartTime,
-                        setRecordedMainActivityTitle = setRecordedMainActivityTitle,
-                        setRecordedSubActivityEndTime = setRecordedSubActivityEndTime,
-                        setRecordedSubActivityId = setRecordedSubActivityId,
-                        setRecordedSubActivityMainActivityId = setRecordedSubActivityMainActivityId,
-                        setRecordedSubActivityStartTime = setRecordedSubActivityStartTime,
-                        setRecordedSubActivityTitle = setRecordedSubActivityTitle,
-                        startRecording = startRecording,
-                        stopRecording = stopRecording,
+//                        saveRecordedMainActivity = saveMainRecordedActivity,
+//                        saveRecordedSubActivity = saveSubRecordedActivity,
+//                        saveDay = saveDay,
+//                        saveVoiceNote = saveVoiceNote,
+//                        setActualActiveTimeEnd = setActualActiveTimeEnd,
+//                        setActualActiveTimeStart = setActualActiveTimeStart,
+//                        setRecordedMainActivityDate = setRecordedMainActivityDate,
+//                        setRecordedMainActivityEndTime = setRecordedMainActivityEndTime,
+//                        setRecordedMainActivityId = setRecordedMainActivityId,
+//                        setRecordedMainActivityStartTime = setRecordedMainActivityStartTime,
+//                        setRecordedMainActivityTitle = setRecordedMainActivityTitle,
+//                        setRecordedSubActivityEndTime = setRecordedSubActivityEndTime,
+//                        setRecordedSubActivityId = setRecordedSubActivityId,
+//                        setRecordedSubActivityMainActivityId = setRecordedSubActivityMainActivityId,
+//                        setRecordedSubActivityStartTime = setRecordedSubActivityStartTime,
+//                        setRecordedSubActivityTitle = setRecordedSubActivityTitle,
+//                        startRecording = startRecording,
+//                        stopRecording = stopRecording,
                     )
                 }
 
@@ -552,8 +599,9 @@ fun PlannerContainer(
                         showPopupWindow = false
                     },
                         onDelete = {
-                            deleteActivity()
-                            selectActivityToBeDeleted(null)
+//                            deleteActivity()
+//                            selectActivityToBeDeleted(null)
+                            viewModel.onEvent(PlannerUiEvent.DeleteActivity)
                             showPopupWindow = false
                         },
                         deleteType = DeleteType.Activity
@@ -564,8 +612,9 @@ fun PlannerContainer(
                     DeleteScreen(onBack = {
                         showPopupWindow = false
                     }, onDelete = {
-                        deleteTask()
-                        selectTask(null)
+//                        deleteTask()
+//                        selectTask(null)
+                        viewModel.onEvent(PlannerUiEvent.DeleteTask)
                         showPopupWindow = false
                     })
                 }
@@ -578,8 +627,9 @@ fun PlannerContainer(
                         onDelete = {
                             // FIXME
 //                            deleteVoiceNote(voiceNote)
-                            deleteVoiceNote()
-                            selectVoiceNoteToBeDeleted(null)
+//                            deleteVoiceNote()
+//                            selectVoiceNoteToBeDeleted(null)
+                            viewModel.onEvent(PlannerUiEvent.DeleteVoiceNote)
                             showPopupWindow = false
                         },
                         deleteType = DeleteType.VoiceNote
@@ -588,61 +638,67 @@ fun PlannerContainer(
 
                 PopupState.EditActivity -> {
                     ActivityEditScreen(
-                        activityEditState = activityEditState,
+                        viewModel = viewModel,
+//                        activityEditState = activityEditState,
                         mode = ActivityEditMode.Full,
                         onBack = {
                             showPopupWindow = false
                         },
-                        saveActivity = saveActivity,
-                        setActivityNote = setActivityNote,
-                        setActivityTitle = setActivityTitle
+//                        saveActivity = saveActivity,
+//                        setActivityNote = setActivityNote,
+//                        setActivityTitle = setActivityTitle
                     )
                 }
 
                 PopupState.EditActivityNotes -> {
                     ActivityEditScreen(
-                        activityEditState = if (isSubActivityTimerRunning) recordedSubActivityUiState else recordedMainActivityUiState,
+//                        activityEditState = if (isSubActivityTimerRunning) recordedSubActivityUiState else recordedMainActivityUiState,
+                        activityType = if (isSubActivityTimerRunning) EditedActivityType.Sub else EditedActivityType.Main,
+                        viewModel = viewModel,
                         onBack = {
                             popupState = PopupState.ActivityRecorder
                         },
-                        saveActivity = {
-                            if (isSubActivityTimerRunning) saveSubRecordedActivity() else saveMainRecordedActivity()
-                            popupState = PopupState.ActivityRecorder
-                        },
-                        setActivityNote = { value ->
-                            if (isSubActivityTimerRunning) setRecordedSubActivityNote(value) else setRecordedMainActivityNote(
-                                value
-                            )
-                        })
+//                        saveActivity = {
+//                            if (isSubActivityTimerRunning) saveSubRecordedActivity() else saveMainRecordedActivity()
+//                            popupState = PopupState.ActivityRecorder
+//                        },
+//                        setActivityNote = { value ->
+//                            if (isSubActivityTimerRunning) setRecordedSubActivityNote(value) else setRecordedMainActivityNote(
+//                                value
+//                            )
+//                        }
+                    )
                 }
 
                 PopupState.EditGoal -> {
                     GoalEditScreen(
-                        goalUiState = goalUiState,
-                        lastPriority = lastGoalPriority ?: 0,
+                        viewModel = viewModel,
+//                        goalUiState = goalUiState,
+//                        lastPriority = lastGoalPriority ?: 0,
                         onBack = {
                             showPopupWindow = false
-                        },
-                        saveGoal = saveGoalFromState,
-                        setGoalPriority = setGoalPriority,
-                        setGoalTitle = setGoalTitle
+                        }
+//                        saveGoal = saveGoalFromState,
+//                        setGoalPriority = setGoalPriority,
+//                        setGoalTitle = setGoalTitle
                     )
                 }
 
                 PopupState.EditTask -> {
                     TaskEditScreen(
-                        dayUiState = dayUiState,
-                        lastTaskPriority = lastTaskPriority ?: 0,
-                        taskUiState = taskUiState,
+                        viewModel = viewModel,
+//                        dayUiState = dayUiState,
+//                        lastTaskPriority = lastTaskPriority ?: 0,
+//                        taskUiState = taskUiState,
                         onBack = {
                             showPopupWindow = false
                         },
-                        saveTask = saveTaskFromState,
-                        setTaskStartTime = setTaskStartTime,
-                        setTaskEndTime = setTaskEndTime,
-                        setTaskDescription = setTaskDescription,
-                        setTaskPriority = setTaskPriority,
-                        setTaskTitle = setTaskTitle
+//                        saveTask = saveTaskFromState,
+//                        setTaskStartTime = setTaskStartTime,
+//                        setTaskEndTime = setTaskEndTime,
+//                        setTaskDescription = setTaskDescription,
+//                        setTaskPriority = setTaskPriority,
+//                        setTaskTitle = setTaskTitle
                     )
                 }
             }
