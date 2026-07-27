@@ -23,13 +23,16 @@ import com.eternalfairy.lotus.view.data.GoalUiState
 import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.theme.HEADER_TEXT_COLOR
 import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 @Composable
 fun ListItemGoal(
     modifier: Modifier = Modifier,
     goal: GoalUiState,
     onNavigateToGoalInfo: () -> Unit,
-    selectGoal: (UUID?) -> Unit
+    selectGoal: (Uuid?) -> Unit
 ){
     Row(
         modifier = modifier

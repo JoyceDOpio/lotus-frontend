@@ -205,12 +205,12 @@ fun SubActivityListItem (
                         fontWeight = FontWeight.Normal
                     )
 
-                    VoiceNoteList(
-                        activityUiState = subActivity,
-                        audioViewModel = audioViewModel,
-                        onDeleteItem = onDeleteVoiceNote,
-                        updateLastPlayedPosition = updateLastPlayedPosition
-                    )
+//                    VoiceNoteList(
+//                        activityUiState = subActivity,
+//                        audioViewModel = audioViewModel,
+//                        onDeleteItem = onDeleteVoiceNote,
+//                        updateLastPlayedPosition = updateLastPlayedPosition
+//                    )
                 }
             }
     }

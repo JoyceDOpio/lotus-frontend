@@ -3,6 +3,7 @@ package com.eternalfairy.lotus.auth
 import okhttp3.Interceptor
 import okhttp3.Request
 import okhttp3.Response
+import retrofit2.Invocation
 
 class AuthInterceptor(private val tokenProvider: () -> String?) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
@@ -25,6 +26,8 @@ class AuthInterceptor(private val tokenProvider: () -> String?) : Interceptor {
      * Check if request is annotated with `@InjectAuth` annotation,
      * If annotated, then it's marked for `Authorization` injection
      */
-    private fun Request.markedForInjection(): Boolean = tag<Invocation>()?.method()
+//    private fun Request.markedForInjection(): Boolean = tag<Invocation>()?.method()
+//        ?.annotations?.toSet()?.find { it is InjectAuth } != null
+    private fun Request.markedForInjection(): Boolean = tag(Invocation::class.java)?.method()
         ?.annotations?.toSet()?.find { it is InjectAuth } != null
 }

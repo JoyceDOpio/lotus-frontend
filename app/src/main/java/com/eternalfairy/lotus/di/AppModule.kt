@@ -25,6 +25,7 @@ import com.eternalfairy.lotus.model.dao.postgres.UserProfileApi
 import com.eternalfairy.lotus.model.dao.postgres.UserProfileDAO
 import com.eternalfairy.lotus.model.dao.postgres.VoiceNoteApi
 import com.eternalfairy.lotus.model.dao.postgres.VoiceNoteDAO
+import com.eternalfairy.lotus.model.dao.test.ActivityDAOTest
 import com.eternalfairy.lotus.model.repository.ActivityRepository
 import com.eternalfairy.lotus.model.repository.DayRepository
 import com.eternalfairy.lotus.model.repository.GoalRepository
@@ -54,6 +55,9 @@ import retrofit2.create
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
+    // The ip of the computer
+    val baseUrl = "http://192.168.3.135:8080"
+
     @Provides
     @Singleton
     fun provideOkHttpClient(preferences: SharedPreferences): OkHttpClient {
@@ -69,8 +73,7 @@ object AppModule {
     @Singleton
     fun provideAuthApi(okHttpClient: OkHttpClient): AuthApi {
         return Retrofit.Builder()
-            // The ip of the computer
-            .baseUrl("http://172.27.176.1:8080")
+            .baseUrl(baseUrl)
             .client(okHttpClient)
             // To automatically parse JSON
             .addConverterFactory(
@@ -99,8 +102,7 @@ object AppModule {
     @Singleton
     fun provideActivityApi(): ActivityApi {
         return Retrofit.Builder()
-            // The ip of the computer
-            .baseUrl("http://172.27.176.1:8080")
+            .baseUrl(baseUrl)
             // To automatically parse JSON
             .addConverterFactory(MoshiConverterFactory.create())
             .build()
@@ -127,8 +129,7 @@ object AppModule {
     @Singleton
     fun provideDayApi(): DayApi {
         return Retrofit.Builder()
-            // The ip of the computer
-            .baseUrl("http://172.27.176.1:8080")
+            .baseUrl(baseUrl)
             // To automatically parse JSON
             .addConverterFactory(MoshiConverterFactory.create())
             .build()
@@ -155,8 +156,7 @@ object AppModule {
     @Singleton
     fun provideGoalApi(): GoalApi {
         return Retrofit.Builder()
-            // The ip of the computer
-            .baseUrl("http://172.27.176.1:8080")
+            .baseUrl(baseUrl)
             // To automatically parse JSON
             .addConverterFactory(MoshiConverterFactory.create())
             .build()
@@ -183,8 +183,7 @@ object AppModule {
     @Singleton
     fun provideTaskApi(): TaskApi {
         return Retrofit.Builder()
-            // The ip of the computer
-            .baseUrl("http://172.27.176.1:8080")
+            .baseUrl(baseUrl)
             // To automatically parse JSON
             .addConverterFactory(MoshiConverterFactory.create())
             .build()
@@ -211,8 +210,7 @@ object AppModule {
     @Singleton
     fun provideUserProfileApi(): UserProfileApi {
         return Retrofit.Builder()
-            // The ip of the computer
-            .baseUrl("http://172.27.176.1:8080")
+            .baseUrl(baseUrl)
             // To automatically parse JSON
             .addConverterFactory(MoshiConverterFactory.create())
             .build()
@@ -239,8 +237,7 @@ object AppModule {
     @Singleton
     fun provideVoiceNoteApi(): VoiceNoteApi {
         return Retrofit.Builder()
-            // The ip of the computer
-            .baseUrl("http://172.27.176.1:8080")
+            .baseUrl(baseUrl)
             // To automatically parse JSON
             .addConverterFactory(MoshiConverterFactory.create())
             .build()

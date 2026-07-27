@@ -20,14 +20,16 @@ class AuthViewModel @Inject constructor(
     private val repository: IAuthRepository
 ) : ViewModel() {
 
-    init {
-        // Check whether we have the token when the app is opened
-        authenticate()
-    }
+
 
     var state by mutableStateOf(AuthUiState())
     private val responseChannel = Channel<AuthResponse<Unit>>()
     val authResponses = responseChannel.receiveAsFlow()
+
+    init {
+        // Check whether we have the token when the app is opened
+        authenticate()
+    }
 
     private fun authenticate() {
         viewModelScope.launch {

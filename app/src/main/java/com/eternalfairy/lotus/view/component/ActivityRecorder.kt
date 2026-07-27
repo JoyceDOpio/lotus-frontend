@@ -3,7 +3,6 @@ package com.eternalfairy.lotus.view.component
 import android.Manifest
 import android.content.Context
 import android.os.Build
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
@@ -11,11 +10,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -41,11 +36,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
@@ -53,15 +46,14 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import com.eternalfairy.lotus.R
+import com.eternalfairy.lotus.view.screen.planner.PlannerUiEvent
 import com.eternalfairy.lotus.view.service.ServiceHelper
 import com.eternalfairy.lotus.view.service.StopwatchService
 import com.eternalfairy.lotus.view.service.StopwatchService.Companion.MAIN_ACTIVITY_NOTIFICATION_ID
@@ -70,8 +62,6 @@ import com.eternalfairy.lotus.view.service.StopwatchService.Companion.RESUME
 import com.eternalfairy.lotus.view.service.StopwatchService.Companion.START
 import com.eternalfairy.lotus.view.service.StopwatchService.Companion.STOP
 import com.eternalfairy.lotus.view.service.StopwatchService.Companion.SUB_ACTIVITY_NOTIFICATION_ID
-import com.eternalfairy.lotus.view.data.VoiceNoteUiState
-import com.eternalfairy.lotus.view.screen.planner.PlannerUiEvent
 import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.lotus.view.theme.MINUTE_LABEL_COLOR
@@ -79,17 +69,11 @@ import com.eternalfairy.lotus.view.theme.SECONDARY_HEADER_TEXT_COLOR
 import com.eternalfairy.lotus.viewmodel.PlannerViewModel
 import com.eternalfairy.lotus.viewmodel.utils.AudioRecorder
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
-import com.google.accompanist.permissions.shouldShowRationale
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.datetime.LocalTime
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
-import java.time.format.DateTimeFormatter
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -207,7 +191,8 @@ fun ActivityRecorder(
 //        setRecordedSubActivityStartTime(activityStartTime)
         viewModel.onEvent(PlannerUiEvent.RecordedSubActivityStartTimeChanged(activityStartTime))
 
-        val activityId = Uuid.generateV4()
+//        val activityId = Uuid.generateV4()
+        val activityId = Uuid.random()
 
 //        setRecordedSubActivityId(activityId)
         viewModel.onEvent(PlannerUiEvent.RecordedSubActivityIdChanged(activityId))
@@ -360,7 +345,8 @@ fun ActivityRecorder(
                                         viewModel.onEvent(PlannerUiEvent.SaveDay)
                                     }
 
-                                    val activityId = Uuid.generateV4()
+//                                    val activityId = Uuid.generateV4()
+                                    val activityId = Uuid.random()
 
 //                                    setRecordedMainActivityId(activityId)
 //                                    saveRecordedMainActivity()
@@ -569,153 +555,153 @@ fun ActivityRecorder(
                                 )
                             }
 
-                            // Show main activity voice recorder only when the main activity is running
-                            AnimatedVisibility(
-                                visible = showMainActivityVoiceRecorder
-                            ) {
-                                Row (
-                                    modifier = Modifier
-                                    ,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.End
-                                ) {
-                                    // The voice note timer
-                                    Row(
-                                        modifier = Modifier
-                                            .alpha(voiceNoteTimerAlpha)
-                                        ,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        AppearingDisappearingIcon(
-                                            modifier = Modifier
-                                                .width(35.dp)
-                                            ,
-                                            imageVectorResource = R.drawable.recording_02_svgrepo_com,
-                                            contentDescription = "Voice recorder",
-                                            tint = HEADER_TEXT_COLOR
-                                        )
-
-                                        val text =
-                                            (elapsedTimeVoiceNote).milliseconds.toComponents { hours, minutes, seconds, nanoseconds ->
-                                                "%02d:%02d".format(minutes, seconds)
-                                            }
-
-                                        Spacer(Modifier.width(5.dp))
-
-                                        Text(
-                                            text = text,
-                                            fontWeight = FontWeight.Normal,
-                                            fontSize = 18.sp,
-                                            color = HEADER_TEXT_COLOR
-                                        )
-                                    }
-
-                                    Spacer(Modifier.width(20.dp))
-
-                                    val scope = rememberCoroutineScope()
-
-                                    // The voice recording button
-                                    Box(// FIXME: This button doesn't work well
-                                        modifier = Modifier
-                                            .width(30.dp)
-                                            .pointerInput(
-                                                // If I put the voiceNoteUiState into the pointerInput(), the first down gesture is not consumed. But the voice note UI state is still not updated
-                                                Unit
-                                            ) {
-                                                awaitEachGesture {
-                                                    val initialPress =
-                                                        awaitFirstDown(requireUnconsumed = true).also { it.consume() }
-
-                                                    // Check if permission for audio recording is granted
-                                                    if (permissionState.status.isGranted) {
-                                                        // Create file name
-                                                        val date = OffsetDateTime.now()
-                                                            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-                                                        val timestamp = System.currentTimeMillis()
-                                                        val voiceNoteId = Uuid.generateV4()
-                                                        val fileName =
-                                                            date + "_" + voiceNoteId.toString()
-                                                        var filePath = ""
-
-                                                        timerStartVoiceNote = timestamp
-
-                                                        // Start recording the voice note. Meanwhile, save its id, path, timestamp and activity id to the voice note UI state
-                                                        val externalStorageVolumes =
-                                                            ContextCompat.getExternalFilesDirs(
-                                                                context,
-                                                                null
-                                                            )
-
-                                                        if (externalStorageVolumes.size > 0) {
-                                                            val directory =
-                                                                externalStorageVolumes[0]
-                                                            filePath =
-                                                                directory.absolutePath + "/$fileName" + ".mp3"// FIXME: Z jakiegoś powodu nie mogę stworzyć foldera
-
-//                                                            startRecording(filePath)
-                                                            audioRecorder.startRecording(filePath)
-                                                            isRecordingVoiceNote = true
-                                                        }
-
-                                                        val onPressCoroutineJob = scope.launch {
-                                                            while (initialPress.pressed) {
-                                                                delay(1000)
-                                                                elapsedTimeVoiceNote =
-                                                                    System.currentTimeMillis() - timerStartVoiceNote
-                                                            }
-                                                        }
-                                                        val up = waitForUpOrCancellation()
-
-                                                        if (up != null) {
-                                                            onPressCoroutineJob.cancel()
-                                                            // Once the finger is lifted, stop recording, create a VoiceNote object and add it to the voice note list of the activity UI state
-//                                                            stopRecording()
-                                                            audioRecorder.stopRecording()
-                                                            // Set variable to false
-                                                            isRecordingVoiceNote = false
-
-                                                            val duration = System.currentTimeMillis() - timestamp
-                                                            val voiceNote = VoiceNoteUiState(
-                                                                uri = filePath,
-                                                                recordedAt = timestamp,
-                                                                id = voiceNoteId,
-                                                                duration = duration,
-                                                                activityId = recordedMainActivityUiState.id!!
-                                                            )
-
-//                                                            saveVoiceNote(voiceNote)
-
-                                                            viewModel.onEvent(PlannerUiEvent.RecordedVoiceNoteChanged(voiceNote))
-                                                            viewModel.onEvent(PlannerUiEvent.SaveVoiceNote)
-
-                                                            // Reset the voice note timer
-                                                            scope.launch {
-                                                                // Delay resetting so that the user doesn't see it
-                                                                delay(1000)
-                                                                elapsedTimeVoiceNote = 0L
-                                                            }
-                                                        }
-                                                    } else {
-                                                        if (permissionState.status.shouldShowRationale) {
-                                                            showPermissionRationale = true
-                                                        } else {
-                                                            permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                    ) {
-                                        Log.i("fileList", context.fileList().joinToString())
-
-                                        Icon(
-                                            imageVector = ImageVector.vectorResource(id = R.drawable.user_speak_svgrepo_com),
-                                            contentDescription = "Voice recorder",
-                                            modifier = Modifier.fillMaxSize(),
-                                            tint = HEADER_TEXT_COLOR
-                                        )
-                                    }
-                                }
-                            }
+//                            // Show main activity voice recorder only when the main activity is running
+//                            AnimatedVisibility(
+//                                visible = showMainActivityVoiceRecorder
+//                            ) {
+//                                Row (
+//                                    modifier = Modifier
+//                                    ,
+//                                    verticalAlignment = Alignment.CenterVertically,
+//                                    horizontalArrangement = Arrangement.End
+//                                ) {
+//                                    // The voice note timer
+//                                    Row(
+//                                        modifier = Modifier
+//                                            .alpha(voiceNoteTimerAlpha)
+//                                        ,
+//                                        verticalAlignment = Alignment.CenterVertically
+//                                    ) {
+//                                        AppearingDisappearingIcon(
+//                                            modifier = Modifier
+//                                                .width(35.dp)
+//                                            ,
+//                                            imageVectorResource = R.drawable.recording_02_svgrepo_com,
+//                                            contentDescription = "Voice recorder",
+//                                            tint = HEADER_TEXT_COLOR
+//                                        )
+//
+//                                        val text =
+//                                            (elapsedTimeVoiceNote).milliseconds.toComponents { hours, minutes, seconds, nanoseconds ->
+//                                                "%02d:%02d".format(minutes, seconds)
+//                                            }
+//
+//                                        Spacer(Modifier.width(5.dp))
+//
+//                                        Text(
+//                                            text = text,
+//                                            fontWeight = FontWeight.Normal,
+//                                            fontSize = 18.sp,
+//                                            color = HEADER_TEXT_COLOR
+//                                        )
+//                                    }
+//
+//                                    Spacer(Modifier.width(20.dp))
+//
+//                                    val scope = rememberCoroutineScope()
+//
+//                                    // The voice recording button
+//                                    Box(// FIXME: This button doesn't work well
+//                                        modifier = Modifier
+//                                            .width(30.dp)
+//                                            .pointerInput(
+//                                                // If I put the voiceNoteUiState into the pointerInput(), the first down gesture is not consumed. But the voice note UI state is still not updated
+//                                                Unit
+//                                            ) {
+//                                                awaitEachGesture {
+//                                                    val initialPress =
+//                                                        awaitFirstDown(requireUnconsumed = true).also { it.consume() }
+//
+//                                                    // Check if permission for audio recording is granted
+//                                                    if (permissionState.status.isGranted) {
+//                                                        // Create file name
+//                                                        val date = OffsetDateTime.now()
+//                                                            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+//                                                        val timestamp = System.currentTimeMillis()
+//                                                        val voiceNoteId = Uuid.generateV4()
+//                                                        val fileName =
+//                                                            date + "_" + voiceNoteId.toString()
+//                                                        var filePath = ""
+//
+//                                                        timerStartVoiceNote = timestamp
+//
+//                                                        // Start recording the voice note. Meanwhile, save its id, path, timestamp and activity id to the voice note UI state
+//                                                        val externalStorageVolumes =
+//                                                            ContextCompat.getExternalFilesDirs(
+//                                                                context,
+//                                                                null
+//                                                            )
+//
+//                                                        if (externalStorageVolumes.size > 0) {
+//                                                            val directory =
+//                                                                externalStorageVolumes[0]
+//                                                            filePath =
+//                                                                directory.absolutePath + "/$fileName" + ".mp3"// FIXME: Z jakiegoś powodu nie mogę stworzyć foldera
+//
+////                                                            startRecording(filePath)
+//                                                            audioRecorder.startRecording(filePath)
+//                                                            isRecordingVoiceNote = true
+//                                                        }
+//
+//                                                        val onPressCoroutineJob = scope.launch {
+//                                                            while (initialPress.pressed) {
+//                                                                delay(1000)
+//                                                                elapsedTimeVoiceNote =
+//                                                                    System.currentTimeMillis() - timerStartVoiceNote
+//                                                            }
+//                                                        }
+//                                                        val up = waitForUpOrCancellation()
+//
+//                                                        if (up != null) {
+//                                                            onPressCoroutineJob.cancel()
+//                                                            // Once the finger is lifted, stop recording, create a VoiceNote object and add it to the voice note list of the activity UI state
+////                                                            stopRecording()
+//                                                            audioRecorder.stopRecording()
+//                                                            // Set variable to false
+//                                                            isRecordingVoiceNote = false
+//
+//                                                            val duration = System.currentTimeMillis() - timestamp
+//                                                            val voiceNote = VoiceNoteUiState(
+//                                                                uri = filePath,
+//                                                                recordedAt = timestamp,
+//                                                                id = voiceNoteId,
+//                                                                duration = duration,
+//                                                                activityId = recordedMainActivityUiState.id!!
+//                                                            )
+//
+////                                                            saveVoiceNote(voiceNote)
+//
+//                                                            viewModel.onEvent(PlannerUiEvent.RecordedVoiceNoteChanged(voiceNote))
+//                                                            viewModel.onEvent(PlannerUiEvent.SaveVoiceNote)
+//
+//                                                            // Reset the voice note timer
+//                                                            scope.launch {
+//                                                                // Delay resetting so that the user doesn't see it
+//                                                                delay(1000)
+//                                                                elapsedTimeVoiceNote = 0L
+//                                                            }
+//                                                        }
+//                                                    } else {
+//                                                        if (permissionState.status.shouldShowRationale) {
+//                                                            showPermissionRationale = true
+//                                                        } else {
+//                                                            permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+//                                                        }
+//                                                    }
+//                                                }
+//                                            }
+//                                    ) {
+//                                        Log.i("fileList", context.fileList().joinToString())
+//
+//                                        Icon(
+//                                            imageVector = ImageVector.vectorResource(id = R.drawable.user_speak_svgrepo_com),
+//                                            contentDescription = "Voice recorder",
+//                                            modifier = Modifier.fillMaxSize(),
+//                                            tint = HEADER_TEXT_COLOR
+//                                        )
+//                                    }
+//                                }
+//                            }
                         }
                     }
                 }
@@ -885,153 +871,153 @@ fun ActivityRecorder(
                             )
                         }
 
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            // The voice note timer
-                            Row(
-                                modifier = Modifier
-                                    .alpha(voiceNoteTimerAlpha),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                AppearingDisappearingIcon(
-                                    modifier = Modifier
-                                        .width(35.dp),
-                                    imageVectorResource = R.drawable.recording_02_svgrepo_com,
-                                    contentDescription = "Voice recorder",
-                                    tint = HEADER_TEXT_COLOR
-                                )
-
-                                val text =
-                                    (elapsedTimeVoiceNote).milliseconds.toComponents { hours, minutes, seconds, nanoseconds ->
-                                        "%02d:%02d".format(minutes, seconds)
-                                    }
-
-                                Spacer(Modifier.width(5.dp))
-
-                                Text(
-                                    text = text,
-                                    fontWeight = FontWeight.Normal,
-                                    fontSize = 18.sp,
-                                    color = HEADER_TEXT_COLOR
-                                )
-                            }
-
-                            Spacer(Modifier.width(20.dp))
-
-                            val scope = rememberCoroutineScope()
-
-                            // The voice recording button
-                            Box(// FIXME: This button doesn't work well
-                                modifier = Modifier
-                                    .width(30.dp)
-                                    .pointerInput(
-                                        // If I put the voiceNoteUiState into the pointerInput(), the first down gesture is not consumed. But the voice note UI state is still not updated
-                                        Unit
-                                    ) {
-                                        awaitEachGesture {
-                                            val initialPress =
-                                                awaitFirstDown(requireUnconsumed = true).also { it.consume() }
-
-                                            // Check if permission for audio recording is granted
-                                            if (permissionState.status.isGranted) {
-                                                // Create file name
-                                                val date = OffsetDateTime.now()
-                                                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-                                                val timestamp = System.currentTimeMillis()
-                                                val voiceNoteId = Uuid.generateV4()
-                                                val fileName =
-                                                    date + "_" + voiceNoteId.toString()
-                                                var filePath = ""
-
-                                                timerStartVoiceNote = timestamp
-
-                                                // Start recording the voice note. Meanwhile, save it's id, path, timestamp and activity id to the voice note UI state
-                                                val externalStorageVolumes =
-                                                    ContextCompat.getExternalFilesDirs(
-                                                        context,
-                                                        null
-                                                    )
-
-                                                if (externalStorageVolumes.size > 0) {
-                                                    val directory = externalStorageVolumes[0]
-                                                    filePath =
-                                                        directory.absolutePath + "/$fileName" + ".mp3"// FIXME: I can't create a folder
-
-                                                    audioRecorder.startRecording(filePath)
-                                                    isRecordingVoiceNote = true
-                                                }
-
-                                                val onPressCoroutineJob = scope.launch {
-                                                    while (initialPress.pressed) {
-                                                        delay(1000)
-                                                        elapsedTimeVoiceNote =
-                                                            System.currentTimeMillis() - timerStartVoiceNote
-                                                    }
-                                                }
-                                                val up = waitForUpOrCancellation()
-
-                                                if (up != null) {
-                                                    onPressCoroutineJob.cancel()
-                                                    // Once the finger is lifted, stop recording, create a VoiceNote object and add it to the voice note list of the activity UI state
-                                                    audioRecorder.stopRecording()
-                                                    // Set variable to false
-                                                    isRecordingVoiceNote = false
-
-                                                    val duration =
-                                                        System.currentTimeMillis() - timestamp
-                                                    val voiceNote = VoiceNoteUiState(
-                                                        uri = filePath,
-                                                        recordedAt = timestamp,
-                                                        id = voiceNoteId,
-                                                        duration = duration,
-                                                        activityId = recordedSubActivityUiState.id!!
-                                                    )
-
-//                                                    saveVoiceNote(voiceNote)
-                                                    viewModel.onEvent(PlannerUiEvent.RecordedVoiceNoteChanged(voiceNote))
-                                                    viewModel.onEvent(PlannerUiEvent.SaveVoiceNote)
-
-                                                    // Reset the voice note timer
-                                                    scope.launch {
-                                                        // Delay resetting so that the user doesn't see it
-                                                        delay(1000)
-                                                        elapsedTimeVoiceNote = 0L
-                                                    }
-                                                }
-                                            } else {
-                                                if (permissionState.status.shouldShowRationale) {
-                                                    showPermissionRationale = true
-                                                } else {
-                                                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                                                }
-                                            }
-                                        }
-                                    }
-                            ) {
-                                Log.i("fileList", context.fileList().joinToString())
-
-                                Icon(
-                                    imageVector = ImageVector.vectorResource(id = R.drawable.user_speak_svgrepo_com),
-                                    contentDescription = "Voice recorder",
-                                    modifier = Modifier.fillMaxSize(),
-                                    tint = HEADER_TEXT_COLOR
-                                )
-                            }
-                        }
+//                        Row(
+//                            verticalAlignment = Alignment.CenterVertically,
+//                            horizontalArrangement = Arrangement.End
+//                        ) {
+//                            // The voice note timer
+//                            Row(
+//                                modifier = Modifier
+//                                    .alpha(voiceNoteTimerAlpha),
+//                                verticalAlignment = Alignment.CenterVertically
+//                            ) {
+//                                AppearingDisappearingIcon(
+//                                    modifier = Modifier
+//                                        .width(35.dp),
+//                                    imageVectorResource = R.drawable.recording_02_svgrepo_com,
+//                                    contentDescription = "Voice recorder",
+//                                    tint = HEADER_TEXT_COLOR
+//                                )
+//
+//                                val text =
+//                                    (elapsedTimeVoiceNote).milliseconds.toComponents { hours, minutes, seconds, nanoseconds ->
+//                                        "%02d:%02d".format(minutes, seconds)
+//                                    }
+//
+//                                Spacer(Modifier.width(5.dp))
+//
+//                                Text(
+//                                    text = text,
+//                                    fontWeight = FontWeight.Normal,
+//                                    fontSize = 18.sp,
+//                                    color = HEADER_TEXT_COLOR
+//                                )
+//                            }
+//
+//                            Spacer(Modifier.width(20.dp))
+//
+//                            val scope = rememberCoroutineScope()
+//
+//                            // The voice recording button
+//                            Box(// FIXME: This button doesn't work well
+//                                modifier = Modifier
+//                                    .width(30.dp)
+//                                    .pointerInput(
+//                                        // If I put the voiceNoteUiState into the pointerInput(), the first down gesture is not consumed. But the voice note UI state is still not updated
+//                                        Unit
+//                                    ) {
+//                                        awaitEachGesture {
+//                                            val initialPress =
+//                                                awaitFirstDown(requireUnconsumed = true).also { it.consume() }
+//
+//                                            // Check if permission for audio recording is granted
+//                                            if (permissionState.status.isGranted) {
+//                                                // Create file name
+//                                                val date = OffsetDateTime.now()
+//                                                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+//                                                val timestamp = System.currentTimeMillis()
+//                                                val voiceNoteId = Uuid.generateV4()
+//                                                val fileName =
+//                                                    date + "_" + voiceNoteId.toString()
+//                                                var filePath = ""
+//
+//                                                timerStartVoiceNote = timestamp
+//
+//                                                // Start recording the voice note. Meanwhile, save it's id, path, timestamp and activity id to the voice note UI state
+//                                                val externalStorageVolumes =
+//                                                    ContextCompat.getExternalFilesDirs(
+//                                                        context,
+//                                                        null
+//                                                    )
+//
+//                                                if (externalStorageVolumes.size > 0) {
+//                                                    val directory = externalStorageVolumes[0]
+//                                                    filePath =
+//                                                        directory.absolutePath + "/$fileName" + ".mp3"// FIXME: I can't create a folder
+//
+//                                                    audioRecorder.startRecording(filePath)
+//                                                    isRecordingVoiceNote = true
+//                                                }
+//
+//                                                val onPressCoroutineJob = scope.launch {
+//                                                    while (initialPress.pressed) {
+//                                                        delay(1000)
+//                                                        elapsedTimeVoiceNote =
+//                                                            System.currentTimeMillis() - timerStartVoiceNote
+//                                                    }
+//                                                }
+//                                                val up = waitForUpOrCancellation()
+//
+//                                                if (up != null) {
+//                                                    onPressCoroutineJob.cancel()
+//                                                    // Once the finger is lifted, stop recording, create a VoiceNote object and add it to the voice note list of the activity UI state
+//                                                    audioRecorder.stopRecording()
+//                                                    // Set variable to false
+//                                                    isRecordingVoiceNote = false
+//
+//                                                    val duration =
+//                                                        System.currentTimeMillis() - timestamp
+//                                                    val voiceNote = VoiceNoteUiState(
+//                                                        uri = filePath,
+//                                                        recordedAt = timestamp,
+//                                                        id = voiceNoteId,
+//                                                        duration = duration,
+//                                                        activityId = recordedSubActivityUiState.id!!
+//                                                    )
+//
+////                                                    saveVoiceNote(voiceNote)
+//                                                    viewModel.onEvent(PlannerUiEvent.RecordedVoiceNoteChanged(voiceNote))
+//                                                    viewModel.onEvent(PlannerUiEvent.SaveVoiceNote)
+//
+//                                                    // Reset the voice note timer
+//                                                    scope.launch {
+//                                                        // Delay resetting so that the user doesn't see it
+//                                                        delay(1000)
+//                                                        elapsedTimeVoiceNote = 0L
+//                                                    }
+//                                                }
+//                                            } else {
+//                                                if (permissionState.status.shouldShowRationale) {
+//                                                    showPermissionRationale = true
+//                                                } else {
+//                                                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+//                                                }
+//                                            }
+//                                        }
+//                                    }
+//                            ) {
+//                                Log.i("fileList", context.fileList().joinToString())
+//
+//                                Icon(
+//                                    imageVector = ImageVector.vectorResource(id = R.drawable.user_speak_svgrepo_com),
+//                                    contentDescription = "Voice recorder",
+//                                    modifier = Modifier.fillMaxSize(),
+//                                    tint = HEADER_TEXT_COLOR
+//                                )
+//                            }
+//                        }
                     }
                 }
             }
         }
     }
 
-    if (showPermissionRationale) {
-        PermissionRationaleDialog(
-            permissionTextProvider = AudioRecordPermissionTextProvider(),
-            onDismiss = { showPermissionRationale = false },
-        )
-    }
+//    if (showPermissionRationale) {
+//        PermissionRationaleDialog(
+//            permissionTextProvider = AudioRecordPermissionTextProvider(),
+//            onDismiss = { showPermissionRationale = false },
+//        )
+//    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

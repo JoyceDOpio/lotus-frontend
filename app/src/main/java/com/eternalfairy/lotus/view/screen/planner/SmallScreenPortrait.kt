@@ -309,7 +309,8 @@ fun SmallScreenPortrait (
                     if (task.pinned) {
 //                        saveTask(task.copy(id = UUID.randomUUID(), pinned = false))
 
-                        plannerViewModel.onEvent(PlannerUiEvent.TaskIdChanged(Uuid.generateV4()))
+//                        plannerViewModel.onEvent(PlannerUiEvent.TaskIdChanged(Uuid.generateV4()))
+                        plannerViewModel.onEvent(PlannerUiEvent.TaskIdChanged(Uuid.random()))
                         plannerViewModel.onEvent(PlannerUiEvent.TaskPinnedChanged(false))
                     }
 //                    else saveTask(task)
@@ -793,19 +794,19 @@ fun SmallScreenPortrait (
                                     )
                                 }
 
-                                if (!activityUiState.voiceNotesUiState.isEmpty()) {
-                                    Spacer(modifier = Modifier.height(10.dp))
-
-                                    VoiceNoteList(
-                                        activityUiState = activityUiState,
-                                        audioViewModel = audioViewModel,
-                                        onDeleteItem = { voiceNote ->
-                                            onDeleteVoiceNote(voiceNote.id)
-                                        },
-//                                        updateLastPlayedPosition = updateLastPlayedPosition
-                                        updateLastPlayedPosition = { position, itemIndex -> plannerViewModel.updateLastPlayedPosition(position, itemIndex) }
-                                    )
-                                }
+//                                if (!activityUiState.voiceNotesUiState.isEmpty()) {
+//                                    Spacer(modifier = Modifier.height(10.dp))
+//
+//                                    VoiceNoteList(
+//                                        activityUiState = activityUiState,
+//                                        audioViewModel = audioViewModel,
+//                                        onDeleteItem = { voiceNote ->
+//                                            onDeleteVoiceNote(voiceNote.id)
+//                                        },
+////                                        updateLastPlayedPosition = updateLastPlayedPosition
+//                                        updateLastPlayedPosition = { position, itemIndex -> plannerViewModel.updateLastPlayedPosition(position, itemIndex) }
+//                                    )
+//                                }
 
                                 if (!subActivities.isEmpty()) {
                                     Spacer(modifier = Modifier.height(10.dp))

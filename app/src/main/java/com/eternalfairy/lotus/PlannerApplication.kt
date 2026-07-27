@@ -13,10 +13,10 @@ class PlannerApplication : Application() {
 //    lateinit var container: AppContainer
 //    val dotenv = dotenv()
 
-    companion object {
-        const val POSTHOG_PROJECT_TOKEN = "phc_ACaUmuk3Vr3q3m5Qn7Hp3UPUfirbR5yHm8sPtegXtXE7"
-        const val POSTHOG_HOST = "https://us.i.posthog.com"
-    }
+//    companion object {
+//        const val POSTHOG_PROJECT_TOKEN = "phc_ACaUmuk3Vr3q3m5Qn7Hp3UPUfirbR5yHm8sPtegXtXE7"
+//        const val POSTHOG_HOST = "https://us.i.posthog.com"
+//    }
 
 //    // Without init{} the container value is not initialized before it is accessed
 //    init {
@@ -25,18 +25,18 @@ class PlannerApplication : Application() {
 //
 //    }
 
-    override fun onCreate() {
-        super.onCreate()
-//        container = AppDataContainer(this)
-        // Create a PostHog Config with the given project token and host
-        val config = PostHogAndroidConfig(
-            apiKey = POSTHOG_PROJECT_TOKEN,
-            host = POSTHOG_HOST
-        )
-
-        // Setup PostHog with the given Context and Config
-        PostHogAndroid.setup(this, config)
-    }
+//    override fun onCreate() {
+//        super.onCreate()
+////        container = AppDataContainer(this)
+//        // Create a PostHog Config with the given project token and host
+//        val config = PostHogAndroidConfig(
+//            apiKey = POSTHOG_PROJECT_TOKEN,
+//            host = POSTHOG_HOST
+//        )
+//
+//        // Setup PostHog with the given Context and Config
+//        PostHogAndroid.setup(this, config)
+//    }
 }
 
 // Extension function to queries for [Application] object and returns an instance of [PlannerApplication]

@@ -47,7 +47,7 @@ fun VoiceNoteList (
             exoPlayer.pause()
         } else {
             val audio = voiceNotesUiState[playingItemIndex.value!!]
-            exoPlayer.setMediaItem(MediaItem.fromUri(audio.uri), audio.lastPlayedPosition)
+            exoPlayer.setMediaItem(MediaItem.fromUri(audio.uri!!), audio.lastPlayedPosition)
             exoPlayer.prepare()
             exoPlayer.playWhenReady = true
         }

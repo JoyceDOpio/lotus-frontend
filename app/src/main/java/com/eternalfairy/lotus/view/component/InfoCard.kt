@@ -72,7 +72,10 @@ fun InfoCard (
 ) {
     val state = viewModel.state
 
-    val date = state.selectedDate
+    val date = when(infoType) {
+        CardInfoType.Activity -> state.editedActivity.date
+        CardInfoType.Task -> state.editedTask.date
+    }
     val dayUiState = state.selectedDay
     val endTime = when(infoType) {
         CardInfoType.Activity -> state.editedActivity.endTime

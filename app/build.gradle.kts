@@ -74,13 +74,8 @@ android {
 
             buildConfigField(
                 type = "String",
-                name = "POSTHOG_HOST_URL",
-                value = keystoreProperties.getProperty("POSTHOG_HOST_URL")
-            )
-            buildConfigField(
-                type = "String",
-                name = "POSTHOG_PROJECT_TOKEN",
-                value = keystoreProperties.getProperty("POSTHOG_PROJECT_TOKEN")
+                name = "BASE_URL",
+                value = keystoreProperties.getProperty("BASE_URL")
             )
             buildConfigField(
                 type = "String",
@@ -147,7 +142,8 @@ kotlin {
     compilerOptions {
         languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0
         // Optional: Set jvmTarget
-         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
+        freeCompilerArgs.add("-opt-in=kotlin.uuid.ExperimentalUuidApi")
     }
 }
 
@@ -249,6 +245,8 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
 
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.8.0")
+
+//    implementation(kotlin("reflect"))
 }
 
 configurations.implementation{

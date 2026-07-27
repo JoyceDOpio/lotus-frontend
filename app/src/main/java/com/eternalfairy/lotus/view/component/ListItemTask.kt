@@ -24,13 +24,16 @@ import com.eternalfairy.lotus.view.data.TaskUiState
 import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.theme.HEADER_TEXT_COLOR
 import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 @Composable
 fun ListItemTask(
     modifier: Modifier = Modifier,
     task: TaskUiState,
     onNavigateToTaskInfo: () -> Unit,
-    selectTask: (UUID?) -> Unit
+    selectTask: (Uuid?) -> Unit
 ){
     Row(
         modifier = modifier

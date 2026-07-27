@@ -49,7 +49,7 @@ class PlannerViewModel @Inject constructor(
     var state by mutableStateOf(PlannerUiState())
     private val responseChannel = Channel<ApiResponse<Unit>>()
     val apiResponses = responseChannel.receiveAsFlow()
-    val today = LocalDate.parse(LocalDateTime.now().toString())
+    val today = LocalDate.parse(java.time.LocalDate.now().toString())
 
     init {
         loadInitialData()
@@ -701,7 +701,8 @@ class PlannerViewModel @Inject constructor(
             val response = if (goal.id == null) {
                 goalRepository.addGoal(
                     goal.copy(
-                        id = Uuid.generateV4()
+//                        id = Uuid.generateV4()
+                        id = Uuid.random()
                     )
                 )
             } else {
@@ -776,7 +777,8 @@ class PlannerViewModel @Inject constructor(
             val response = if (task.id == null) {
                 taskRepository.addTask(
                     task.copy(
-                        id = Uuid.generateV4()
+//                        id = Uuid.generateV4()
+                        id = Uuid.random()
                     )
                 )
             } else {
@@ -899,7 +901,8 @@ class PlannerViewModel @Inject constructor(
         }
 
         is ApiResponse.Error -> {
-
+            // TODO: Handle error
+            emptyList()
         }
     } as List<ActivityUiState>
 
@@ -956,7 +959,8 @@ class PlannerViewModel @Inject constructor(
         }
 
         is ApiResponse.Error -> {
-
+            // TODO: Handle error
+            DayUiState()
         }
     } as DayUiState
 
@@ -1023,7 +1027,8 @@ class PlannerViewModel @Inject constructor(
             response.data?.map(::TaskUiState)
         }
         is ApiResponse.Error -> {
-
+            // TODO: Handle error
+            emptyList()
         }
     } as List<TaskUiState>
 

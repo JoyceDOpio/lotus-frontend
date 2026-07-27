@@ -305,7 +305,8 @@ fun SmallScreenLandscape (
                     // If the task to be moved to the calendar is pinned, we don't want to actually move this task but to copy it to the calendar so that the original task stays in the TO-DO list for further references (i.e. so that the task can be copied over and over again to the calendar)
                     if (task.pinned) {
 //                        saveTask(task.copy(id = UUID.randomUUID(), pinned = false))
-                        plannerViewModel.onEvent(PlannerUiEvent.TaskIdChanged(Uuid.generateV4()))
+//                        plannerViewModel.onEvent(PlannerUiEvent.TaskIdChanged(Uuid.generateV4()))
+                        plannerViewModel.onEvent(PlannerUiEvent.TaskIdChanged(Uuid.random()))
                         plannerViewModel.onEvent(PlannerUiEvent.TaskPinnedChanged(false))
                     }
 //                    else saveTask(task)
@@ -1149,19 +1150,19 @@ fun SmallScreenLandscape (
                                     )
                                 }
 
-                                if (!activityUiState.voiceNotesUiState.isEmpty()) {
-                                    Spacer(modifier = Modifier.height(10.dp))
-
-                                    VoiceNoteList(
-                                        activityUiState = activityUiState,
-                                        audioViewModel = audioViewModel,
-                                        onDeleteItem = { voiceNote ->
-                                            onDeleteVoiceNote(voiceNote.id)
-                                        },
-//                                        updateLastPlayedPosition = updateLastPlayedPosition
-                                        updateLastPlayedPosition = { position, itemIndex -> plannerViewModel.updateLastPlayedPosition(position, itemIndex) }
-                                    )
-                                }
+//                                if (!activityUiState.voiceNotesUiState.isEmpty()) {
+//                                    Spacer(modifier = Modifier.height(10.dp))
+//
+//                                    VoiceNoteList(
+//                                        activityUiState = activityUiState,
+//                                        audioViewModel = audioViewModel,
+//                                        onDeleteItem = { voiceNote ->
+//                                            onDeleteVoiceNote(voiceNote.id)
+//                                        },
+////                                        updateLastPlayedPosition = updateLastPlayedPosition
+//                                        updateLastPlayedPosition = { position, itemIndex -> plannerViewModel.updateLastPlayedPosition(position, itemIndex) }
+//                                    )
+//                                }
 
                                 if (!subActivities.isEmpty()) {
                                     Spacer(modifier = Modifier.height(10.dp))

@@ -58,6 +58,8 @@ class StopwatchService: Service() {
     private val binder = StopwatchBinder()
 
     private var job: Job? = null
+//    private var jobMain: Job? = null
+//    private var jobSub: Job? = null
 //    private val scope = CoroutineScope(Dispatchers.IO + job)
     private val scope = CoroutineScope(Dispatchers.Default)
 
@@ -147,8 +149,8 @@ class StopwatchService: Service() {
 //    }
 
     private fun pauseStopwatch(onTick: (contentText: String) -> Unit) {
-        // Cancel the coroutine which updates the main activity stopwatch
-        job?.cancel()
+//        // Cancel the coroutine which updates the main activity stopwatch
+//        job?.cancel()
 
         // Pause the main activity stopwatch
         stopwatches.get(MAIN_ACTIVITY_NOTIFICATION_ID)?.pause()
@@ -159,6 +161,7 @@ class StopwatchService: Service() {
         }
 
         job = scope.launch {
+//        jobSub = scope.launch {
             // Start the sub-activity stopwatch
             val stopwatch = stopwatches.get(SUB_ACTIVITY_NOTIFICATION_ID)
             stopwatch?.start()
