@@ -5,7 +5,11 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import com.eternalfairy.lotus.MainActivity
+import com.eternalfairy.lotus.view.screen.planner.SCREEN_STATE
+import com.eternalfairy.lotus.view.screen.planner.SmallScreenState
 import com.eternalfairy.lotus.view.service.StopwatchService.Companion.CLICK_REQUEST_CODE
+import com.eternalfairy.lotus.view.service.StopwatchService.Companion.STOP
+import com.eternalfairy.lotus.view.service.StopwatchService.Companion.STOP_REQUEST_CODE
 
 // Specifies the behaviour for the notification
 //@AndroidEntryPoint
@@ -16,6 +20,7 @@ object ServiceHelper {
         // When the notification is clicked, the MainActivity should be opened
         val clickIntent = Intent(context, MainActivity::class.java).apply {
 //            putExtra(STOPWATCH_STATE, StopwatchState.Started.name)
+            putExtra(SCREEN_STATE, SmallScreenState.DayActivity.toString())
         }
 
         return PendingIntent.getActivity(
@@ -52,18 +57,19 @@ object ServiceHelper {
 //        )
 //    }
 
-//    fun stopPendingIntent(context: Context): PendingIntent {
-//        val stopIntent = Intent(context, StopwatchService::class.java).apply {
+    fun stopPendingIntent(context: Context): PendingIntent {
+        val stopIntent = Intent(context, StopwatchService::class.java).apply {
 //            putExtra(STOPWATCH_STATE, StopwatchState.Stopped.name)
-//        }
-//
-//        return PendingIntent.getService(
-//            context,
-//            STOP_REQUEST_CODE,
-//            stopIntent,
-//            flag
-//        )
-//    }
+            action = STOP
+        }
+
+        return PendingIntent.getService(
+            context,
+            STOP_REQUEST_CODE,
+            stopIntent,
+            flag
+        )
+    }
 
     fun triggerForegroundService(context: Context, action: String) {
         Intent(context, StopwatchService::class.java).apply {

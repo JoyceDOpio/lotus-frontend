@@ -49,8 +49,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eternalfairy.lotus.R
 import com.eternalfairy.lotus.view.component.TimePickerDialog
-import com.eternalfairy.lotus.view.data.DayUiState
-import com.eternalfairy.lotus.view.data.TaskUiState
 import com.eternalfairy.lotus.view.screen.planner.PlannerUiEvent
 import com.eternalfairy.lotus.view.theme.BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
@@ -60,9 +58,8 @@ import com.eternalfairy.lotus.view.theme.SECONDARY_HEADER_TEXT_COLOR
 import com.eternalfairy.lotus.view.theme.SECONDARY_TEXT_COLOR
 import com.eternalfairy.lotus.view.theme.SELECTION_COLOR
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils
-import com.eternalfairy.lotus.viewmodel.PlannerViewModel
+import com.eternalfairy.lotus.view.viewmodel.PlannerViewModel
 import kotlinx.datetime.LocalTime
-import java.util.UUID
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -263,7 +260,8 @@ fun TaskEditScreen(
                     }
                 }
             )
-        }
+        },
+        containerColor = COMPONENT_BACKGROUND_COLOR
     ) { innerPadding ->
         Column(
             modifier = modifier

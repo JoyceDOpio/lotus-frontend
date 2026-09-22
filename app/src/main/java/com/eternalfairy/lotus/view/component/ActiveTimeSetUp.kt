@@ -36,7 +36,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eternalfairy.lotus.R
-import com.eternalfairy.lotus.view.data.DayUiState
 import com.eternalfairy.lotus.view.screen.planner.PlannerUiEvent
 import com.eternalfairy.lotus.view.theme.BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
@@ -44,7 +43,7 @@ import com.eternalfairy.lotus.view.theme.ERROR_TEXT_COLOR
 import com.eternalfairy.lotus.view.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.lotus.view.theme.SECONDARY_HEADER_TEXT_COLOR
 import com.eternalfairy.lotus.view.theme.SECONDARY_TEXT_COLOR
-import com.eternalfairy.lotus.viewmodel.PlannerViewModel
+import com.eternalfairy.lotus.view.viewmodel.PlannerViewModel
 import kotlinx.datetime.LocalTime
 
 @OptIn(ExperimentalMaterial3Api::class)

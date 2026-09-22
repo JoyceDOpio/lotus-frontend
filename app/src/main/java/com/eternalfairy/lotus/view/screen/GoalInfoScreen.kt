@@ -33,8 +33,6 @@ fun GoalInfoScreen(
     onBack: () -> Unit,
     onNavigateToGoalEdit: () -> Unit
 ) {
-    val goalDetails = goalUiState
-
     Scaffold (
         bottomBar = {
             BottomAppBar (
@@ -91,7 +89,7 @@ fun GoalInfoScreen(
             GoalCard (
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
-                title = goalDetails.title
+                title = goalUiState.title
             )
         }
     }

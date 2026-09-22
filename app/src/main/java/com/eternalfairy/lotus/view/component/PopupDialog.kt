@@ -28,6 +28,7 @@ fun PopupDialog (
             shape = RoundedCornerShape(15.dp),
             colors = CardDefaults.cardColors(
                 containerColor = COMPONENT_BACKGROUND_COLOR,
+                contentColor = COMPONENT_BACKGROUND_COLOR
             )
         ) {
             content()

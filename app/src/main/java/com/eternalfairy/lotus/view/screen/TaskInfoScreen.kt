@@ -34,7 +34,7 @@ import com.eternalfairy.lotus.view.component.TaskDropdownMenu
 import com.eternalfairy.lotus.view.screen.planner.PlannerUiEvent
 import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.theme.HEADER_TEXT_COLOR
-import com.eternalfairy.lotus.viewmodel.PlannerViewModel
+import com.eternalfairy.lotus.view.viewmodel.PlannerViewModel
 
 @Composable
 fun TaskInfoScreen(

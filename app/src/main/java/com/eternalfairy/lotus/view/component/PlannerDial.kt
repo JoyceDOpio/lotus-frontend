@@ -59,9 +59,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eternalfairy.lotus.R
-import com.eternalfairy.lotus.view.data.DayUiState
 import com.eternalfairy.lotus.view.data.TaskUiState
-import com.eternalfairy.lotus.view.data.UserInput
 import com.eternalfairy.lotus.view.screen.DeleteScreen
 import com.eternalfairy.lotus.view.screen.TaskEditScreen
 import com.eternalfairy.lotus.view.screen.TaskInfoScreen
@@ -90,7 +88,7 @@ import com.eternalfairy.lotus.view.utils.TouchGestureUtils.createClockHoursArray
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils.distance
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils.sweepAngle
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils.translateAngle270To0
-import com.eternalfairy.lotus.viewmodel.PlannerViewModel
+import com.eternalfairy.lotus.view.viewmodel.PlannerViewModel
 import kotlinx.coroutines.delay
 import kotlinx.datetime.LocalTime
 import kotlin.math.PI

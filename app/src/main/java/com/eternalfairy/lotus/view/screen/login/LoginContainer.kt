@@ -12,10 +12,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.eternalfairy.lotus.auth.AuthResponse
+import com.eternalfairy.lotus.data.auth.AuthResponse
 import com.eternalfairy.lotus.view.component.MultiWindowSizeLayout
 import com.eternalfairy.lotus.view.theme.Teal74
-import com.eternalfairy.lotus.viewmodel.AuthViewModel
+import com.eternalfairy.lotus.view.viewmodel.AuthViewModel
 
 @Composable
 fun LoginContainer(

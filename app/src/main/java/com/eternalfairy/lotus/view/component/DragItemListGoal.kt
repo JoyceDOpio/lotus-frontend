@@ -1,5 +1,6 @@
 package com.eternalfairy.lotus.view.component
 
+import android.util.Log
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -15,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -25,6 +27,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import com.eternalfairy.lotus.data.model.Goal
+import com.eternalfairy.lotus.view.data.GoalUiState
 import com.eternalfairy.lotus.view.screen.DeleteScreen
 import com.eternalfairy.lotus.view.screen.DeleteType
 import com.eternalfairy.lotus.view.screen.GoalEditScreen
@@ -32,7 +36,7 @@ import com.eternalfairy.lotus.view.screen.GoalInfoScreen
 import com.eternalfairy.lotus.view.screen.planner.PlannerUiEvent
 import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.utils.GoalModePopup
-import com.eternalfairy.lotus.viewmodel.PlannerViewModel
+import com.eternalfairy.lotus.view.viewmodel.PlannerViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -44,18 +48,23 @@ fun DragItemListGoal(//TODO: Merge with DragItemListTask
     componentHeight: Dp = 680.dp,
     componentWidth: Dp = 400.dp,
     viewModel: PlannerViewModel,
-//    goalUiState: GoalUiState,
-//    items: List<Draggable>,
-//    items: List<T>,
-//    items: List<GoalUiState>,
-//    lastGoalPriority: Int?,
-//    deleteGoal: (UUID) -> Unit,
-//    saveGoal: (GoalUiState) -> Unit,
-//    saveGoalFromState: () -> Unit,
-//    selectGoal: (UUID?) -> Unit,
-//    setGoalPriority: (Int) -> Unit,
-//    setGoalTitle: (String) -> Unit
-//    listItem: @Composable LazyItemScope.(Modifier, Draggable) -> Unit
+    items: List<GoalUiState> = listOf(
+        GoalUiState(
+            id = Uuid.Companion.parse("495502d1-4f23-4c31-8edb-4ec1107f35be"),
+            title = "goal 1",
+            priority = 1
+        ),
+        GoalUiState(
+            id = Uuid.Companion.parse("5f6c53ca-b5d7-4aec-89af-4f725bc8c50f"),
+            title = "goal 2",
+            priority = 2
+        ),
+        GoalUiState(
+            id = Uuid.Companion.parse("98e36da8-521f-4e14-a370-4740aa4498ff"),
+            title = "goal 3",
+            priority = 3
+        )
+    )
 ) {
     val state = viewModel.state
     val goalUiState = state.selectedGoal
@@ -64,18 +73,44 @@ fun DragItemListGoal(//TODO: Merge with DragItemListTask
 
     var draggedItem: LazyListItemInfo? by remember { mutableStateOf(null) }
     var draggedItemIndex: Int? by remember { mutableStateOf(null) }
-    var delta by remember { mutableStateOf(0f) }
+    var delta by remember { mutableFloatStateOf(0f) }
     val listState = rememberLazyListState()
-    val scrollChannel = Channel<Float>()
+//    val scrollChannel = Channel<Float>()
+    val scrollChannel = remember { Channel<Float>() }
 
-    val itemsCopy = items.toMutableList()
+//    val itemsCopy = items.toMutableList()
+//    val itemsCopy = remember {
+//        mutableListOf(
+//            GoalUiState(
+//                id = Uuid.Companion.parse("495502d1-4f23-4c31-8edb-4ec1107f35be"),
+//                title = "predefined goal",
+//                priority = 1
+//            ),
+//            GoalUiState(
+//                id = Uuid.Companion.parse("5f6c53ca-b5d7-4aec-89af-4f725bc8c50f"),
+//                title = "predefined goal 2",
+//                priority = 2
+//            ),
+//            GoalUiState(
+//                id = Uuid.Companion.parse("5f6c53ca-b5d7-4aec-89af-4f725bc8c50f"),
+//                title = "predefined goal 3",
+//                priority = 3
+//            )
+//        )
+//    }
+    val itemsCopy = remember { items.toMutableList() }
+
+    Log.i("DragItemListGoal", "items")
+    items.forEach { Log.i("DragItemListGoal", "$it") }
+    Log.i("DragItemListGoal", "itemsCopy")
+    itemsCopy.forEach { Log.i("DragItemListGoal", "$it") }
 
     var showPopupWindow by remember { mutableStateOf(false) }
     var goalState by remember { mutableStateOf(GoalModePopup.Info) }
 
-
     fun onSwap(fromIndex: Int, toIndex: Int) {
         itemsCopy.apply { add(toIndex, removeAt(fromIndex)) }
+//        items.toMutableList().apply { add(toIndex, removeAt(fromIndex)) }
     }
 
     LaunchedEffect(listState) {
@@ -85,6 +120,10 @@ fun DragItemListGoal(//TODO: Merge with DragItemListTask
         }
     }
 
+//    LaunchedEffect(items) {
+//        itemsCopy = items.toMutableList()
+//    }
+
     LazyColumn(
         modifier = Modifier
             .height(componentHeight)
@@ -92,10 +131,12 @@ fun DragItemListGoal(//TODO: Merge with DragItemListTask
             .padding(horizontal = 10.dp, vertical = 5.dp)
             .clip(shape = RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp))
             .background(COMPONENT_BACKGROUND_COLOR)
-            .pointerInput(key1 = listState) {
+//            .pointerInput(key1 = listState) {
+            .pointerInput(Unit) {
                 detectDragGesturesAfterLongPress(
                     onDragStart = { offset ->
-                        listState.layoutInfo.visibleItemsInfo.firstOrNull() { item -> offset.y.toInt() in item.offset..(item.offset + item.size) }
+                        listState.layoutInfo.visibleItemsInfo
+                            .firstOrNull() { item -> offset.y.toInt() in item.offset..(item.offset + item.size) }
                             ?.also {
                                 (it.contentType as? Draggable)?.let { draggableItem ->
                                     draggedItem = it
@@ -113,10 +154,10 @@ fun DragItemListGoal(//TODO: Merge with DragItemListTask
                             draggedItem ?: return@detectDragGesturesAfterLongPress
 
                         // Swap places if the middle of the dragged item reaches the border of the another item
-                        val startOffset = currentlyDraggedItem.offset + delta
-                        val endOffset =
+                        val topOffset = currentlyDraggedItem.offset + delta
+                        val bottomOffset =
                             currentlyDraggedItem.offset + currentlyDraggedItem.size + delta
-                        val middleOffset = startOffset + (endOffset - startOffset) / 2
+                        val middleOffset = topOffset + (bottomOffset - topOffset) / 2
                         val targetItem =
                             listState.layoutInfo.visibleItemsInfo.find { item -> middleOffset.toInt() in item.offset..item.offset + item.size && currentlyDraggedItemIndex != item.index && item.contentType is Draggable }
 
@@ -126,11 +167,12 @@ fun DragItemListGoal(//TODO: Merge with DragItemListTask
                             draggedItem = targetItem
                             draggedItemIndex = targetIndex
                             delta += currentlyDraggedItem.offset - targetItem.offset
+//                            delta = 0f
                         } else {
                             val startOffsetToTop =
-                                startOffset - listState.layoutInfo.viewportStartOffset
+                                topOffset - listState.layoutInfo.viewportStartOffset
                             val endOffsetToBottom =
-                                startOffset - listState.layoutInfo.viewportEndOffset
+                                topOffset - listState.layoutInfo.viewportEndOffset
                             val scroll =
                                 when {
                                     startOffsetToTop < 0 -> startOffsetToTop.coerceAtMost(0f)
@@ -148,6 +190,7 @@ fun DragItemListGoal(//TODO: Merge with DragItemListTask
                     onDragEnd = {
                         itemsCopy.forEachIndexed { index, item ->
 //                            saveGoal(item.copy(priority = index + 1))
+                            viewModel.selectGoal(item.id)
                             viewModel.onEvent(PlannerUiEvent.GoalPriorityChanged(index + 1))
                             viewModel.onEvent(PlannerUiEvent.SaveGoal)
                         }
@@ -167,6 +210,7 @@ fun DragItemListGoal(//TODO: Merge with DragItemListTask
     ) {
         itemsIndexed(
             items = itemsCopy,
+//            items = items,
             contentType = { index, item -> Draggable(index = index, id = item.id!!) }
         ) { index, item ->
             val modifier = if (draggedItemIndex == index) {
@@ -239,7 +283,7 @@ fun DragItemListGoal(//TODO: Merge with DragItemListTask
                         },
                         onDelete = {
 //                            deleteGoal(goalUiState.id!!)
-                            viewModel.onEvent(PlannerUiEvent.GoalToBeDeletedIdChanged(goalUiState.id!!))
+//                            viewModel.onEvent(PlannerUiEvent.GoalToBeDeletedIdChanged(goalUiState.id!!))
                             viewModel.onEvent(PlannerUiEvent.DeleteGoal)
 
                             showPopupWindow = false

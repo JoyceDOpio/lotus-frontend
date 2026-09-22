@@ -17,6 +17,7 @@ sealed class PlannerUiEvent {
     object DeleteActivity: PlannerUiEvent()
     object SaveActivity: PlannerUiEvent()
 
+    // - main
     data class RecordedMainActivityIdChanged @OptIn(ExperimentalUuidApi::class) constructor(val value: Uuid): PlannerUiEvent()
     data class RecordedMainActivityDateChanged @OptIn(ExperimentalUuidApi::class) constructor(val value: LocalDate): PlannerUiEvent()
     data class RecordedMainActivityNoteChanged constructor(val value: String): PlannerUiEvent()
@@ -28,6 +29,7 @@ sealed class PlannerUiEvent {
     object StartMainActivity: PlannerUiEvent()
     object StopMainActivity: PlannerUiEvent()
 
+    // - sub
     data class RecordedSubActivityIdChanged @OptIn(ExperimentalUuidApi::class) constructor(val value: Uuid): PlannerUiEvent()
     data class RecordedSubActivityNoteChanged(val value: String): PlannerUiEvent()
     data class RecordedSubActivityTitleChanged(val value: String): PlannerUiEvent()
@@ -51,7 +53,7 @@ sealed class PlannerUiEvent {
     // GOAL
     data class GoalPriorityChanged(val value: Int): PlannerUiEvent()
     data class GoalTitleChanged(val value: String): PlannerUiEvent()
-    data class GoalToBeDeletedIdChanged @OptIn(ExperimentalUuidApi::class) constructor(val value: Uuid?): PlannerUiEvent()
+//    data class GoalToBeDeletedIdChanged @OptIn(ExperimentalUuidApi::class) constructor(val value: Uuid?): PlannerUiEvent()
     data class LastGoalPriorityChanged(val value: Int): PlannerUiEvent()
     data class SelectedGoalIdChanged @OptIn(ExperimentalUuidApi::class) constructor(val value: Uuid?): PlannerUiEvent()
 
@@ -68,7 +70,7 @@ sealed class PlannerUiEvent {
     data class TaskPinnedChanged(val value: Boolean): PlannerUiEvent()
     data class TaskPriorityChanged(val value: Int?): PlannerUiEvent()
     data class TaskStartTimeChanged(val value: LocalTime?): PlannerUiEvent()
-    data class TaskToBeDeletedIdChanged @OptIn(ExperimentalUuidApi::class) constructor(val value: Uuid?): PlannerUiEvent()
+//    data class TaskToBeDeletedIdChanged @OptIn(ExperimentalUuidApi::class) constructor(val value: Uuid?): PlannerUiEvent()
     data class TaskTitleChanged(val value: String): PlannerUiEvent()
 
     object DeleteTask: PlannerUiEvent()

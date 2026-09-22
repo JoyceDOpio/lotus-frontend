@@ -11,11 +11,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.eternalfairy.lotus.view.data.ActivityUiState
 import com.eternalfairy.lotus.view.screen.planner.PlannerUiEvent
 import com.eternalfairy.lotus.view.theme.Teal12
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils
-import com.eternalfairy.lotus.viewmodel.PlannerViewModel
+import com.eternalfairy.lotus.view.viewmodel.PlannerViewModel
 import kotlinx.datetime.LocalTime
 import java.time.LocalDateTime
 import kotlin.uuid.ExperimentalUuidApi
@@ -27,7 +26,7 @@ fun SubActivityList (
     viewModel: PlannerViewModel,
 //    mainActivityUiState: ActivityUiState,
     onDeleteItem: (Uuid) -> Unit,
-    onEditItem: (ActivityUiState) -> Unit,
+    onEditItem: (Uuid) -> Unit,
 //    removeVoiceNote: (VoiceNoteUiState) -> Unit,
 //    updateLastPlayedPosition: (Long, Int) -> Unit
 ) {
@@ -109,9 +108,7 @@ fun SubActivityList (
                     subActivity = subActivity,
                     onDelete = onDeleteItem,
                     onEdit = onEditItem,
-//                    onDeleteVoiceNote = removeVoiceNote,
                     onDeleteVoiceNote = { viewModel.onEvent(PlannerUiEvent.DeleteVoiceNote) },
-//                    updateLastPlayedPosition = updateLastPlayedPosition
                     updateLastPlayedPosition = { position, itemIndex -> viewModel.updateLastPlayedPosition(position, itemIndex) }
                 )
             }

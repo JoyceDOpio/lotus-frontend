@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,33 +53,34 @@ fun TopBar (
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Spacer(Modifier.weight(1f, true))
+//        Spacer(Modifier.weight(1f, true))
 
         Text (
             text = title,
             color = HEADER_TEXT_COLOR,
             fontSize = 24.sp,
-            modifier = Modifier.weight(2f, true)
+            modifier = Modifier.weight(2f, true),
+            textAlign = TextAlign.Center
         )
 
 
 
-        Row (
-            modifier = Modifier.weight(1f, true),
-            horizontalArrangement = Arrangement.End
-        ) {
-            IconButton(
-                onClick = {
-
-                }
-            ) {
-                Icon(
-                    imageVector = ImageVector.vectorResource(id = R.drawable.user_svgrepo_com),
-                    contentDescription = "Activity recorder",
-                    modifier = Modifier.fillMaxSize(0.75f),
-                    tint = HEADER_TEXT_COLOR
-                )
-            }
-        }
+//        Row (
+//            modifier = Modifier.weight(1f, true),
+//            horizontalArrangement = Arrangement.End
+//        ) {
+//            IconButton(
+//                onClick = {
+//
+//                }
+//            ) {
+//                Icon(
+//                    imageVector = ImageVector.vectorResource(id = R.drawable.user_svgrepo_com),
+//                    contentDescription = "Activity recorder",
+//                    modifier = Modifier.fillMaxSize(0.75f),
+//                    tint = HEADER_TEXT_COLOR
+//                )
+//            }
+//        }
     }
 }

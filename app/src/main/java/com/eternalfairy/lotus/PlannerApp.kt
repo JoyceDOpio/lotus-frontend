@@ -8,16 +8,21 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.eternalfairy.lotus.view.service.StopwatchService
 import com.eternalfairy.lotus.view.navigation.Navigation
+import com.eternalfairy.lotus.view.viewmodel.StopwatchViewModel
 
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 @Composable
 fun PlannerApp(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
+//    screenState: SmallScreenState?,
     stopwatchService: StopwatchService,
+    stopwatchViewModel: StopwatchViewModel
 ) {
     Navigation(
         navController = navController,
-        stopwatchService = stopwatchService,
+//        screenState = screenState,
+        stopwatchViewModel = stopwatchViewModel,
+        stopwatchService = stopwatchService
     )
 }

@@ -1,5 +1,6 @@
 package com.eternalfairy.lotus.view.screen
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -41,7 +42,7 @@ import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.theme.ERROR_TEXT_COLOR
 import com.eternalfairy.lotus.view.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.lotus.view.theme.SELECTION_COLOR
-import com.eternalfairy.lotus.viewmodel.PlannerViewModel
+import com.eternalfairy.lotus.view.viewmodel.PlannerViewModel
 
 enum class ActivityEditMode {
     // Edit both the title and notes
@@ -59,13 +60,9 @@ enum class EditedActivityType {
 fun ActivityEditScreen(// TODO: Merge with DayNoteEditScreen
     modifier: Modifier = Modifier,
     viewModel: PlannerViewModel,
-//    activityEditState: ActivityUiState,
     mode: ActivityEditMode = ActivityEditMode.Notes,
     activityType: EditedActivityType = EditedActivityType.Default,
-    onBack: () -> Unit,
-//    saveActivity: () -> Unit,
-//    setActivityNote: (String) -> Unit,
-//    setActivityTitle: (String) -> Unit = {}
+    onBack: () -> Unit
 ) {
     // Texts
     val labelText = "EDIT ACTIVITY"// TODO: Read text from string resource
@@ -117,7 +114,7 @@ fun ActivityEditScreen(// TODO: Merge with DayNoteEditScreen
                         }
 
                         if (isTitle) {
-//                            saveActivity()
+                            Log.i("ActivityEditScreen", "editedActivity ${state.editedActivity}")
                             when(activityType) {
                                 EditedActivityType.Default -> viewModel.onEvent(PlannerUiEvent.SaveActivity)
                                 EditedActivityType.Main -> viewModel.onEvent(PlannerUiEvent.EditRecordedMainActivity)
@@ -136,7 +133,8 @@ fun ActivityEditScreen(// TODO: Merge with DayNoteEditScreen
                     }
                 }
             )
-        }
+        },
+        containerColor = COMPONENT_BACKGROUND_COLOR
     ) { innerPadding ->
         Column(
             modifier = modifier
@@ -164,8 +162,6 @@ fun ActivityEditScreen(// TODO: Merge with DayNoteEditScreen
                 OutlinedTextField(
                     value = activityEditState.title,
                     onValueChange = { value ->
-//                        setActivityTitle(value)
-
                         when(activityType) {
                             EditedActivityType.Default -> viewModel.onEvent(PlannerUiEvent.ActivityTitleChanged(value))
                             EditedActivityType.Main -> viewModel.onEvent(PlannerUiEvent.RecordedMainActivityTitleChanged(value))

@@ -52,9 +52,8 @@ import com.eternalfairy.lotus.view.utils.DrawScopeUtils.drawMinuteSteps
 import com.eternalfairy.lotus.view.utils.DrawScopeUtils.drawTask
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils.TOUCH_STROKE
-import com.eternalfairy.lotus.viewmodel.PlannerViewModel
+import com.eternalfairy.lotus.view.viewmodel.PlannerViewModel
 import kotlinx.coroutines.delay
-import java.time.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlin.math.min
 import kotlin.uuid.ExperimentalUuidApi
@@ -69,11 +68,8 @@ fun ComparisonDial(
     paddingEnd: Dp = 10.dp,
     paddingBottom: Dp = 5.dp,
     viewModel: PlannerViewModel,
-//    dayUiState: DayUiState,
     drawClockHand: Boolean = false,
-    onNavigateToTaskActivityComparison: () -> Unit,
-//    selectActivity: (UUID?) -> Unit,
-//    selectTask: (UUID?) -> Unit,
+    onNavigateToTaskActivityComparison: () -> Unit
 ) {
     val state = viewModel.state
 
@@ -143,14 +139,12 @@ fun ComparisonDial(
             TouchGestureUtils.checkIfTouchWithinTaskArea(
                 angle = angle,
                 clockStart = activeTimeStart,
-//                clockEnd = activeTimeEnd,
                 minuteAngle = minuteAngle,
                 taskStart = task.startTime!!,
                 taskEnd = task.endTime!!
             )
 
             if (isTouchedTimeInTaskRange) {
-//                selectTask(task.id)
                 viewModel.onEvent(PlannerUiEvent.SelectedTaskIdChanged(task.id))
             }
         }
@@ -167,7 +161,6 @@ fun ComparisonDial(
             )
 
             if (isTouchedTimeInActivityRange) {
-//                selectActivity(activity.id)
                 viewModel.onEvent(PlannerUiEvent.SelectedActivityIdChanged(activity.id))
             }
         }

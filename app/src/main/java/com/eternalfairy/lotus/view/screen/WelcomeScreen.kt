@@ -34,7 +34,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.eternalfairy.lotus.R
-import com.eternalfairy.lotus.model.data.Goal
+import com.eternalfairy.lotus.data.model.Goal
 import kotlinx.coroutines.delay
 
 @Composable

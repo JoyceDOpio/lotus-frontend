@@ -24,7 +24,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import com.eternalfairy.lotus.view.data.ActivityUiState
 import com.eternalfairy.lotus.view.data.VoiceNoteUiState
 import com.eternalfairy.lotus.view.theme.Teal12
-import com.eternalfairy.lotus.viewmodel.AudioViewModel
+import com.eternalfairy.lotus.view.viewmodel.AudioViewModel
 
 @Composable
 fun VoiceNoteList (

@@ -1,8 +1,10 @@
 package com.eternalfairy.lotus
 
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.ServiceConnection
 import android.os.Build
 import android.os.Bundle
@@ -20,15 +22,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.eternalfairy.lotus.view.service.StopwatchBroadcastReceiver
 import com.eternalfairy.lotus.view.service.StopwatchService
 import com.eternalfairy.lotus.view.theme.LotusTheme
+import com.eternalfairy.lotus.view.viewmodel.StopwatchViewModel
 import com.google.android.gms.ads.MobileAds
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private var isBound by mutableStateOf(false)
+    private var isRegistered by mutableStateOf(false)
+    private lateinit var stopwatchReceiver: BroadcastReceiver
     private lateinit var stopwatchService: StopwatchService
+    private lateinit var stopwatchViewModel: StopwatchViewModel
+
+
 
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(
@@ -52,8 +61,26 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+//        var screenState: SmallScreenState? = null
+////        val extras: Bundle? = intent.extras
+////        extras?.let {
+////            screenState = (SmallScreenState) it.getSerializable(SCREEN_STATE)
+////        }
+//        screenState = intent.getSerializableExtra(SCREEN_STATE) as SmallScreenState?
+//
+//        Log.i("MainActivity", "screenState $screenState")
+
         // Initialize the Google Mobile Ads SDK on a background thread.
         MobileAds.initialize(this@MainActivity) {}
+
+        // Receiving time values from service
+        val stopwatchFilter = IntentFilter()
+        stopwatchFilter.addAction(StopwatchService.STOPWATCH_ACTION)
+        stopwatchReceiver = StopwatchBroadcastReceiver()
+        registerReceiver(stopwatchReceiver, stopwatchFilter, RECEIVER_NOT_EXPORTED)
+        isRegistered = true
+
+        stopwatchViewModel = StopwatchViewModel()
 
         setContent {
             LotusTheme {
@@ -61,14 +88,14 @@ class MainActivity : ComponentActivity() {
                     if (isBound) {
                         PlannerApp(
                             modifier = Modifier.padding(innerPadding),
-                            stopwatchService = stopwatchService
+//                            screenState = screenState,
+                            stopwatchService = stopwatchService,
+                            stopwatchViewModel = stopwatchViewModel
                         )
                     }
                 }
             }
         }
-
-
 
         requestPermissions()
     }
@@ -83,7 +110,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
-        unbindService(connection)
+        if (isBound) {
+            unbindService(connection)
+        }
+        if (isRegistered) {
+            unregisterReceiver(stopwatchReceiver)
+        }
         isBound = false
     }
 

@@ -231,9 +231,6 @@ dependencies {
     // Dotenv
     implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
 
-    // PostHog
-    implementation("com.posthog:posthog-android:3.+")
-
     // Encryption
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 

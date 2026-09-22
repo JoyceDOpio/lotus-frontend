@@ -24,11 +24,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eternalfairy.lotus.R
-import com.eternalfairy.lotus.view.data.ActivityUiState
-import com.eternalfairy.lotus.view.data.DayUiState
 import com.eternalfairy.lotus.view.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils
-import com.eternalfairy.lotus.viewmodel.PlannerViewModel
+import com.eternalfairy.lotus.view.viewmodel.PlannerViewModel
 import kotlinx.coroutines.delay
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.format
@@ -36,9 +34,7 @@ import kotlinx.datetime.format.DateTimeFormat
 import kotlinx.datetime.format.DayOfWeekNames
 import kotlinx.datetime.format.MonthNames
 import kotlinx.datetime.format.char
-import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 
 enum class CardDisplayType {
     Popup,
@@ -58,16 +54,8 @@ fun InfoCard (
     verticalArrangement: Arrangement.Vertical = Arrangement.Top,
     horizontalAlignment: Alignment.Horizontal = Alignment.Start,
     viewModel: PlannerViewModel,
-//    date: OffsetDateTime?,
-//    date: LocalDate?,
-//    dayUiState: DayUiState,
-//    endTime: Time?,
-//    startTime: Time?,
-//    pinned: Boolean? = null,
-//    title: String,
     displayType: CardDisplayType = CardDisplayType.Full,
     infoType: CardInfoType = CardInfoType.Task,
-//    subActivities: List<ActivityUiState> = emptyList(),
     content: @Composable () -> Unit
 ) {
     val state = viewModel.state
@@ -101,11 +89,9 @@ fun InfoCard (
     val dayOfWeekNames = listOf(
         "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
     )
-//    val weekDayFormatter = DateTimeFormatter.ofPattern("EEEE")
     val weekDayFormatter: DateTimeFormat<kotlinx.datetime.LocalDate> = kotlinx.datetime.LocalDate.Format {
         dayOfWeek(DayOfWeekNames(dayOfWeekNames))
     }
-//    val dateFormatter = DateTimeFormatter.ofPattern("d. MMMM")
     val monthNames = listOf(
         "January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"
@@ -176,6 +162,7 @@ fun InfoCard (
         modifier = modifier
             .padding(horizontal = if (displayType == CardDisplayType.Popup) 20.dp else 30.dp)
             .padding(top = if (displayType == CardDisplayType.Popup) 15.dp else 0.dp)
+            .padding(bottom = if (displayType == CardDisplayType.Popup) 15.dp else 10.dp)
             .fillMaxWidth()
             .fillMaxHeight()
         ,

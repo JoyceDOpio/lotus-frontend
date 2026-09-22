@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.sp
 import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.lotus.view.theme.SELECTION_COLOR
-import com.eternalfairy.lotus.viewmodel.AuthViewModel
+import com.eternalfairy.lotus.view.viewmodel.AuthViewModel
 
 @Composable
 fun LogInScreen (

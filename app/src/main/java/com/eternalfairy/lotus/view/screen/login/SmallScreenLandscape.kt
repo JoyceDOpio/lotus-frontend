@@ -24,7 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
-import com.eternalfairy.lotus.viewmodel.AuthViewModel
+import com.eternalfairy.lotus.view.viewmodel.AuthViewModel
 
 @Composable
 fun SmallScreenLandscape(

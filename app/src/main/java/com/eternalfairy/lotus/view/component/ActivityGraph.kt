@@ -61,22 +61,18 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.eternalfairy.lotus.R
 import com.eternalfairy.lotus.view.component.calendar.conditional
-import com.eternalfairy.lotus.view.data.DayUiState
 import com.eternalfairy.lotus.view.screen.planner.PlannerUiEvent
-import com.eternalfairy.lotus.view.screen.planner.PlannerUiState
 import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.lotus.view.theme.MINUTE_LABEL_COLOR
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils.TOUCH_STROKE
-import com.eternalfairy.lotus.viewmodel.PlannerViewModel
+import com.eternalfairy.lotus.view.viewmodel.PlannerViewModel
 import kotlinx.coroutines.delay
 import kotlinx.datetime.LocalTime
-import java.time.LocalDate
 import kotlin.math.ceil
 import kotlin.math.sqrt
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 enum class ActivityGraphDisplayType {
     Activity,

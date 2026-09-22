@@ -32,7 +32,7 @@ import com.eternalfairy.lotus.view.screen.TaskInfoScreen
 import com.eternalfairy.lotus.view.screen.planner.PlannerUiEvent
 import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.utils.TaskModePopup
-import com.eternalfairy.lotus.viewmodel.PlannerViewModel
+import com.eternalfairy.lotus.view.viewmodel.PlannerViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -42,28 +42,10 @@ fun DragItemListTask(//TODO: Merge with DragItemListGoal
     componentHeight: Dp = 680.dp,
     componentWidth: Dp = 400.dp,
     viewModel: PlannerViewModel,
-//    dayUiState: DayUiState,
-//    items: List<TaskUiState>,
-//    lastTaskPriority: Int?,
-//    taskUiState: TaskUiState,
-//    deleteTask: () -> Unit,
-    onMoveToCalendar: () -> Unit,
-//    onMoveToToDoList: () -> Unit,
-//    onPinTask: (Boolean) -> Unit,
-//    saveTask: (TaskUiState) -> Unit,
-//    saveTaskFromState: () -> Unit,
-//    selectTask: (UUID?) -> Unit,
-//    setTaskDescription: (String) -> Unit,
-//    setTaskEndTime: (Time) -> Unit,
-//    setTaskPriority: (Int) -> Unit,
-//    setTaskStartTime: (Time) -> Unit,
-//    setTaskTitle: (String) -> Unit
+    onMoveToCalendar: () -> Unit
 ) {
     val state = viewModel.state
-    val dayUiState = state.selectedDay
     val items = state.toDoTasks
-    val lastTaskPriority = state.lastTaskPriority
-    val taskUiState = state.editedTask
 
     var draggedItem: LazyListItemInfo? by remember { mutableStateOf(null) }
     var draggedItemIndex: Int? by remember { mutableStateOf(null) }

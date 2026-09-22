@@ -53,16 +53,15 @@ import com.eternalfairy.lotus.view.component.SubActivityList
 import com.eternalfairy.lotus.view.component.InfoCard
 import com.eternalfairy.lotus.view.component.TaskDropdownMenu
 import com.eternalfairy.lotus.view.component.TopBar
-import com.eternalfairy.lotus.view.component.VoiceNoteList
 import com.eternalfairy.lotus.view.component.calendar.CalendarWeek
 import com.eternalfairy.lotus.view.data.TaskUiState
 import com.eternalfairy.lotus.view.theme.BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.theme.COMMENT_TEXT_COLOR
 import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.theme.HEADER_TEXT_COLOR
-import com.eternalfairy.lotus.viewmodel.AudioViewModel
+import com.eternalfairy.lotus.view.viewmodel.AudioViewModel
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils
-import com.eternalfairy.lotus.viewmodel.PlannerViewModel
+import com.eternalfairy.lotus.view.viewmodel.PlannerViewModel
 import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
@@ -73,59 +72,23 @@ import kotlinx.datetime.format
 import kotlinx.datetime.format.DateTimeFormat
 import kotlinx.datetime.format.MonthNames
 import kotlinx.datetime.format.char
-import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.util.UUID
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 @Composable
 fun SmallScreenLandscape (
-//    activityUiState: ActivityUiState,
-//    adView: AdView,
     audioViewModel: AudioViewModel,
     plannerViewModel: PlannerViewModel,
     context: Context,
-//    dayUiState: DayUiState,
-//    goals: List<GoalUiState>,
-//    goalUiState: GoalUiState,
-//    lastGoalPriority: Int?,
-//    lastTaskPriority: Int?,
-//    taskUiState: TaskUiState,
-//    toDoTasks: List<TaskUiState>,
-//    userInput: UserInput,
-//    deleteGoal: (UUID) -> Unit,
-//    deleteTask: () -> Unit,
-//    deleteVoiceNote: () -> Unit,
     onDeleteActivity: (Uuid) -> Unit,
     onEditActivity: (Uuid?) -> Unit,
     onDeleteTask: () -> Unit,
     onEditTask: () -> Unit,
     onDeleteVoiceNote: (Uuid?) -> Unit,
-//    onMoveToToDoList: () -> Unit,
-//    onPinTask: (Boolean) -> Unit,
     onPressActiveTime: () -> Unit,
-//    onSetSelectedDate: (LocalDate) -> Unit,
-    onShowPopupWindow: (PopupState) -> Unit,
-//    saveGoal: (GoalUiState) -> Unit,
-//    saveGoalFromState: () -> Unit,
-//    saveTask: (TaskUiState) -> Unit,
-//    saveTaskFromState: () -> Unit,
-//    selectActivity: (UUID?) -> Unit,
-//    selectGoal: (UUID?) -> Unit,
-//    selectTask: (UUID?) -> Unit,
-//    selectVoiceNoteToBeDeleted: (UUID?) -> Unit,
-//    setGoalPriority: (Int) -> Unit,
-//    setGoalTitle: (String) -> Unit,
-//    setTaskDate: (LocalDate?) -> Unit,
-//    setTaskDescription: (String) -> Unit,
-//    setTaskEndTime: (Time) -> Unit,
-//    setTaskPriority: (Int?) -> Unit,
-//    setTaskStartTime: (Time) -> Unit,
-//    setTaskTitle: (String) -> Unit,
-//    updateLastPlayedPosition: (Long, Int) -> Unit
+    onShowPopupWindow: (PopupState) -> Unit
 ) {
     val state = plannerViewModel.state
 
@@ -179,7 +142,7 @@ fun SmallScreenLandscape (
     var movedTaskStartTime: LocalTime? = null
     var movedTaskEndTime: LocalTime? = null
     // Find a slot between tasks to fit in the moved task
-    var slotStartTime = if (selectedDate == LocalDate.parse(LocalDateTime.now().toString())) LocalTime(
+    var slotStartTime = if (selectedDate == today) LocalTime(
         LocalDateTime.now().hour, LocalDateTime.now().minute) else dayUiState.activeTimeStart
     var slotEndTime: LocalTime
     var tasks: List<TaskUiState> = state.tasks.toList()
@@ -1173,8 +1136,8 @@ fun SmallScreenLandscape (
                                         onDeleteItem = { subActivityId ->
                                             onDeleteActivity(subActivityId)
                                         },
-                                        onEditItem = { subActivity ->
-                                            onEditActivity(subActivity.id)
+                                        onEditItem = { subActivityId ->
+                                            onEditActivity(subActivityId)
                                         },
 //                                        removeVoiceNote = { voiceNote ->
 //                                            selectVoiceNoteToBeDeleted(voiceNote.id)

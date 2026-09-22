@@ -18,7 +18,7 @@ data class PlannerUiState @OptIn(ExperimentalUuidApi::class) constructor(
     val activities: Activities = emptyList(),
 //    val activityToBeDeleted: ActivityUiState = ActivityUiState(),
     val activityToBeDeletedId: Uuid? = null,
-//    val activityToBeEditedId: Uuid? = null,
+    val activityToBeEditedId: Uuid? = null,
     val editedActivity: ActivityUiState = ActivityUiState(),
 //    val isSubActivityTimerRunning: Boolean = false,
     val recordedActivityMain: ActivityUiState = ActivityUiState(),
@@ -27,6 +27,9 @@ data class PlannerUiState @OptIn(ExperimentalUuidApi::class) constructor(
 //    val selectedActivityId: Uuid? = null,
     // Sub-activities of the selected activity
     val subActivities: Activities = emptyList(),
+    // Stopwatch values of the recorded activities
+    val stopWatchValueMain: String = "00:00:00",
+    val stopWatchValueSub: String = "00:00:00",
 
     // Day
     val editedDay: DayUiState = DayUiState(),
@@ -36,7 +39,7 @@ data class PlannerUiState @OptIn(ExperimentalUuidApi::class) constructor(
     // Goal
     val editedGoal: GoalUiState = GoalUiState(),
     val goals: List<GoalUiState> = emptyList(),
-    val goalToBeDeletedId: Uuid? = null,
+//    val goalToBeDeletedId: Uuid? = null,
     val lastGoalPriority: Int = 0,
     val selectedGoal: GoalUiState = GoalUiState(),
 //    val selectedGoalId: Uuid? = null,
@@ -45,6 +48,7 @@ data class PlannerUiState @OptIn(ExperimentalUuidApi::class) constructor(
     val editedTask: TaskUiState = TaskUiState(),
     val lastTaskPriority: Int = 0,
     val selectedTask: TaskUiState = TaskUiState(),
+//    val selectedTaskId: Uuid? = null,
     val tasks: Tasks = emptyList(),
     val taskToBeDeletedId: Uuid? = null,
     val toDoTasks: Tasks = emptyList(),

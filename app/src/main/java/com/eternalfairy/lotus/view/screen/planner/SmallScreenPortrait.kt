@@ -54,7 +54,6 @@ import com.eternalfairy.lotus.view.component.SubActivityList
 import com.eternalfairy.lotus.view.component.InfoCard
 import com.eternalfairy.lotus.view.component.TaskDropdownMenu
 import com.eternalfairy.lotus.view.component.TopBar
-import com.eternalfairy.lotus.view.component.VoiceNoteList
 import com.eternalfairy.lotus.view.component.calendar.CalendarWeek
 import com.eternalfairy.lotus.view.data.TaskUiState
 import com.eternalfairy.lotus.view.theme.BACKGROUND_COLOR
@@ -62,8 +61,8 @@ import com.eternalfairy.lotus.view.theme.COMMENT_TEXT_COLOR
 import com.eternalfairy.lotus.view.theme.COMPONENT_BACKGROUND_COLOR
 import com.eternalfairy.lotus.view.theme.HEADER_TEXT_COLOR
 import com.eternalfairy.lotus.view.utils.TouchGestureUtils
-import com.eternalfairy.lotus.viewmodel.AudioViewModel
-import com.eternalfairy.lotus.viewmodel.PlannerViewModel
+import com.eternalfairy.lotus.view.viewmodel.AudioViewModel
+import com.eternalfairy.lotus.view.viewmodel.PlannerViewModel
 import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
@@ -82,52 +81,20 @@ import kotlin.uuid.Uuid
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalUuidApi::class)
 @Composable
 fun SmallScreenPortrait (
-//    activityUiState: ActivityUiState,
-//    adView: AdView,
     audioViewModel: AudioViewModel,
-    plannerViewModel: PlannerViewModel,
     context: Context,
-//    dayUiState: DayUiState,
-//    goals: List<GoalUiState>,
-//    goalUiState: GoalUiState,
-//    lastGoalPriority: Int?,
-//    lastTaskPriority: Int?,
-//    taskUiState: TaskUiState,
-//    toDoTasks: List<TaskUiState>,
-//    userInput: UserInput,
-//    deleteGoal: (UUID) -> Unit,
-//    deleteTask: () -> Unit,
-//    deleteVoiceNote: () -> Unit,
+    plannerViewModel: PlannerViewModel,
+//    screenStateValue: SmallScreenState?,
     onDeleteActivity: (Uuid) -> Unit,
-    onEditActivity: (Uuid?) -> Unit,
+    onEditActivity: (Uuid) -> Unit,
     onDeleteTask: () -> Unit,
     onEditTask: () -> Unit,
     onDeleteVoiceNote: (Uuid?) -> Unit,
-//    onLogout: () -> Unit,
-//    onMoveToToDoList: () -> Unit,
-//    onNavigateToLogin: () -> Unit,
-//    onPinTask: (Boolean) -> Unit,
     onPressActiveTime: () -> Unit,
-//    onSetSelectedDate: (LocalDate) -> Unit,
-    onShowPopupWindow: (PopupState) -> Unit,
-//    saveGoal: (GoalUiState) -> Unit,
-//    saveGoalFromState: () -> Unit,
-//    saveTask: (TaskUiState) -> Unit,
-//    saveTaskFromState: () -> Unit,
-//    selectActivity: (UUID?) -> Unit,
-//    selectGoal: (UUID?) -> Unit,
-//    selectTask: (UUID?) -> Unit,
-//    selectVoiceNoteToBeDeleted: (UUID?) -> Unit,
-//    setGoalPriority: (Int) -> Unit,
-//    setGoalTitle: (String) -> Unit,
-//    setTaskDate: (LocalDate?) -> Unit,
-//    setTaskDescription: (String) -> Unit,
-//    setTaskEndTime: (Time) -> Unit,
-//    setTaskPriority: (Int?) -> Unit,
-//    setTaskStartTime: (Time) -> Unit,
-//    setTaskTitle: (String) -> Unit,
-//    updateLastPlayedPosition: (Long, Int) -> Unit
+    onShowPopupWindow: (PopupState) -> Unit
 ) {
+//    Log.i("SmallScreenPortrait", "screenStateValue $screenStateValue")
+
     val state = plannerViewModel.state
 
     val monthNames = listOf(
@@ -147,6 +114,8 @@ fun SmallScreenPortrait (
     }
     val selectedDate = state.selectedDate
     val today = LocalDate.parse(java.time.LocalDate.now().toString())
+    Log.i("SmallScreenPortrait", "today $today")
+    Log.i("SmallScreenPortrait", "selectedDate $selectedDate")
 
     // Bottom sheet
     val sheetState = rememberModalBottomSheetState()
@@ -154,9 +123,11 @@ fun SmallScreenPortrait (
     val scope = rememberCoroutineScope()
 
     // Screen state
+//    var screenState by remember { mutableStateOf(screenStateValue ?: SmallScreenState.DayTask) }
     var screenState by remember { mutableStateOf(SmallScreenState.DayTask) }
     var button1State by remember { mutableStateOf(SmallScreenButtonState.Goal) }
     var button2State by remember { mutableStateOf(SmallScreenButtonState.ToDo) }
+    Log.i("SmallScreenPortrait", "screenState $screenState")
 
     // Texts
     val activityLabel = "ACTIVITY"//TODO: Read from string resource
@@ -398,33 +369,30 @@ fun SmallScreenPortrait (
                     visible = selectedDate < today
                             || screenState == SmallScreenState.DayActivity
                 ) {
+                    Log.i("SmallScreenPortrait", "activities: ${state.activities}")
+                    Log.i("SmallScreenPortrait", "recordedActivityMain: ${state.recordedActivityMain}")
+                    Log.i("SmallScreenPortrait", "recordedActivitySub: ${state.recordedActivitySub}")
+
                     // INFO: If I don't add this Column here, the ActivityGraph and Comparison components overlap
                     Column (
-                        modifier = Modifier
-                        ,
+                        modifier = Modifier,
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.SpaceBetween
                     ) {
                         ActivityGraph(
-//                            dayUiState = dayUiState,
                             viewModel = plannerViewModel,
                             drawClockHand = screenState == SmallScreenState.DayActivity,
                             onNavigateToTaskActivityComparison = {
                                 screenState = SmallScreenState.Comparison
-                            },
-//                            selectActivity = selectActivity,
-//                            selectTask = selectTask
+                            }
                         )
 
                         ComparisonDial(
-//                            dayUiState = dayUiState,
                             drawClockHand = screenState == SmallScreenState.DayActivity,
                             viewModel = plannerViewModel,
                             onNavigateToTaskActivityComparison = {
                                 screenState = SmallScreenState.Comparison
-                            },
-//                            selectActivity = selectActivity,
-//                            selectTask = selectTask
+                            }
                         )
                     }
                 }
@@ -438,14 +406,8 @@ fun SmallScreenPortrait (
                         visible = screenState == SmallScreenState.DayTask
                     ) {
                         PlannerDial(
-//                            dayUiState = dayUiState,
                             viewModel = plannerViewModel,
                             drawClockHand = selectedDate == today,
-//                            lastTaskPriority = lastTaskPriority,
-//                            taskUiState = taskUiState,
-//                            userInput = userInput,
-//                            deleteTask = deleteTask,
-//                            onMoveToToDoList = onMoveToToDoList,
                             onPressActiveTime = onPressActiveTime,
                             onMoveToCalendar = {
                                 screenState = SmallScreenState.MoveToCalendar
@@ -456,17 +418,7 @@ fun SmallScreenPortrait (
                                 else if (button2State == SmallScreenButtonState.Day) {
                                     button2State = SmallScreenButtonState.ToDo
                                 }
-                            },
-//                            onPinTask = onPinTask,
-//                            saveTask = saveTask,
-//                            saveTaskFromState = saveTaskFromState,
-//                            selectTask = selectTask,
-//                            setTaskEndTime = setTaskEndTime,
-//                            setTaskStartTime = setTaskStartTime,
-//                            setTaskDate = setTaskDate,
-//                            setTaskDescription = setTaskDescription,
-//                            setTaskPriority = setTaskPriority,
-//                            setTaskTitle = setTaskTitle
+                            }
                         )
                     }
 
@@ -476,11 +428,6 @@ fun SmallScreenPortrait (
                     ) {
                         DragItemListTask (
                             viewModel = plannerViewModel,
-//                            dayUiState = dayUiState,
-//                            items = toDoTasks,
-//                            lastTaskPriority = lastTaskPriority,
-//                            taskUiState = taskUiState,
-//                            deleteTask = deleteTask,
                             onMoveToCalendar = {
                                 screenState = SmallScreenState.MoveToCalendar
 
@@ -490,17 +437,7 @@ fun SmallScreenPortrait (
                                 else if (button2State == SmallScreenButtonState.Day) {
                                     button2State = SmallScreenButtonState.ToDo
                                 }
-                            },
-//                            onMoveToToDoList = onMoveToToDoList,
-//                            onPinTask = onPinTask,
-//                            saveTask = saveTask,
-//                            saveTaskFromState = saveTaskFromState,
-//                            selectTask = selectTask,
-//                            setTaskDescription = setTaskDescription,
-//                            setTaskEndTime = setTaskEndTime,
-//                            setTaskStartTime = setTaskStartTime,
-//                            setTaskPriority = setTaskPriority,
-//                            setTaskTitle = setTaskTitle
+                            }
                         )
                     }
 
@@ -509,16 +446,7 @@ fun SmallScreenPortrait (
                         visible = screenState == SmallScreenState.Goal
                     ) {
                         DragItemListGoal(
-                            viewModel = plannerViewModel,
-//                            items = goals,
-//                            goalUiState = goalUiState,
-//                            lastGoalPriority = lastGoalPriority,
-//                            deleteGoal = deleteGoal,
-//                            saveGoal = saveGoal,
-//                            saveGoalFromState = saveGoalFromState,
-//                            selectGoal = selectGoal,
-//                            setGoalPriority = setGoalPriority,
-//                            setGoalTitle = setGoalTitle
+                            viewModel = plannerViewModel
                         )
                     }
                 }
@@ -655,13 +583,7 @@ fun SmallScreenPortrait (
                         }
 
                         InfoCard (
-                            viewModel = plannerViewModel,
-//                            date = selectedDate,
-//                            dayUiState = dayUiState,
-//                            endTime = taskUiState.endTime,
-//                            startTime = taskUiState.startTime,
-//                            title = taskUiState.title,
-//                            pinned = taskUiState.pinned
+                            viewModel = plannerViewModel
                         ) {
                             // Description
                             Text(
@@ -768,13 +690,7 @@ fun SmallScreenPortrait (
 
                         InfoCard (
                             viewModel = plannerViewModel,
-                            infoType = CardInfoType.Activity,
-//                            date = userInput.selectedDate,
-//                            dayUiState = dayUiState,
-//                            endTime = activityUiState.endTime,
-//                            startTime = activityUiState.startTime,
-//                            title = activityUiState.title,
-//                            subActivities = activityUiState.subActivitiesUiState
+                            infoType = CardInfoType.Activity
                         ) {
                             Column (
                                 modifier = Modifier
@@ -813,18 +729,12 @@ fun SmallScreenPortrait (
 
                                     SubActivityList(
                                         viewModel = plannerViewModel,
-//                                        mainActivityUiState = activityUiState,
                                         onDeleteItem = { subActivityId ->
                                             onDeleteActivity(subActivityId)
                                         },
-                                        onEditItem = { subActivity ->
-                                            onEditActivity(subActivity.id)
-                                        },
-//                                        removeVoiceNote = { voiceNote ->
-//                                            selectVoiceNoteToBeDeleted(voiceNote.id)
-//                                            deleteVoiceNote()
-//                                        },
-//                                        updateLastPlayedPosition = updateLastPlayedPosition
+                                        onEditItem = { subActivityId ->
+                                            onEditActivity(subActivityId)
+                                        }
                                     )
                                 }
                             }
@@ -1120,10 +1030,10 @@ fun SmallScreenPortrait (
                 content = {
                     IconButton(
                         onClick = {
-                            if (selectedDate < LocalDate.parse(LocalDateTime.now().toString())) {
+                            if (selectedDate < today) {
                                 screenState = SmallScreenState.DayTask
                             }
-                            else if (selectedDate == LocalDate.parse(LocalDateTime.now().toString())) {
+                            else if (selectedDate == today) {
                                 screenState = SmallScreenState.DayActivity
                             }
                         }
