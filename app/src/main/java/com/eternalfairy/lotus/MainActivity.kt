@@ -22,10 +22,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import com.eternalfairy.lotus.view.service.StopwatchBroadcastReceiver
-import com.eternalfairy.lotus.view.service.StopwatchService
-import com.eternalfairy.lotus.view.theme.LotusTheme
-import com.eternalfairy.lotus.view.viewmodel.StopwatchViewModel
+import com.eternalfairy.lotus.presentation.service.StopwatchBroadcastReceiver
+import com.eternalfairy.lotus.presentation.service.StopwatchService
+import com.eternalfairy.lotus.presentation.theme.LotusTheme
+import com.eternalfairy.lotus.presentation.viewmodel.StopwatchViewModel
 import com.google.android.gms.ads.MobileAds
 import dagger.hilt.android.AndroidEntryPoint
 

@@ -1,6 +1,6 @@
 package com.eternalfairy.lotus.data.dao.postgres
 
-import com.eternalfairy.lotus.data.auth.InjectAuth
+import com.eternalfairy.lotus.auth.InjectAuth
 import com.eternalfairy.lotus.data.model.Activity
 import kotlinx.datetime.LocalDate
 import retrofit2.http.Body

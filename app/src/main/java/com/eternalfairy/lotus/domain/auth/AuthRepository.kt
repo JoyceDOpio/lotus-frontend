@@ -1,6 +1,6 @@
 package com.eternalfairy.lotus.domain.auth
 
-import com.eternalfairy.lotus.data.auth.AuthResponse
+import com.eternalfairy.lotus.auth.AuthResponse
 
 interface AuthRepository {
     suspend fun authenticate(): AuthResponse<Unit>

@@ -1,9 +1,9 @@
 package com.eternalfairy.lotus.data.test
 
 import android.content.SharedPreferences
-import com.eternalfairy.lotus.data.auth.AuthResponse
+import com.eternalfairy.lotus.auth.AuthResponse
 import com.eternalfairy.lotus.domain.auth.AuthRepository
-import com.eternalfairy.lotus.data.auth.TokenResponse
+import com.eternalfairy.lotus.auth.TokenResponse
 import retrofit2.HttpException
 
 class MockAuthRepository(

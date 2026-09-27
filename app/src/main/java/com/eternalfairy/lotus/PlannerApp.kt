@@ -6,9 +6,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import com.eternalfairy.lotus.view.service.StopwatchService
-import com.eternalfairy.lotus.view.navigation.Navigation
-import com.eternalfairy.lotus.view.viewmodel.StopwatchViewModel
+import com.eternalfairy.lotus.presentation.service.StopwatchService
+import com.eternalfairy.lotus.presentation.navigation.Navigation
+import com.eternalfairy.lotus.presentation.viewmodel.StopwatchViewModel
 
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 @Composable

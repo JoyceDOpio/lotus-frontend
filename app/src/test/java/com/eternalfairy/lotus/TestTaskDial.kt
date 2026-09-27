@@ -23,9 +23,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
-import com.eternalfairy.lotus.view.viewmodel.room.DayState
-import com.eternalfairy.lotus.view.viewmodel.room.UserInput
-import com.eternalfairy.lotus.view.utils.TouchGestureUtils.square
+import com.eternalfairy.lotus.presentation.viewmodel.room.DayState
+import com.eternalfairy.lotus.presentation.viewmodel.room.UserInput
+import com.eternalfairy.lotus.presentation.utils.TouchGestureUtils.square
 import java.time.LocalDate
 import kotlin.math.sqrt
 

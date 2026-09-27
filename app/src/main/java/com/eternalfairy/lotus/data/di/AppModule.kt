@@ -3,8 +3,8 @@ package com.eternalfairy.lotus.data.di
 import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
-import com.eternalfairy.lotus.data.auth.AuthApi
-import com.eternalfairy.lotus.data.auth.AuthInterceptor
+import com.eternalfairy.lotus.auth.AuthApi
+import com.eternalfairy.lotus.auth.AuthInterceptor
 import com.eternalfairy.lotus.data.test.MockAuthRepository
 import com.eternalfairy.lotus.domain.auth.AuthRepository
 import com.eternalfairy.lotus.data.dao.IActivityDAO
